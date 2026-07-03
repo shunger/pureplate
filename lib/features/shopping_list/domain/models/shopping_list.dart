@@ -8,7 +8,7 @@ part 'shopping_list.g.dart';
 enum ShoppingListSource { manual, mealPlan }
 
 @freezed
-class ShoppingListItem with _$ShoppingListItem {
+abstract class ShoppingListItem with _$ShoppingListItem {
   const ShoppingListItem._();
 
   const factory ShoppingListItem({
@@ -57,7 +57,7 @@ class ShoppingListItem with _$ShoppingListItem {
 }
 
 @freezed
-class ShoppingList with _$ShoppingList {
+abstract class ShoppingList with _$ShoppingList {
   const ShoppingList._();
 
   const factory ShoppingList({

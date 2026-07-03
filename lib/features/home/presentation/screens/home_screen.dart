@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/routing/route_names.dart';
 import '../widgets/pantry_summary_card.dart';
 import '../widgets/whats_for_dinner_button.dart';
 import '../widgets/expiring_items_card.dart';

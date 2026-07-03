@@ -41,16 +41,11 @@ class PlanGenerationNotifier extends StateNotifier<PlanGenerationState> {
   final AiPlanRepository _aiRepo;
   final PreferenceSummaryBuilder _summaryBuilder;
   // TODO: Add DAO references for saving plans, recipes, shopping lists.
-  // final MealPlanDao _mealPlanDao;
-  // final RecipeDao _recipeDao;
-  // final AutoListGenerator _autoListGenerator;
 
   PlanGenerationNotifier({
-    required AiPlanRepository aiRepo,
-    required PreferenceSummaryBuilder summaryBuilder,
-  })  : _aiRepo = aiRepo,
-        _summaryBuilder = summaryBuilder,
-        super(const PlanGenerationState());
+    required this._aiRepo,
+    required this._summaryBuilder,
+  }) : super(const PlanGenerationState());
 
   /// Generate a plan for [numDays] days.
   ///

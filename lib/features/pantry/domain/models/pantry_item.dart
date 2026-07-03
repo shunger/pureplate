@@ -25,7 +25,7 @@ enum ExpiryStatus { fresh, expiringSoon, expired, unknown }
 /// - Auto shopping list (diff against recipe needs)
 /// - Expiry notifications
 @freezed
-class PantryItem with _$PantryItem {
+abstract class PantryItem with _$PantryItem {
   const PantryItem._();
 
   const factory PantryItem({

@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../pantry/domain/models/pantry_item.dart';
-import '../../../recipes/domain/models/ingredient.dart';
 import '../../../recipes/domain/models/recipe.dart';
 import '../../domain/models/shopping_list.dart';
 import '../../../../shared/models/product_category.dart';

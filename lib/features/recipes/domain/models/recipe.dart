@@ -10,7 +10,7 @@ enum RecipeSource { bundled, aiGenerated, userCreated }
 
 /// A recipe — either bundled with the app, AI-generated, or user-created.
 @freezed
-class Recipe with _$Recipe {
+abstract class Recipe with _$Recipe {
   const Recipe._();
 
   const factory Recipe({

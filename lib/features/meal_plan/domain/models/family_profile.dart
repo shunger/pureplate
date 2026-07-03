@@ -20,7 +20,7 @@ enum PreferredCookTime { under30, under45, under60, anyTime }
 
 /// Family profile — drives AI personalization.
 @freezed
-class FamilyProfile with _$FamilyProfile {
+abstract class FamilyProfile with _$FamilyProfile {
   const factory FamilyProfile({
     required String id,
     @Default(2) int adults,

@@ -4,7 +4,7 @@ part 'instruction_step.freezed.dart';
 part 'instruction_step.g.dart';
 
 @freezed
-class InstructionStep with _$InstructionStep {
+abstract class InstructionStep with _$InstructionStep {
   const factory InstructionStep({
     required int stepNumber,
     required String instruction,

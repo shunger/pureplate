@@ -4,7 +4,7 @@ part 'ingredient.freezed.dart';
 part 'ingredient.g.dart';
 
 @freezed
-class Substitution with _$Substitution {
+abstract class Substitution with _$Substitution {
   const factory Substitution({
     required String name,
     String? quantity,
@@ -18,7 +18,7 @@ class Substitution with _$Substitution {
 
 /// A single ingredient in a recipe.
 @freezed
-class Ingredient with _$Ingredient {
+abstract class Ingredient with _$Ingredient {
   const factory Ingredient({
     required String name,
     String? quantity,

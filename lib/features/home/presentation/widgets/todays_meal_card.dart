@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/routing/route_names.dart';
 
 /// Shows today's planned meal if a meal plan exists.
 /// Tapping opens the recipe detail. Includes a "Start cooking" shortcut.
@@ -15,10 +14,8 @@ class TodaysMealCard extends ConsumerWidget {
     // TODO: Wire to actual meal plan provider.
     // final todaysMeal = ref.watch(todaysMealProvider);
 
-    // Placeholder — replace with real data. Return SizedBox.shrink()
-    // if no meal plan exists for today.
-    const hasMeal = true;
-    if (!hasMeal) return const SizedBox.shrink();
+    // TODO: Wire to real meal plan provider.
+    // Return SizedBox.shrink() if no meal plan exists for today.
 
     const mealName = 'Lemon Herb Chicken';
     const cuisine = 'Mediterranean';

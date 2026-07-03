@@ -6,7 +6,7 @@ part 'meal_plan.g.dart';
 enum PlanType { quick, chat, inventory }
 
 @freezed
-class MealPlanDay with _$MealPlanDay {
+abstract class MealPlanDay with _$MealPlanDay {
   const factory MealPlanDay({
     required String id,
     required String planId,
@@ -23,7 +23,7 @@ class MealPlanDay with _$MealPlanDay {
 
 /// A generated meal plan spanning multiple days.
 @freezed
-class MealPlan with _$MealPlan {
+abstract class MealPlan with _$MealPlan {
   const MealPlan._();
 
   const factory MealPlan({

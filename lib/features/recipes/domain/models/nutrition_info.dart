@@ -4,7 +4,7 @@ part 'nutrition_info.freezed.dart';
 part 'nutrition_info.g.dart';
 
 @freezed
-class NutritionInfo with _$NutritionInfo {
+abstract class NutritionInfo with _$NutritionInfo {
   const factory NutritionInfo({
     @Default(0) int calories,
     @Default(0) double proteinG,
