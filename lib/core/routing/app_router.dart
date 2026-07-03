@@ -10,7 +10,8 @@ import 'navigation_shell.dart';
 // import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/pantry/presentation/screens/pantry_screen.dart';
 // import '../../features/meal_plan/presentation/screens/planner_screen.dart';
-// import '../../features/shopping_list/presentation/screens/shopping_list_screen.dart';
+import '../../features/shopping_list/presentation/screens/shopping_lists_screen.dart';
+import '../../features/shopping_list/presentation/screens/shopping_list_detail_screen.dart';
 import '../../features/scanner/presentation/screens/scanner_screen.dart';
 // import '../../features/recipes/presentation/screens/recipe_detail_screen.dart';
 // import '../../features/cooking/presentation/screens/cooking_mode_screen.dart';
@@ -83,13 +84,13 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: Routes.lists,
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: _Placeholder('Shopping Lists'),
+              child: ShoppingListsScreen(),
             ),
             routes: [
               GoRoute(
                 path: ':id',
-                builder: (context, state) => _Placeholder(
-                    'List ${state.pathParameters['id']}'),
+                builder: (context, state) => ShoppingListDetailScreen(
+                    listId: state.pathParameters['id']!),
               ),
             ],
           ),

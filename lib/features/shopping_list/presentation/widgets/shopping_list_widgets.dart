@@ -1,0 +1,504 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
+
+import '../../../../core/providers/database_providers.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/models/product_category.dart';
+import '../../data/datasources/shopping_list_mapper.dart';
+import '../../domain/models/shopping_list.dart';
+
+const _uuid = Uuid();
+
+// ── Create List Dialog ──────────────────────────────────────
+
+class CreateListDialog extends ConsumerStatefulWidget {
+  const CreateListDialog({super.key});
+
+  @override
+  ConsumerState<CreateListDialog> createState() => _CreateListDialogState();
+}
+
+class _CreateListDialogState extends ConsumerState<CreateListDialog> {
+  final _nameController = TextEditingController();
+  final _storeController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _storeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('New Shopping List'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _nameController,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'List name',
+              hintText: 'e.g. Weekly Groceries',
+            ),
+            textCapitalization: TextCapitalization.sentences,
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _storeController,
+            decoration: const InputDecoration(
+              labelText: 'Store (optional)',
+              hintText: 'e.g. Trader Joe\'s',
+            ),
+            textCapitalization: TextCapitalization.words,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => _create(context),
+          child: const Text('Create'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _create(BuildContext context) async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) return;
+
+    final store = _storeController.text.trim();
+    final now = DateTime.now();
+
+    final list = ShoppingList(
+      id: _uuid.v4(),
+      name: name,
+      storeName: store.isEmpty ? null : store,
+      createdAt: now,
+    );
+
+    final dao = ref.read(shoppingListDaoProvider);
+    await dao.insertList(ShoppingListMapper.listToCompanion(list));
+
+    if (context.mounted) Navigator.pop(context, list);
+  }
+}
+
+// ── Add / Edit Shopping List Item Sheet ─────────────────────
+
+class ShoppingListItemSheet extends ConsumerStatefulWidget {
+  final String listId;
+  final ShoppingListItem? existingItem;
+
+  const ShoppingListItemSheet({
+    super.key,
+    required this.listId,
+    this.existingItem,
+  });
+
+  @override
+  ConsumerState<ShoppingListItemSheet> createState() =>
+      _ShoppingListItemSheetState();
+}
+
+class _ShoppingListItemSheetState
+    extends ConsumerState<ShoppingListItemSheet> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _quantityController;
+  late final TextEditingController _unitController;
+  late final TextEditingController _priceController;
+  late final TextEditingController _notesController;
+  late ProductCategory _category;
+
+  bool get _isEditing => widget.existingItem != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final item = widget.existingItem;
+    _nameController = TextEditingController(text: item?.name ?? '');
+    _quantityController = TextEditingController(
+      text: item != null ? _formatQty(item.quantity) : '1',
+    );
+    _unitController = TextEditingController(text: item?.unitType ?? 'count');
+    _priceController = TextEditingController(
+      text: item?.estimatedPrice?.toStringAsFixed(2) ?? '',
+    );
+    _notesController = TextEditingController(text: item?.notes ?? '');
+    _category = item?.category ?? ProductCategory.other;
+  }
+
+  String _formatQty(double qty) =>
+      qty == qty.toInt() ? qty.toInt().toString() : qty.toStringAsFixed(1);
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _quantityController.dispose();
+    _unitController.dispose();
+    _priceController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Drag handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.divider,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _isEditing ? 'Edit Item' : 'Add Item',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _nameController,
+              autofocus: !_isEditing,
+              decoration: const InputDecoration(
+                labelText: 'Item name',
+                hintText: 'e.g. Whole milk',
+              ),
+              textCapitalization: TextCapitalization.sentences,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _quantityController,
+                    decoration: const InputDecoration(labelText: 'Qty'),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _unitController,
+                    decoration: const InputDecoration(labelText: 'Unit'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<ProductCategory>(
+              initialValue: _category,
+              decoration: const InputDecoration(labelText: 'Category'),
+              items: ProductCategory.values
+                  .map((c) => DropdownMenuItem(
+                        value: c,
+                        child: Text('${c.emoji} ${c.displayName}'),
+                      ))
+                  .toList(),
+              onChanged: (val) {
+                if (val != null) setState(() => _category = val);
+              },
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _priceController,
+              decoration: const InputDecoration(
+                labelText: 'Estimated price (optional)',
+                prefixText: '\$ ',
+              ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _notesController,
+              decoration: const InputDecoration(labelText: 'Notes (optional)'),
+              maxLines: 2,
+              textCapitalization: TextCapitalization.sentences,
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: _save,
+              child: Text(_isEditing ? 'Save Changes' : 'Add Item'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _save() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) return;
+
+    final qty = double.tryParse(_quantityController.text.trim()) ?? 1;
+    final unit = _unitController.text.trim().isEmpty
+        ? 'count'
+        : _unitController.text.trim();
+    final price = double.tryParse(_priceController.text.trim());
+    final notes = _notesController.text.trim();
+    final now = DateTime.now();
+
+    final item = ShoppingListItem(
+      id: widget.existingItem?.id ?? _uuid.v4(),
+      listId: widget.listId,
+      name: name,
+      category: _category,
+      quantity: qty,
+      unitType: unit,
+      estimatedPrice: price,
+      notes: notes.isEmpty ? null : notes,
+      isCompleted: widget.existingItem?.isCompleted ?? false,
+      priority: widget.existingItem?.priority ?? 0,
+      addedAt: widget.existingItem?.addedAt ?? now,
+      updatedAt: now,
+      sortOrder: widget.existingItem?.sortOrder ?? 0,
+      productId: widget.existingItem?.productId,
+      brand: widget.existingItem?.brand,
+      actualPrice: widget.existingItem?.actualPrice,
+      salePrice: widget.existingItem?.salePrice,
+      isOnSale: widget.existingItem?.isOnSale ?? false,
+      recipeId: widget.existingItem?.recipeId,
+      recipeName: widget.existingItem?.recipeName,
+      pantryQuantityAvailable:
+          widget.existingItem?.pantryQuantityAvailable ?? 0,
+    );
+
+    final dao = ref.read(shoppingListDaoProvider);
+    final companion = ShoppingListMapper.itemToCompanion(item);
+
+    if (_isEditing) {
+      await dao.updateItem(companion);
+    } else {
+      await dao.insertItem(companion);
+    }
+
+    if (mounted) Navigator.pop(context);
+  }
+}
+
+// ── Shopping List Card ──────────────────────────────────────
+
+class ShoppingListCard extends StatelessWidget {
+  final ShoppingList list;
+  final VoidCallback onTap;
+  final VoidCallback? onArchive;
+  final VoidCallback? onDelete;
+
+  const ShoppingListCard({
+    super.key,
+    required this.list,
+    required this.onTap,
+    this.onArchive,
+    this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final itemCount = list.items.length;
+    final completed = list.completedItemCount;
+    final progress = list.completionPercent;
+    final cost = list.totalEstimatedCost;
+
+    return Dismissible(
+      key: Key(list.id),
+      direction: DismissDirection.horizontal,
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.endToStart) {
+          return await _confirmDelete(context);
+        } else {
+          onArchive?.call();
+          return false;
+        }
+      },
+      background: Container(
+        color: AppColors.sage,
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 20),
+        child: Row(
+          children: [
+            Icon(
+              list.isArchived ? Icons.unarchive : Icons.archive,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              list.isArchived ? 'Restore' : 'Archive',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+      secondaryBackground: Container(
+        color: AppColors.error,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Text(
+              'Delete',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(width: 8),
+            Icon(Icons.delete_outline, color: Colors.white),
+          ],
+        ),
+      ),
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        list.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                    if (list.source == ShoppingListSource.mealPlan)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.info.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'Meal Plan',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: AppColors.info,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                // Progress bar
+                if (itemCount > 0) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      backgroundColor: AppColors.divider,
+                      color: progress >= 1.0
+                          ? AppColors.success
+                          : AppColors.coral,
+                      minHeight: 4,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                ],
+                Row(
+                  children: [
+                    Text(
+                      itemCount == 0
+                          ? 'No items'
+                          : '$completed/$itemCount items',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                    if (list.storeName != null) ...[
+                      const SizedBox(width: 8),
+                      Icon(Icons.store, size: 12, color: AppColors.textTertiary),
+                      const SizedBox(width: 2),
+                      Text(
+                        list.storeName!,
+                        style: const TextStyle(
+                          color: AppColors.textTertiary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                    const Spacer(),
+                    if (cost > 0)
+                      Text(
+                        '\$${cost.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<bool> _confirmDelete(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete list?'),
+        content: Text('Permanently delete "${list.name}" and all its items?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete',
+                style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      onDelete?.call();
+      return true;
+    }
+    return false;
+  }
+}
