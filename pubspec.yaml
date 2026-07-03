@@ -1,0 +1,143 @@
+name: pure_plate
+description: "PurePlate AI — From Pantry to Table. AI-powered meal planning meets smart grocery shopping."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # ── State Management ──────────────────────────────────────
+  flutter_riverpod: ^2.6.1
+
+  # ── Local Database (Drift / SQLite) ───────────────────────
+  drift: ^2.22.1
+  sqlite3_flutter_libs: ^0.5.28
+
+  # ── Firebase ──────────────────────────────────────────────
+  firebase_core: ^3.9.0
+  cloud_firestore: ^5.6.0
+  cloud_functions: ^5.2.0
+  firebase_auth: ^5.4.0
+  firebase_app_check: ^0.3.2+2
+  firebase_remote_config: ^5.4.0
+  firebase_messaging: ^15.2.4
+  firebase_analytics: ^11.6.0
+
+  # ── Navigation ────────────────────────────────────────────
+  go_router: ^14.8.1
+  app_links: ^6.3.3
+
+  # ── Barcode Scanning ──────────────────────────────────────
+  mobile_scanner: ^6.0.2
+
+  # ── HTTP Client ───────────────────────────────────────────
+  dio: ^5.7.0
+
+  # ── Notifications ─────────────────────────────────────────
+  flutter_local_notifications: ^22.0.0
+
+  # ── Immutable Models / Serialization ──────────────────────
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.12.0
+
+  # ── Cooking Mode / Voice ──────────────────────────────────
+  flutter_tts: ^4.2.0
+  speech_to_text: ^7.0.0
+  wakelock_plus: ^1.2.8
+  audioplayers: ^6.1.0
+
+  # ── In-App Purchase ───────────────────────────────────────
+  in_app_purchase: ^3.2.0
+
+  # ── Auth Providers ────────────────────────────────────────
+  google_sign_in: ^6.2.1
+
+  # ── Networking / Connectivity ─────────────────────────────
+  connectivity_plus: ^7.1.1
+
+  # ── Images ────────────────────────────────────────────────
+  cached_network_image: ^3.4.1
+
+  # ── Charts (spending trends, nutrition) ───────────────────
+  fl_chart: ^0.70.2
+
+  # ── Sharing ───────────────────────────────────────────────
+  share_plus: ^10.1.4
+
+  # ── URL Launching ─────────────────────────────────────────
+  url_launcher: ^6.3.1
+
+  # ── Permissions (camera, microphone) ──────────────────────
+  permission_handler: ^11.3.1
+
+  # ── File System ───────────────────────────────────────────
+  path_provider: ^2.1.5
+  path: ^1.9.1
+  file_picker: ^8.1.6
+
+  # ── Local Key-Value Storage ───────────────────────────────
+  shared_preferences: ^2.3.4
+
+  # ── Utilities ─────────────────────────────────────────────
+  uuid: ^4.5.1
+  intl: ^0.19.0
+  collection: ^1.19.1
+
+  # ── Splash Screen ─────────────────────────────────────────
+  flutter_native_splash: ^2.4.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+  # ── Code Generation ───────────────────────────────────────
+  build_runner: ^2.15.0
+  drift_dev: ^2.34.0
+  freezed: ^3.2.0
+  json_serializable: ^6.14.0
+
+  # ── Testing ───────────────────────────────────────────────
+  mocktail: ^1.0.4
+  mockito: ^5.4.4
+
+  # ── App Icon Generation ───────────────────────────────────
+  flutter_launcher_icons: ^0.14.3
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/data/
+    - assets/images/
+    - assets/images/onboarding/
+    - assets/images/illustrations/
+
+# ── Splash Screen Config ──────────────────────────────────
+flutter_native_splash:
+  color: "#FFF8F0"
+  # image: assets/images/splash_logo.png
+  color_dark: "#1A1A2E"
+  # image_dark: assets/images/splash_logo.png
+  android_12:
+    color: "#FFF8F0"
+    # image: assets/images/splash_logo.png
+    color_dark: "#1A1A2E"
+    # image_dark: assets/images/splash_logo.png
+
+# ── App Icon Config ───────────────────────────────────────
+flutter_launcher_icons:
+  android: true
+  ios: true
+  # image_path: "assets/images/app_icon.png"
+  adaptive_icon_background: "#FFF8F0"
+  # adaptive_icon_foreground: "assets/images/app_icon.png"
