@@ -11,7 +11,7 @@ import 'navigation_shell.dart';
 import '../../features/pantry/presentation/screens/pantry_screen.dart';
 // import '../../features/meal_plan/presentation/screens/planner_screen.dart';
 // import '../../features/shopping_list/presentation/screens/shopping_list_screen.dart';
-// import '../../features/scanner/presentation/screens/scanner_screen.dart';
+import '../../features/scanner/presentation/screens/scanner_screen.dart';
 // import '../../features/recipes/presentation/screens/recipe_detail_screen.dart';
 // import '../../features/cooking/presentation/screens/cooking_mode_screen.dart';
 // import '../../features/settings/presentation/screens/settings_screen.dart';
@@ -99,7 +99,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       // Full-screen routes (no bottom nav)
       GoRoute(
         path: Routes.scanner,
-        builder: (context, state) => const _Placeholder('Barcode Scanner'),
+        builder: (context, state) => const ScannerScreen(),
       ),
       GoRoute(
         path: Routes.recipes,

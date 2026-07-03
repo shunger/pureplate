@@ -18,7 +18,20 @@ class AddPantryItemSheet extends ConsumerStatefulWidget {
   /// If non-null, we're in edit mode.
   final PantryItem? existingItem;
 
-  const AddPantryItemSheet({super.key, this.existingItem});
+  /// Optional initial values for pre-populating from a scanned product.
+  final String? initialName;
+  final String? initialCategory;
+  final String? initialProductId;
+  final double? initialPrice;
+
+  const AddPantryItemSheet({
+    super.key,
+    this.existingItem,
+    this.initialName,
+    this.initialCategory,
+    this.initialProductId,
+    this.initialPrice,
+  });
 
   @override
   ConsumerState<AddPantryItemSheet> createState() => _AddPantryItemSheetState();
@@ -68,6 +81,17 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
       _isStaple = item.isStaple;
       _reorderThreshold = item.reorderThreshold;
       _isBulk = item.isBulk;
+    } else {
+      // Pre-populate from scanned product if available
+      if (widget.initialName != null) {
+        _nameController.text = widget.initialName!;
+      }
+      if (widget.initialCategory != null) {
+        _category = widget.initialCategory!;
+      }
+      if (widget.initialPrice != null) {
+        _priceController.text = widget.initialPrice!.toStringAsFixed(2);
+      }
     }
   }
 
@@ -404,6 +428,7 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
     } else {
       await orchestrator.insertItem(PantryItemsCompanion(
         id: Value(const Uuid().v4()),
+        productId: Value(widget.initialProductId),
         name: Value(name),
         category: Value(_category),
         quantity: Value(_quantity),

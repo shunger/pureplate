@@ -49,6 +49,18 @@ class ProductDao extends DatabaseAccessor<AppDatabase> with _$ProductDaoMixin {
   Future<List<Product>> getProductsByCategory(String category) =>
       (select(products)..where((p) => p.category.equals(category))).get();
 
+  Future<List<Product>> getCustomProducts() =>
+      (select(products)
+            ..where((p) => p.isCustom.equals(true))
+            ..orderBy([(p) => OrderingTerm.desc(p.createdAt)]))
+          .get();
+
+  Future<List<Product>> getFavoriteProducts() =>
+      (select(products)
+            ..where((p) => p.isFavorite.equals(true))
+            ..orderBy([(p) => OrderingTerm.asc(p.name)]))
+          .get();
+
   // ── Mutations ───────────────────────────────────────────
 
   Future<void> insertProduct(ProductsCompanion product) =>
