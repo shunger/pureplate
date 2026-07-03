@@ -8,7 +8,7 @@ import 'navigation_shell.dart';
 // Feature screen imports — uncomment as screens are implemented.
 // import '../../features/splash/presentation/splash_screen.dart';
 // import '../../features/home/presentation/screens/home_screen.dart';
-// import '../../features/pantry/presentation/screens/pantry_screen.dart';
+import '../../features/pantry/presentation/screens/pantry_screen.dart';
 // import '../../features/meal_plan/presentation/screens/planner_screen.dart';
 // import '../../features/shopping_list/presentation/screens/shopping_list_screen.dart';
 // import '../../features/scanner/presentation/screens/scanner_screen.dart';
@@ -59,7 +59,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: Routes.pantry,
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: _Placeholder('Pantry'),
+              child: PantryScreen(),
             ),
             routes: [
               GoRoute(
