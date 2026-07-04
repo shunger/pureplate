@@ -5,45 +5,59 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'route_names.dart';
 import 'navigation_shell.dart';
 
-// Feature screen imports — uncomment as screens are implemented.
-// import '../../features/splash/presentation/splash_screen.dart';
-// import '../../features/home/presentation/screens/home_screen.dart';
+// Feature screen imports.
+import '../../features/splash/presentation/screens/splash_screen.dart';
+import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/pantry/presentation/screens/pantry_screen.dart';
-// import '../../features/meal_plan/presentation/screens/planner_screen.dart';
+import '../../features/pantry/presentation/screens/pantry_item_detail_screen.dart';
+import '../../features/pantry/presentation/widgets/add_pantry_item_sheet.dart';
+import '../../features/meal_plan/presentation/screens/planner_screen.dart';
+import '../../features/meal_plan/presentation/screens/plan_generation_screen.dart';
+import '../../features/meal_plan/presentation/screens/chat_planning_screen.dart';
+import '../../features/meal_plan/presentation/screens/inventory_suggestions_screen.dart';
 import '../../features/shopping_list/presentation/screens/shopping_lists_screen.dart';
 import '../../features/shopping_list/presentation/screens/shopping_list_detail_screen.dart';
 import '../../features/scanner/presentation/screens/scanner_screen.dart';
-// import '../../features/recipes/presentation/screens/recipe_detail_screen.dart';
-// import '../../features/cooking/presentation/screens/cooking_mode_screen.dart';
-// import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/recipes/presentation/screens/recipe_browser_screen.dart';
+import '../../features/recipes/presentation/screens/recipe_detail_screen.dart';
+import '../../features/recipes/presentation/screens/cooking_mode_screen.dart';
+import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/settings/presentation/screens/profile_edit_screen.dart';
+import '../../features/premium/presentation/screens/premium_screen.dart';
+import '../../features/onboarding/presentation/screens/onboarding_welcome_screen.dart';
+import '../../features/onboarding/presentation/screens/onboarding_family_screen.dart';
+import '../../features/onboarding/presentation/screens/onboarding_dietary_screen.dart';
+import '../../features/onboarding/presentation/screens/onboarding_cooking_screen.dart';
+import '../../features/sharing/presentation/screens/collaborators_screen.dart';
+import '../../features/sharing/presentation/screens/activity_feed_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: Routes.home,
+    initialLocation: Routes.splash,
     debugLogDiagnostics: true,
     routes: [
       // Splash
       GoRoute(
         path: Routes.splash,
-        builder: (context, state) => const _Placeholder('Splash'),
+        builder: (context, state) => const SplashScreen(),
       ),
 
       // Onboarding flow (no bottom nav)
       GoRoute(
         path: Routes.onboardingWelcome,
-        builder: (context, state) => const _Placeholder('Welcome'),
+        builder: (context, state) => const OnboardingWelcomeScreen(),
       ),
       GoRoute(
         path: Routes.onboardingFamily,
-        builder: (context, state) => const _Placeholder('Family Setup'),
+        builder: (context, state) => const OnboardingFamilyScreen(),
       ),
       GoRoute(
         path: Routes.onboardingDietary,
-        builder: (context, state) => const _Placeholder('Dietary Prefs'),
+        builder: (context, state) => const OnboardingDietaryScreen(),
       ),
       GoRoute(
         path: Routes.onboardingCooking,
-        builder: (context, state) => const _Placeholder('Cooking Style'),
+        builder: (context, state) => const OnboardingCookingScreen(),
       ),
 
       // Main app shell with bottom navigation
@@ -54,7 +68,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: Routes.home,
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: _Placeholder('Home Dashboard'),
+              child: HomeScreen(),
             ),
           ),
           GoRoute(
@@ -65,20 +79,23 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: 'item/:id',
-                builder: (context, state) => _Placeholder(
-                    'Pantry Item ${state.pathParameters['id']}'),
+                builder: (context, state) => PantryItemDetailScreen(
+                    itemId: state.pathParameters['id']!),
               ),
               GoRoute(
                 path: 'add',
-                builder: (context, state) =>
-                    const _Placeholder('Add Pantry Item'),
+                builder: (context, state) => Scaffold(
+                  backgroundColor: const Color(0xFFFFF8F0),
+                  appBar: AppBar(title: const Text('Add to Pantry')),
+                  body: const AddPantryItemSheet(),
+                ),
               ),
             ],
           ),
           GoRoute(
             path: Routes.planner,
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: _Placeholder('Meal Planner'),
+              child: PlannerScreen(),
             ),
           ),
           GoRoute(
@@ -104,60 +121,51 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: Routes.recipes,
-        builder: (context, state) => const _Placeholder('Recipe Browser'),
+        builder: (context, state) => const RecipeBrowserScreen(),
       ),
       GoRoute(
         path: Routes.recipeDetail,
         builder: (context, state) =>
-            _Placeholder('Recipe ${state.pathParameters['id']}'),
+            RecipeDetailScreen(recipeId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: Routes.cookingMode,
         builder: (context, state) =>
-            _Placeholder('Cooking ${state.pathParameters['recipeId']}'),
+            CookingModeScreen(recipeId: state.pathParameters['recipeId']!),
       ),
       GoRoute(
         path: Routes.planGeneration,
-        builder: (context, state) =>
-            const _Placeholder('Generate Plan'),
+        builder: (context, state) => const PlanGenerationScreen(),
       ),
       GoRoute(
         path: Routes.chat,
-        builder: (context, state) => const _Placeholder('Chat Planning'),
+        builder: (context, state) => const ChatPlanningScreen(),
       ),
       GoRoute(
         path: Routes.inventorySuggestions,
-        builder: (context, state) =>
-            const _Placeholder('Inventory Suggestions'),
+        builder: (context, state) => const InventorySuggestionsScreen(),
       ),
       GoRoute(
         path: Routes.settings,
-        builder: (context, state) => const _Placeholder('Settings'),
+        builder: (context, state) => const SettingsScreen(),
       ),
       GoRoute(
         path: Routes.profileEdit,
-        builder: (context, state) => const _Placeholder('Edit Profile'),
+        builder: (context, state) => const ProfileEditScreen(),
       ),
       GoRoute(
         path: Routes.premium,
-        builder: (context, state) => const _Placeholder('Premium'),
+        builder: (context, state) => const PremiumScreen(),
+      ),
+      GoRoute(
+        path: Routes.collaborators,
+        builder: (context, state) => CollaboratorsScreen(
+            firestoreId: state.pathParameters['firestoreId']!),
+      ),
+      GoRoute(
+        path: Routes.activityFeed,
+        builder: (context, state) => const ActivityFeedScreen(),
       ),
     ],
   );
 });
-
-/// Temporary placeholder widget — replace with real screens as they're ported.
-class _Placeholder extends StatelessWidget {
-  final String label;
-  const _Placeholder(this.label);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(label)),
-      body: Center(
-        child: Text(label, style: Theme.of(context).textTheme.headlineMedium),
-      ),
-    );
-  }
-}

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/routing/route_names.dart';
+import '../providers/home_providers.dart';
 
 /// Compact pantry overview showing item count, expiring count, and reorder alerts.
 class PantrySummaryCard extends ConsumerWidget {
@@ -11,66 +12,64 @@ class PantrySummaryCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // TODO: Wire to actual pantry providers once ported.
-    // final pantryItems = ref.watch(pantryItemsProvider);
+    final statsAsync = ref.watch(pantryStatsProvider);
 
-    // Placeholder data — replace with real provider.
-    const totalItems = 47;
-    const expiringCount = 3;
-    const reorderCount = 2;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-      child: Card(
-        child: InkWell(
-          onTap: () => context.go(Routes.pantry),
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.kitchen, color: AppColors.sage, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Pantry Overview',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    const Spacer(),
-                    const Icon(
-                      Icons.chevron_right,
-                      color: AppColors.textTertiary,
-                      size: 20,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    _StatChip(
-                      label: '$totalItems items',
-                      icon: Icons.inventory_2_outlined,
-                      color: AppColors.sage,
-                    ),
-                    const SizedBox(width: 12),
-                    _StatChip(
-                      label: '$expiringCount expiring',
-                      icon: Icons.schedule,
-                      color: AppColors.warning,
-                    ),
-                    const SizedBox(width: 12),
-                    _StatChip(
-                      label: '$reorderCount low',
-                      icon: Icons.shopping_bag_outlined,
-                      color: AppColors.info,
-                    ),
-                  ],
-                ),
-              ],
+    return statsAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (stats) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+        child: Card(
+          child: InkWell(
+            onTap: () => context.go(Routes.pantry),
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.kitchen, color: AppColors.sage, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Pantry Overview',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                      const Spacer(),
+                      const Icon(
+                        Icons.chevron_right,
+                        color: AppColors.textTertiary,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _StatChip(
+                        label: '${stats.totalItems} items',
+                        icon: Icons.inventory_2_outlined,
+                        color: AppColors.sage,
+                      ),
+                      const SizedBox(width: 12),
+                      _StatChip(
+                        label: '${stats.expiringCount} expiring',
+                        icon: Icons.schedule,
+                        color: AppColors.warning,
+                      ),
+                      const SizedBox(width: 12),
+                      _StatChip(
+                        label: '${stats.lowStockCount} low',
+                        icon: Icons.shopping_bag_outlined,
+                        color: AppColors.info,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
