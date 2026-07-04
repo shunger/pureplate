@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/daos/pantry_dao.dart';
+import '../../../../core/providers/auth_providers.dart';
 import '../../../../core/providers/database_providers.dart' show appDatabaseProvider;
 import '../../../sharing/data/datasources/firestore_pantry_sharing_service.dart';
 
@@ -333,15 +334,15 @@ final pantrySyncOrchestratorProvider = Provider<PantrySyncOrchestrator>((ref) {
     firestore: FirebaseFirestore.instance,
   );
 
-  // TODO: Auto-start when user is authenticated:
-  // ref.listen(currentUserProvider, (_, next) {
-  //   final uid = next.value?.uid;
-  //   if (uid != null) {
-  //     orchestrator.startSync(uid);
-  //   } else {
-  //     orchestrator.stopSync();
-  //   }
-  // });
+  // Auto-start sync when user is authenticated.
+  ref.listen(currentUserProvider, (_, next) {
+    final uid = next.value?.uid;
+    if (uid != null) {
+      orchestrator.startSync(uid);
+    } else {
+      orchestrator.stopSync();
+    }
+  });
 
   ref.onDispose(() => orchestrator.stopSync());
   return orchestrator;

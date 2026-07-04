@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/database_providers.dart';
+import '../../data/services/purchase_service.dart';
+import '../providers/purchase_providers.dart';
 
 /// Premium subscription marketing page.
 class PremiumScreen extends ConsumerWidget {
@@ -144,56 +146,137 @@ class PremiumScreen extends ConsumerWidget {
                 );
               }
 
-              return Column(
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: () async {
-                        // Stub: toggle premium for testing
-                        await ref
-                            .read(preferencesDaoProvider)
-                            .setPremium(true);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Premium activated!'),
-                              backgroundColor: AppColors.success,
-                            ),
-                          );
-                        }
-                      },
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        textStyle: const TextStyle(
-                            fontSize: 17, fontWeight: FontWeight.w600),
-                      ),
-                      child: const Text('Subscribe'),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: () {
-                      // Restore purchases stub
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Checking for purchases...')),
-                      );
-                    },
-                    child: const Text(
-                      'Restore Purchases',
-                      style: TextStyle(
-                          color: AppColors.textSecondary, fontSize: 14),
-                    ),
-                  ),
-                ],
-              );
+              return _SubscribeSection();
             },
           ),
 
           const SizedBox(height: 40),
         ],
       ),
+    );
+  }
+}
+
+class _SubscribeSection extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final productsAsync = ref.watch(availableProductsProvider);
+    final purchaseState = ref.watch(purchaseStateProvider);
+
+    // Listen for purchase state changes to show feedback.
+    ref.listen<AsyncValue<PurchaseState>>(purchaseStateProvider,
+        (prev, next) {
+      next.whenData((state) {
+        switch (state) {
+          case PurchaseSuccess():
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Premium activated!'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+          case PurchaseError(:final message):
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(message)),
+            );
+          default:
+            break;
+        }
+      });
+    });
+
+    final isProcessing = purchaseState.whenOrNull(
+          data: (state) =>
+              state is PurchasePurchasing || state is PurchaseRestoring,
+        ) ??
+        false;
+
+    return Column(
+      children: [
+        productsAsync.when(
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: CircularProgressIndicator(),
+            ),
+          ),
+          error: (_, __) => SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: isProcessing
+                  ? null
+                  : () => ref.invalidate(availableProductsProvider),
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                textStyle:
+                    const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+              ),
+              child: const Text('Retry Loading'),
+            ),
+          ),
+          data: (products) {
+            if (products.isEmpty) {
+              return SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: isProcessing
+                      ? null
+                      : () => ref.invalidate(availableProductsProvider),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    textStyle: const TextStyle(
+                        fontSize: 17, fontWeight: FontWeight.w600),
+                  ),
+                  child: const Text('Subscribe'),
+                ),
+              );
+            }
+
+            return Column(
+              children: products.map((product) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: isProcessing
+                          ? null
+                          : () => ref
+                              .read(purchaseServiceProvider)
+                              .purchaseSubscription(product),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        textStyle: const TextStyle(
+                            fontSize: 17, fontWeight: FontWeight.w600),
+                      ),
+                      child: isProcessing
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text('${product.title} — ${product.price}'),
+                    ),
+                  ),
+                );
+              }).toList(),
+            );
+          },
+        ),
+        const SizedBox(height: 12),
+        TextButton(
+          onPressed: isProcessing
+              ? null
+              : () => ref.read(purchaseServiceProvider).restorePurchases(),
+          child: const Text(
+            'Restore Purchases',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+          ),
+        ),
+      ],
     );
   }
 }

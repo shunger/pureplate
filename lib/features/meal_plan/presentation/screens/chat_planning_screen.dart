@@ -4,6 +4,13 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/routing/route_names.dart';
+import '../../../../core/providers/database_providers.dart';
+import '../../data/repositories/ai_chat_repository.dart';
+import '../../data/datasources/preference_summary_builder.dart';
+import '../../domain/models/family_profile.dart';
+import '../../../pantry/domain/models/pantry_item.dart';
+import '../../../recipes/data/datasources/recipe_mapper.dart';
+import '../../../../shared/models/product_category.dart';
 
 /// Chat-style interface for conversational meal planning.
 ///
@@ -186,7 +193,7 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
     );
   }
 
-  void _sendMessage() {
+  Future<void> _sendMessage() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
 
@@ -197,21 +204,92 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
     });
     _scrollToBottom();
 
-    // Simulate AI response
-    Future.delayed(const Duration(seconds: 2), () {
+    try {
+      // Build chat history from previous messages.
+      final historyBuffer = StringBuffer();
+      for (final msg in _messages) {
+        final role = msg.isUser ? 'User' : 'Chef';
+        historyBuffer.writeln('$role: ${msg.text}');
+      }
+
+      // Build preference summary from local data.
+      final familyProfileDao = ref.read(familyProfileDaoProvider);
+      final pantryDao = ref.read(pantryDaoProvider);
+      final summaryBuilder = ref.read(preferenceSummaryBuilderProvider);
+
+      final dbProfile = await familyProfileDao.getProfile();
+      final profile = dbProfile != null
+          ? FamilyProfile(
+              id: dbProfile.id,
+              adults: dbProfile.adults,
+              kids: dbProfile.kids,
+            )
+          : FamilyProfile(id: 'default');
+
+      final pantryItems = await pantryDao.getAllItems();
+      final domainPantryItems = pantryItems
+          .map((item) => PantryItem(
+                id: item.id,
+                name: item.name,
+                category: ProductCategory.values.firstWhere(
+                  (c) => c.name == item.category,
+                  orElse: () => ProductCategory.other,
+                ),
+                quantity: item.quantity,
+                unitType: item.unitType,
+                expiresAt: item.expiresAt,
+                isStaple: item.isStaple,
+                reorderThreshold: item.reorderThreshold.toDouble(),
+                createdAt: item.createdAt,
+              ))
+          .toList();
+
+      final summary = summaryBuilder.build(
+        profile: profile,
+        pantryItems: domainPantryItems,
+      );
+
+      // Call the AI chat Cloud Function.
+      final chatRepo = ref.read(aiChatRepositoryProvider);
+      final response = await chatRepo.sendMessage(
+        userMessage: text,
+        chatHistory: historyBuffer.toString(),
+        preferenceSummary: summary,
+      );
+
+      // Save any recipes returned by the AI to the local database.
+      if (response.recipes.isNotEmpty) {
+        final recipeDao = ref.read(recipeDaoProvider);
+        final companions =
+            response.recipes.map(RecipeMapper.toCompanion).toList();
+        await recipeDao.insertRecipes(companions);
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _messages.add(_ChatMessage(
+          text: response.responseText,
+          isUser: false,
+        ));
+      });
+    } on AiChatException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _messages.add(_ChatMessage(text: e.message, isUser: false));
+      });
+    } catch (e) {
       if (!mounted) return;
       setState(() {
         _isLoading = false;
         _messages.add(const _ChatMessage(
-          text:
-              'Chat-based meal planning requires an active AI connection. '
-              'For now, try the Quick Plan feature to generate a personalized '
-              'meal plan based on your pantry and preferences!',
+          text: 'Something went wrong. Please check your connection and try again.',
           isUser: false,
         ));
       });
-      _scrollToBottom();
-    });
+    }
+    _scrollToBottom();
   }
 
   void _scrollToBottom() {

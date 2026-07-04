@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/routing/route_names.dart';
 import '../../../../core/providers/database_providers.dart';
+import '../../../../core/services/bundled_recipe_service.dart';
+import '../../../../core/services/migration_service.dart';
+import '../../../pantry/data/datasources/pantry_sync_orchestrator.dart';
 
 /// Splash screen — app logo, brief fade-in animation, then navigate to
 /// Home (if onboarding completed) or Onboarding Welcome.
@@ -46,6 +49,25 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     if (!mounted) return;
 
     try {
+      // Run data migration from legacy Scanner app (one-time, local SQLite to SQLite).
+      final db = ref.read(appDatabaseProvider);
+      final migrationService = MigrationService(db);
+      final status = await migrationService.checkMigrationStatus();
+
+      if (status.scannerMigrationNeeded) {
+        await migrationService.migrateFromScanner();
+      }
+
+      // Seed bundled recipes on first launch.
+      final recipeDao = ref.read(recipeDaoProvider);
+      await BundledRecipeService(recipeDao).loadIfNeeded();
+
+      // Eagerly read the pantry sync orchestrator so its auth listener
+      // starts observing — sync begins automatically when authenticated.
+      ref.read(pantrySyncOrchestratorProvider);
+
+      if (!mounted) return;
+
       final prefsDao = ref.read(preferencesDaoProvider);
       final prefs = await prefsDao.getPreferences();
 
