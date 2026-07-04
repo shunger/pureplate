@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/database/app_database.dart';
 import '../../../../core/providers/database_providers.dart';
+import '../../../../core/routing/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/datasources/pantry_sync_orchestrator.dart';
 import '../providers/pantry_providers.dart';
@@ -494,8 +496,7 @@ class _ExpiringItemsSheet extends ConsumerWidget {
                 TextButton.icon(
                   onPressed: () {
                     Navigator.pop(context);
-                    // TODO: Navigate to AI inventory suggestions
-                    // with expiring items pre-populated.
+                    context.push(Routes.inventorySuggestions);
                   },
                   icon: const Icon(Icons.auto_awesome, size: 16),
                   label: const Text('Get recipes'),
