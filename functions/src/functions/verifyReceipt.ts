@@ -9,8 +9,9 @@ export const verifyReceipt = onCall(
     enforceAppCheck: true,
   },
   async (request): Promise<VerifyReceiptResponse> => {
-    // Auth check
-    if (!request.auth) {
+    // Auth check (skipped in emulator when no Auth emulator is running)
+    const isEmulator = process.env.FUNCTIONS_EMULATOR === "true";
+    if (!isEmulator && !request.auth) {
       throw new HttpsError("permission-denied", "Authentication required.");
     }
 
@@ -25,8 +26,9 @@ export const verifyReceipt = onCall(
     // TODO: Implement actual receipt verification with Apple/Google credentials.
     // For now, return invalid — the client handles this gracefully with
     // optimistic grant (see purchase_service.dart:139-143).
+    const uid = request.auth?.uid ?? "emulator-test-user";
     console.log(
-      `[verifyReceipt] Stub called for ${data.source} product=${data.productId} uid=${request.auth.uid}`
+      `[verifyReceipt] Stub called for ${data.source} product=${data.productId} uid=${uid}`
     );
 
     return {

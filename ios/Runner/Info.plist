@@ -53,6 +53,16 @@
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Used to scan product barcodes and PLU codes</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Used for voice input during cooking</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Used for voice commands during cooking</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

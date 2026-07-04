@@ -17,16 +17,18 @@ export const chatWithChef = onCall(
     secrets: bedrockSecrets,
   },
   async (request) => {
-    // Auth check
-    if (!request.auth) {
+    // Auth check (skipped in emulator when no Auth emulator is running)
+    const isEmulator = process.env.FUNCTIONS_EMULATOR === "true";
+    if (!isEmulator && !request.auth) {
       throw new HttpsError("permission-denied", "Authentication required.");
     }
 
     // Kill switch
     checkKillSwitch();
 
-    // Rate limit
-    await checkRateLimit(request.auth.uid, "chat");
+    // Rate limit (skip in emulator without auth)
+    const uid = request.auth?.uid ?? "emulator-test-user";
+    await checkRateLimit(uid, "chat");
 
     // Validate input
     const data = request.data as ChatRequest;
