@@ -54,5 +54,9 @@ google-services.json
 GoogleService-Info.plist
 firebase_options.dart
 
+# Firebase Functions
+functions/lib/
+functions/node_modules/
+
 # Claude Code
 .claude/

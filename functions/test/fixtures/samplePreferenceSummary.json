@@ -1,0 +1,37 @@
+{
+  "family": {
+    "adults": 2,
+    "kids": 1,
+    "kid_age_ranges": ["4-7"],
+    "dietary_restrictions": ["gluten-free"],
+    "preferred_cook_time": "under30",
+    "budget_level": "moderate"
+  },
+  "pantry_items": [
+    {"name": "chicken breast", "quantity": 2, "unit": "lbs", "category": "protein"},
+    {"name": "rice", "quantity": 3, "unit": "cups", "category": "grains"},
+    {"name": "broccoli", "quantity": 1, "unit": "head", "category": "produce"},
+    {"name": "olive oil", "quantity": 500, "unit": "ml", "category": "oils"},
+    {"name": "garlic", "quantity": 1, "unit": "bulb", "category": "produce"},
+    {"name": "soy sauce", "quantity": 200, "unit": "ml", "category": "condiments"},
+    {"name": "eggs", "quantity": 12, "unit": "count", "category": "dairy"},
+    {"name": "cheddar cheese", "quantity": 200, "unit": "g", "category": "dairy"},
+    {"name": "tomatoes", "quantity": 4, "unit": "count", "category": "produce"},
+    {"name": "onions", "quantity": 3, "unit": "count", "category": "produce"}
+  ],
+  "expiring_soon": [
+    {"name": "chicken breast", "quantity": 2, "unit": "lbs", "expiry_date": "2026-07-06"},
+    {"name": "broccoli", "quantity": 1, "unit": "head", "expiry_date": "2026-07-05"}
+  ],
+  "staples_available": ["salt", "pepper", "olive oil", "garlic"],
+  "cuisine_affinities": {
+    "Italian": 0.8,
+    "Asian": 0.7,
+    "Mexican": 0.5,
+    "American": 0.4
+  },
+  "loved_ingredients": ["chicken", "cheese", "garlic"],
+  "disliked_ingredients": ["mushrooms", "olives"],
+  "favorite_recipes": ["Chicken Stir Fry", "Cheesy Rice Bake"],
+  "recent_meals_14d": ["Chicken Stir Fry", "Grilled Cheese Sandwiches", "Pasta Primavera"]
+}

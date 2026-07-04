@@ -1,1 +1,45 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"smart-shopping-scanner-1e045","appId":"1:816594199281:android:21ce322d157acc5fd5bf50","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"smart-shopping-scanner-1e045","appId":"1:816594199281:ios:7009cfebf13cd3bdd5bf50","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"smart-shopping-scanner-1e045","configurations":{"android":"1:816594199281:android:21ce322d157acc5fd5bf50","ios":"1:816594199281:ios:7009cfebf13cd3bdd5bf50"}}}}}}
+{
+  "functions": {
+    "source": "functions",
+    "codebase": "default",
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "firebase-debug.*.log",
+      "*.local"
+    ],
+    "predeploy": [
+      "npm --prefix \"$RESOURCE_DIR\" run lint",
+      "npm --prefix \"$RESOURCE_DIR\" run build"
+    ]
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "smart-shopping-scanner-1e045",
+          "appId": "1:816594199281:android:21ce322d157acc5fd5bf50",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "smart-shopping-scanner-1e045",
+          "appId": "1:816594199281:ios:7009cfebf13cd3bdd5bf50",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "smart-shopping-scanner-1e045",
+          "configurations": {
+            "android": "1:816594199281:android:21ce322d157acc5fd5bf50",
+            "ios": "1:816594199281:ios:7009cfebf13cd3bdd5bf50"
+          }
+        }
+      }
+    }
+  }
+}
