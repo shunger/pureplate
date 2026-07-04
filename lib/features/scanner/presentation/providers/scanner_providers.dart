@@ -34,7 +34,7 @@ final _productDioProvider = Provider<Dio>((ref) {
     connectTimeout: AppConstants.defaultTimeout,
     receiveTimeout: AppConstants.defaultTimeout,
     headers: {
-      'User-Agent': 'PurePlateAI/1.0 (Flutter)',
+      'User-Agent': 'PurePantryAI/1.0 (Flutter)',
     },
   ));
 });

@@ -1,4 +1,4 @@
-/// Application-wide constants for the PurePlate AI app.
+/// Application-wide constants for the Pure Pantry AI app.
 abstract class AppConstants {
   // ---------------------------------------------------------------------------
   // API URLs

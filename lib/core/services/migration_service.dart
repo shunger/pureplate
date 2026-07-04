@@ -8,7 +8,7 @@ import 'package:sqlite3/sqlite3.dart' as sqlite;
 
 import '../database/app_database.dart';
 
-/// Handles migrating data from SmartShoppingScanner into PurePlate AI.
+/// Handles migrating data from SmartShoppingScanner into Pure Pantry AI.
 ///
 /// Uses raw sqlite3 to read the legacy database (avoids needing generated Drift
 /// code for the legacy schema) and Drift's customInsert/customUpdate to write

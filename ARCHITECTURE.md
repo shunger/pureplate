@@ -1,9 +1,9 @@
-# PurePlate AI — Architecture Document
+# Pure Pantry AI — Architecture Document
 ## "From Pantry to Table"
 
 ### Overview
 
-PurePlate AI merges SmartShoppingScanner (pantry + shopping) with Meal Planner AI
+Pure Pantry AI merges SmartShoppingScanner (pantry + shopping) with Meal Planner AI
 (AI recipes + meal planning) into a single unified app. The pantry inventory is
 the single source of truth that drives both shopping intelligence and AI meal
 generation.
@@ -13,7 +13,7 @@ generation.
 ## 1. Folder Structure
 
 ```
-pure_plate/lib/
+pure_pantry/lib/
 ├── main.dart
 ├── app.dart
 ├── firebase_options.dart
@@ -391,7 +391,7 @@ This enables "use what you have" suggestions and minimizes waste.
 ## 5. Migration Strategy
 
 ### Phase 1: Project Setup
-- Create new Flutter project `pure_plate`
+- Create new Flutter project `pure_pantry`
 - Set up Firebase project (new or reuse scanner's)
 - Configure shared dependencies
 

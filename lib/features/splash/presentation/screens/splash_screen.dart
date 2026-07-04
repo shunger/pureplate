@@ -121,7 +121,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               ),
               const SizedBox(height: 24),
               Text(
-                'PurePlate AI',
+                'Pure Pantry AI',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,

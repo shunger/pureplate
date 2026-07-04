@@ -40,7 +40,7 @@ import 'daos/produce_template_dao.dart';
 
 part 'app_database.g.dart';
 
-/// Unified PurePlate AI database — merges all tables from SmartShoppingScanner
+/// Unified Pure Pantry AI database — merges all tables from SmartShoppingScanner
 /// and MealPlannerAI into a single schema.
 ///
 /// 19 tables, 14 DAOs, schema version 1.
@@ -137,6 +137,7 @@ class AppDatabase extends _$AppDatabase {
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationDocumentsDirectory();
+    // Keep legacy filename to preserve existing user data after rebrand.
     final file = File(p.join(dbFolder.path, 'pure_plate.sqlite'));
     return NativeDatabase.createInBackground(file);
   });

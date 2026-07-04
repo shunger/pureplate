@@ -49,7 +49,7 @@ class OnboardingWelcomeScreen extends StatelessWidget {
 
               // App name
               Text(
-                'PurePlate AI',
+                'Pure Pantry AI',
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                       fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary,

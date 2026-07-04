@@ -1,5 +1,5 @@
-name: pure_plate
-description: "PurePlate AI — From Pantry to Table. AI-powered meal planning meets smart grocery shopping."
+name: pure_pantry
+description: "Pure Pantry AI — From Pantry to Table. AI-powered meal planning meets smart grocery shopping."
 publish_to: 'none'
 version: 1.0.0+1
 

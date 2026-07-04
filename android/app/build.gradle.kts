@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "com.purehungerlabs.pure_plate"
+    namespace = "com.purehungerlabs.purepantry"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -19,7 +19,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.purehungerlabs.pure_plate"
+        applicationId = "com.purehungerlabs.purepantry"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

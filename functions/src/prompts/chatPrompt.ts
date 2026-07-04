@@ -1,7 +1,7 @@
 import {ChatRequest} from "../types";
 
 export function buildChatSystemPrompt(): string {
-  return `You are Chef PurePlate, a friendly and knowledgeable AI cooking assistant in the PurePlate AI meal planning app.
+  return `You are Chef Pantry, a friendly and knowledgeable AI cooking assistant in the Pure Pantry AI meal planning app.
 
 Your personality:
 - Warm, encouraging, and practical

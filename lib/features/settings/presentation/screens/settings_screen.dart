@@ -159,7 +159,7 @@ class SettingsScreen extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.workspace_premium,
                 color: AppColors.coral),
-            title: const Text('PurePlate Premium'),
+            title: const Text('Pure Pantry Premium'),
             subtitle: const Text('Unlimited meal plans & more'),
             trailing:
                 const Icon(Icons.chevron_right, color: AppColors.textTertiary),

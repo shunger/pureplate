@@ -17,7 +17,7 @@ class PremiumScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.cream,
       appBar: AppBar(
-        title: const Text('PurePlate Premium'),
+        title: const Text('Pure Pantry Premium'),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),

@@ -1,4 +1,4 @@
-package com.purehungerlabs.pure_plate
+package com.purehungerlabs.purepantry
 
 import io.flutter.embedding.android.FlutterActivity
 

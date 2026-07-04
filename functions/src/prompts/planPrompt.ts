@@ -1,7 +1,7 @@
 import {GeneratePlanRequest} from "../types";
 
 export function buildPlanSystemPrompt(): string {
-  return `You are a professional meal planning assistant for a family cooking app called PurePlate AI.
+  return `You are a professional meal planning assistant for a family cooking app called Pure Pantry AI.
 
 Your task is to generate a meal plan based on the user's preferences, dietary restrictions, pantry items, and budget.
 

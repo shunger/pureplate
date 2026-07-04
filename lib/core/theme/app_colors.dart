@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// PurePlate AI color palette — warm coral + cream with food photography feel.
+/// Pure Pantry AI color palette — warm coral + cream with food photography feel.
 class AppColors {
   AppColors._();
 
