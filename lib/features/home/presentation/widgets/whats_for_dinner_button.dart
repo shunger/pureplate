@@ -5,7 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/routing/route_names.dart';
 
 /// Hero call-to-action button on the dashboard.
-/// Tapping opens the meal plan generation flow.
+/// Tapping opens the AI chat in dinner-suggestion mode.
 class WhatsForDinnerButton extends StatelessWidget {
   const WhatsForDinnerButton({super.key});
 
@@ -14,7 +14,7 @@ class WhatsForDinnerButton extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => context.push(Routes.planGeneration),
+        onTap: () => context.push('${Routes.chat}?mode=dinner'),
         borderRadius: BorderRadius.circular(20),
         child: Container(
           width: double.infinity,
@@ -71,7 +71,7 @@ class WhatsForDinnerButton extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'AI-powered meal ideas based on your pantry',
+                'Find recipes using what\'s in your pantry',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.85),
                   fontSize: 14,

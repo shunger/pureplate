@@ -21,7 +21,9 @@ import '../../../../shared/models/product_category.dart';
 ///
 /// User sends text describing what they want, AI responds with a meal plan.
 class ChatPlanningScreen extends ConsumerStatefulWidget {
-  const ChatPlanningScreen({super.key});
+  final String? mode;
+
+  const ChatPlanningScreen({super.key, this.mode});
 
   @override
   ConsumerState<ChatPlanningScreen> createState() =>
@@ -36,17 +38,31 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
   bool _isLoading = false;
   File? _selectedImage;
 
+  bool get _isDinnerMode => widget.mode == 'dinner';
+
   @override
   void initState() {
     super.initState();
-    _messages.add(const _ChatMessage(
-      text: 'Hi! Tell me what you\'re in the mood for, and I\'ll help plan '
-          'your meals. Try something like:\n\n'
-          '"I want comfort food for 3 days"\n'
-          '"Plan a week of quick healthy dinners"\n'
-          '"What can I make with chicken and rice?"',
-      isUser: false,
-    ));
+    if (_isDinnerMode) {
+      _messages.add(const _ChatMessage(
+        text: "Let me check your pantry and find something great for dinner tonight!",
+        isUser: false,
+      ));
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _controller.text =
+            "What can I make for dinner tonight using what's in my pantry?";
+        _sendMessage();
+      });
+    } else {
+      _messages.add(const _ChatMessage(
+        text: 'Hi! Tell me what you\'re in the mood for, and I\'ll help plan '
+            'your meals. Try something like:\n\n'
+            '"I want comfort food for 3 days"\n'
+            '"Plan a week of quick healthy dinners"\n'
+            '"What can I make with chicken and rice?"',
+        isUser: false,
+      ));
+    }
   }
 
   @override

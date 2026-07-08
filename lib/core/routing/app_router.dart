@@ -139,7 +139,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: Routes.chat,
-        builder: (context, state) => const ChatPlanningScreen(),
+        builder: (context, state) => ChatPlanningScreen(
+          mode: state.uri.queryParameters['mode'],
+        ),
       ),
       GoRoute(
         path: Routes.inventorySuggestions,

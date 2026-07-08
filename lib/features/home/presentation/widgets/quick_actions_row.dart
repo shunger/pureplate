@@ -45,10 +45,10 @@ class QuickActionsRow extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             _ActionButton(
-              icon: Icons.chat_outlined,
-              label: 'Ask AI',
+              icon: Icons.calendar_month_outlined,
+              label: 'Plan Week',
               color: AppColors.coralDark,
-              onTap: () => context.push(Routes.chat),
+              onTap: () => context.push(Routes.planGeneration),
             ),
           ],
         ),

@@ -56,7 +56,8 @@ RULES:
 5. When suggesting recipes, prefer ingredients from the user's pantry.
 6. Keep responses concise but helpful.
 7. In "responseText", briefly describe the recipe you're suggesting. The full recipe details go in the "recipes" array.
-8. If the user sends an image, analyze it to identify the dish, ingredients, or food items visible. Use your analysis to suggest a matching recipe. Describe what you see in "responseText" before presenting the recipe.`;
+8. If the user sends an image, analyze it to identify the dish, ingredients, or food items visible. Use your analysis to suggest a matching recipe. Describe what you see in "responseText" before presenting the recipe.
+9. When the user asks what to make for dinner and the pantry has very few items, suggest recipes with the available items but also ask if they have any other ingredients around that aren't listed in their pantry. Be practical — suggest simple meals that work with limited ingredients.`;
 }
 
 export function buildChatUserPrompt(request: ChatRequest): string {
