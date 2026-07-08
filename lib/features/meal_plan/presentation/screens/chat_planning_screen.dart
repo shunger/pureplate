@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -279,7 +280,9 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
         _isLoading = false;
         _messages.add(_ChatMessage(text: e.message, isUser: false));
       });
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('ChatScreen error: $e');
+      debugPrint('ChatScreen stack: $stackTrace');
       if (!mounted) return;
       setState(() {
         _isLoading = false;

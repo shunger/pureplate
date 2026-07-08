@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../recipes/domain/models/recipe.dart';
@@ -36,19 +37,21 @@ class AiChatRepository {
         if (activePlan != null) 'activePlan': activePlan,
       });
 
-      final data = result.data as Map<String, dynamic>;
+      final data = _deepCast(result.data);
       final responseText = data['responseText'] as String? ?? '';
       final recipesData = data['recipes'] as List<dynamic>? ?? [];
 
       final recipes = recipesData
-          .cast<Map<String, dynamic>>()
-          .map(_parseRecipe)
+          .whereType<Map>()
+          .map((m) => _parseRecipe(_deepCast(m)))
           .toList();
 
       return ChatResponse(responseText: responseText, recipes: recipes);
     } on FirebaseFunctionsException catch (e) {
       throw AiChatException(_userFriendlyMessage(e.code), code: e.code);
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('AiChatRepository error: $e');
+      debugPrint('AiChatRepository stack: $stackTrace');
       throw AiChatException(
         'Something went wrong. Please try again.',
         code: 'unknown',
@@ -97,6 +100,28 @@ class AiChatRepository {
         timeMinutes: m['time_minutes'] as int?,
         tip: m['tip'] as String?,
       );
+    }).toList();
+  }
+
+  Map<String, dynamic> _deepCast(dynamic data) {
+    if (data is Map) {
+      return data.map((key, value) => MapEntry(
+            key.toString(),
+            value is Map
+                ? _deepCast(value)
+                : value is List
+                    ? _deepCastList(value)
+                    : value,
+          ));
+    }
+    throw ArgumentError('Expected Map, got ${data.runtimeType}');
+  }
+
+  List<dynamic> _deepCastList(List<dynamic> list) {
+    return list.map((item) {
+      if (item is Map) return _deepCast(item);
+      if (item is List) return _deepCastList(item);
+      return item;
     }).toList();
   }
 

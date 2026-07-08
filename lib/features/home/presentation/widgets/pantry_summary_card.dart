@@ -47,20 +47,20 @@ class PantrySummaryCard extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
                       _StatChip(
                         label: '${stats.totalItems} items',
                         icon: Icons.inventory_2_outlined,
                         color: AppColors.sage,
                       ),
-                      const SizedBox(width: 12),
                       _StatChip(
                         label: '${stats.expiringCount} expiring',
                         icon: Icons.schedule,
                         color: AppColors.warning,
                       ),
-                      const SizedBox(width: 12),
                       _StatChip(
                         label: '${stats.lowStockCount} low',
                         icon: Icons.shopping_bag_outlined,

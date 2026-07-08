@@ -55,6 +55,8 @@
 	<string>Main</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Used to scan product barcodes and PLU codes</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Used to select photos for product images</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Used for voice input during cooking</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

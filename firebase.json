@@ -18,29 +18,32 @@
     "platforms": {
       "android": {
         "default": {
-          "projectId": "smart-shopping-scanner-1e045",
-          "appId": "1:816594199281:android:21ce322d157acc5fd5bf50",
+          "projectId": "pure-pantry-ai",
+          "appId": "1:382740832833:android:79372ca5f23073b763dcc0",
           "fileOutput": "android/app/google-services.json"
         }
       },
       "ios": {
         "default": {
-          "projectId": "smart-shopping-scanner-1e045",
-          "appId": "1:816594199281:ios:7009cfebf13cd3bdd5bf50",
+          "projectId": "pure-pantry-ai",
+          "appId": "1:382740832833:ios:51efad3ca1fce45d63dcc0",
           "uploadDebugSymbols": false,
           "fileOutput": "ios/Runner/GoogleService-Info.plist"
         }
       },
       "dart": {
         "lib/firebase_options.dart": {
-          "projectId": "smart-shopping-scanner-1e045",
+          "projectId": "pure-pantry-ai",
           "configurations": {
-            "android": "1:816594199281:android:21ce322d157acc5fd5bf50",
-            "ios": "1:816594199281:ios:7009cfebf13cd3bdd5bf50"
+            "android": "1:382740832833:android:79372ca5f23073b763dcc0",
+            "ios": "1:382740832833:ios:51efad3ca1fce45d63dcc0"
           }
         }
       }
     }
+  },
+  "firestore": {
+    "rules": "firestore.rules"
   },
   "emulators": {
     "functions": {

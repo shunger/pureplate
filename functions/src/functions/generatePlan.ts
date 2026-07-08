@@ -25,14 +25,17 @@ export const generatePlan = onCall(
     }
 
     // Kill switch
+    console.log("generatePlan: checking kill switch");
     checkKillSwitch();
 
     // Rate limit (skip in emulator without auth)
     const uid = request.auth?.uid ?? "emulator-test-user";
+    console.log("generatePlan: checking rate limit for uid:", uid);
     await checkRateLimit(uid, "plan");
 
     // Validate input
     const data = request.data as GeneratePlanRequest;
+    console.log("generatePlan: input days:", data.days, "has preferenceSummary:", !!data.preferenceSummary);
     if (!data.days || !data.preferenceSummary) {
       throw new HttpsError(
         "invalid-argument",
@@ -51,15 +54,19 @@ export const generatePlan = onCall(
       attempts++;
       try {
         const temperature = attempts === 1 ? 0.3 : 0.1;
+        console.log(`generatePlan: calling Bedrock attempt ${attempts}, temp=${temperature}`);
         const raw = await callBedrock(systemPrompt, userPrompt, {
           temperature,
           maxTokens: 4096,
         });
+        console.log("generatePlan: Bedrock returned", raw.length, "chars");
 
         parsed = extractJson(raw);
         parsed = validatePlanResponse(parsed);
+        console.log("generatePlan: parsed", parsed.plan.days.length, "days");
         break;
       } catch (err: any) {
+        console.error(`generatePlan: attempt ${attempts} failed:`, err.message || err);
         if (attempts >= maxAttempts) {
           if (err.message?.includes("timeout") || err.name === "TimeoutError") {
             throw new HttpsError("deadline-exceeded", "AI request timed out. Please try again.");

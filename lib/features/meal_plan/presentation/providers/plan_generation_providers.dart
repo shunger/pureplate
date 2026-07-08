@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
@@ -162,6 +163,7 @@ class PlanGenerationNotifier extends StateNotifier<PlanGenerationState> {
           mealPlanId: Value(result.plan.id),
           isActive: const Value(true),
           createdAt: Value(now),
+          updatedAt: Value(now),
         ));
 
         final itemCompanions = result.suggestedShoppingItems
@@ -174,6 +176,7 @@ class PlanGenerationNotifier extends StateNotifier<PlanGenerationState> {
                       double.tryParse(item.quantity ?? '1') ?? 1),
                   unitType: Value(item.unit ?? 'count'),
                   addedAt: Value(now),
+                  updatedAt: Value(now),
                 ))
             .toList();
         await _shoppingListDao.insertItems(itemCompanions);
@@ -191,7 +194,9 @@ class PlanGenerationNotifier extends StateNotifier<PlanGenerationState> {
         errorMessage: e.message,
       );
       return null;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('PlanGeneration error: $e');
+      debugPrint('PlanGeneration stack: $stackTrace');
       state = state.copyWith(
         isGenerating: false,
         errorMessage: 'Something went wrong. Please try again.',

@@ -51,10 +51,11 @@ RESPONSE FORMAT — Output ONLY valid JSON with this structure:
 RULES:
 1. Output ONLY valid JSON. No markdown fences, no preamble.
 2. Always include "responseText" with your conversational reply.
-3. Include "recipes" array ONLY when the user asks for a recipe or you suggest one. Otherwise use an empty array [].
+3. When the user mentions ANY food, meal, ingredient, or dish — ALWAYS include at least one complete recipe in the "recipes" array. Only use an empty array [] for non-food questions (e.g. "how do I use this app?").
 4. Respect all dietary restrictions — never suggest restricted foods.
 5. When suggesting recipes, prefer ingredients from the user's pantry.
-6. Keep responses concise but helpful.`;
+6. Keep responses concise but helpful.
+7. In "responseText", briefly describe the recipe you're suggesting. The full recipe details go in the "recipes" array.`;
 }
 
 export function buildChatUserPrompt(request: ChatRequest): string {

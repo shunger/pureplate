@@ -32,11 +32,16 @@ Future<void> main() async {
     if (auth.currentUser == null) {
       await auth.signInAnonymously();
     }
-
-    // Set up FCM + local notification channels.
-    await NotificationService().initialize();
   } catch (e) {
     debugPrint('Firebase init failed (app will run in offline mode): $e');
+  }
+
+  // Set up FCM + local notification channels.
+  // Separate try/catch so an APNS error on simulator doesn't block Firebase.
+  try {
+    await NotificationService().initialize();
+  } catch (e) {
+    debugPrint('Notification init failed (non-fatal): $e');
   }
 
   runApp(

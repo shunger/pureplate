@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
@@ -44,14 +45,16 @@ class AiPlanRepository {
         'preferenceSummary': preferenceSummary,
       });
 
-      final data = result.data as Map<String, dynamic>;
+      final data = _deepCast(result.data);
       return _parseResponse(data, numDays);
     } on FirebaseFunctionsException catch (e) {
       throw AiPlanException(
         _userFriendlyMessage(e.code),
         code: e.code,
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('AiPlanRepository error: $e');
+      debugPrint('AiPlanRepository stack: $stackTrace');
       throw AiPlanException(
         'Something went wrong generating your plan. Try again?',
         code: 'unknown',
@@ -156,6 +159,30 @@ class AiPlanRepository {
         timeMinutes: m['time_minutes'] as int?,
         tip: m['tip'] as String?,
       );
+    }).toList();
+  }
+
+  /// Recursively converts Firebase response data (which may contain
+  /// Map<Object?, Object?> on iOS) to Map<String, dynamic>.
+  Map<String, dynamic> _deepCast(dynamic data) {
+    if (data is Map) {
+      return data.map((key, value) => MapEntry(
+            key.toString(),
+            value is Map
+                ? _deepCast(value)
+                : value is List
+                    ? _deepCastList(value)
+                    : value,
+          ));
+    }
+    throw ArgumentError('Expected Map, got ${data.runtimeType}');
+  }
+
+  List<dynamic> _deepCastList(List<dynamic> list) {
+    return list.map((item) {
+      if (item is Map) return _deepCast(item);
+      if (item is List) return _deepCastList(item);
+      return item;
     }).toList();
   }
 
