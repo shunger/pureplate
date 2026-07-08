@@ -1,6 +1,6 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {initializeApp, getApps} from "firebase-admin/app";
-import {callBedrock, bedrockSecrets} from "../services/bedrockService";
+import {callBedrock, callBedrockVision, bedrockSecrets} from "../services/bedrockService";
 import {checkKillSwitch} from "../middleware/killSwitch";
 import {checkRateLimit} from "../middleware/rateLimiter";
 import {buildChatSystemPrompt, buildChatUserPrompt} from "../prompts/chatPrompt";
@@ -39,6 +39,18 @@ export const chatWithChef = onCall(
       );
     }
 
+    // Validate image size if present (reject base64 > ~5MB)
+    const hasImage = !!data.imageBase64 && !!data.imageMediaType;
+    if (hasImage) {
+      const maxBase64Chars = Math.ceil(5 * 1024 * 1024 * 4 / 3);
+      if (data.imageBase64!.length > maxBase64Chars) {
+        throw new HttpsError(
+          "invalid-argument",
+          "Image is too large. Please use a smaller image (max 5MB)."
+        );
+      }
+    }
+
     const systemPrompt = buildChatSystemPrompt();
     const userPrompt = buildChatUserPrompt(data);
 
@@ -50,10 +62,17 @@ export const chatWithChef = onCall(
       attempts++;
       try {
         const temperature = attempts === 1 ? 0.7 : 0.3;
-        const raw = await callBedrock(systemPrompt, userPrompt, {
-          temperature,
-          maxTokens: 4096,
-        });
+        const bedrockOptions = {temperature, maxTokens: 4096};
+
+        const raw = hasImage
+          ? await callBedrockVision(
+              systemPrompt,
+              userPrompt,
+              data.imageBase64!,
+              data.imageMediaType!,
+              bedrockOptions
+            )
+          : await callBedrock(systemPrompt, userPrompt, bedrockOptions);
 
         parsed = extractJson(raw);
         parsed = validateChatResponse(parsed);

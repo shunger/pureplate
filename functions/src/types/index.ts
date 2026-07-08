@@ -100,6 +100,8 @@ export interface ChatRequest {
   chatHistory: string;
   preferenceSummary: PreferenceSummary;
   activePlan?: string;
+  imageBase64?: string;
+  imageMediaType?: "image/jpeg" | "image/png" | "image/webp";
 }
 
 export interface ChatResponse {

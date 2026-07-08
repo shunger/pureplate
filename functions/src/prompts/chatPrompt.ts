@@ -55,7 +55,8 @@ RULES:
 4. Respect all dietary restrictions — never suggest restricted foods.
 5. When suggesting recipes, prefer ingredients from the user's pantry.
 6. Keep responses concise but helpful.
-7. In "responseText", briefly describe the recipe you're suggesting. The full recipe details go in the "recipes" array.`;
+7. In "responseText", briefly describe the recipe you're suggesting. The full recipe details go in the "recipes" array.
+8. If the user sends an image, analyze it to identify the dish, ingredients, or food items visible. Use your analysis to suggest a matching recipe. Describe what you see in "responseText" before presenting the recipe.`;
 }
 
 export function buildChatUserPrompt(request: ChatRequest): string {

@@ -1,7 +1,11 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/routing/route_names.dart';
@@ -27,8 +31,10 @@ class ChatPlanningScreen extends ConsumerStatefulWidget {
 class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
+  final _imagePicker = ImagePicker();
   final _messages = <_ChatMessage>[];
   bool _isLoading = false;
+  File? _selectedImage;
 
   @override
   void initState() {
@@ -81,18 +87,70 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
             ),
           ),
 
+          // Image preview
+          if (_selectedImage != null)
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              decoration: const BoxDecoration(
+                color: AppColors.cardBackground,
+                border: Border(
+                  top: BorderSide(color: AppColors.divider, width: 0.5),
+                ),
+              ),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.file(
+                        _selectedImage!,
+                        height: 80,
+                        width: 80,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    Positioned(
+                      top: 2,
+                      right: 2,
+                      child: GestureDetector(
+                        onTap: () => setState(() => _selectedImage = null),
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          padding: const EdgeInsets.all(4),
+                          child: const Icon(Icons.close,
+                              size: 14, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
           // Input area
           Container(
             padding: EdgeInsets.fromLTRB(
                 16, 8, 16, MediaQuery.of(context).viewPadding.bottom + 8),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.cardBackground,
-              border: Border(
-                top: BorderSide(color: AppColors.divider, width: 0.5),
-              ),
+              border: _selectedImage == null
+                  ? const Border(
+                      top: BorderSide(color: AppColors.divider, width: 0.5),
+                    )
+                  : null,
             ),
             child: Row(
               children: [
+                IconButton(
+                  onPressed: _isLoading ? null : _showImageSourceSheet,
+                  icon: const Icon(Icons.camera_alt_outlined, size: 24),
+                  color: AppColors.coral,
+                ),
+                const SizedBox(width: 4),
                 Expanded(
                   child: TextField(
                     controller: _controller,
@@ -151,13 +209,31 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
               ? null
               : Border.all(color: AppColors.divider, width: 0.5),
         ),
-        child: Text(
-          message.text,
-          style: TextStyle(
-            color: message.isUser ? Colors.white : AppColors.textPrimary,
-            fontSize: 15,
-            height: 1.4,
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (message.imageFile != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 200),
+                    child: Image.file(message.imageFile!, fit: BoxFit.cover),
+                  ),
+                ),
+              ),
+            if (message.text.isNotEmpty)
+              Text(
+                message.text,
+                style: TextStyle(
+                  color:
+                      message.isUser ? Colors.white : AppColors.textPrimary,
+                  fontSize: 15,
+                  height: 1.4,
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -194,13 +270,72 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
     );
   }
 
+  void _showImageSourceSheet() {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Camera'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Photo Library'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    final picked = await _imagePicker.pickImage(
+      source: source,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 80,
+    );
+    if (picked != null) {
+      setState(() => _selectedImage = File(picked.path));
+    }
+  }
+
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
-    if (text.isEmpty) return;
+    final imageFile = _selectedImage;
+    if (text.isEmpty && imageFile == null) return;
+
+    // Prepare image data before clearing state.
+    String? imageBase64;
+    String? imageMediaType;
+    if (imageFile != null) {
+      final bytes = await imageFile.readAsBytes();
+      imageBase64 = base64Encode(bytes);
+      final ext = imageFile.path.split('.').last.toLowerCase();
+      imageMediaType = ext == 'png' ? 'image/png'
+          : ext == 'webp' ? 'image/webp'
+          : 'image/jpeg';
+    }
 
     setState(() {
-      _messages.add(_ChatMessage(text: text, isUser: true));
+      _messages.add(_ChatMessage(
+        text: text,
+        isUser: true,
+        imageFile: imageFile,
+      ));
       _controller.clear();
+      _selectedImage = null;
       _isLoading = true;
     });
     _scrollToBottom();
@@ -250,12 +385,19 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
         pantryItems: domainPantryItems,
       );
 
+      // Use a default message when the user sends only an image.
+      final userMessage = text.isNotEmpty
+          ? text
+          : 'What dish is this? Can you give me the recipe?';
+
       // Call the AI chat Cloud Function.
       final chatRepo = ref.read(aiChatRepositoryProvider);
       final response = await chatRepo.sendMessage(
-        userMessage: text,
+        userMessage: userMessage,
         chatHistory: historyBuffer.toString(),
         preferenceSummary: summary,
+        imageBase64: imageBase64,
+        imageMediaType: imageMediaType,
       );
 
       // Save any recipes returned by the AI to the local database.
@@ -311,6 +453,11 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
 class _ChatMessage {
   final String text;
   final bool isUser;
+  final File? imageFile;
 
-  const _ChatMessage({required this.text, required this.isUser});
+  const _ChatMessage({
+    required this.text,
+    required this.isUser,
+    this.imageFile,
+  });
 }

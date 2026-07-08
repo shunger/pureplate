@@ -27,6 +27,8 @@ class AiChatRepository {
     required String chatHistory,
     required Map<String, dynamic> preferenceSummary,
     String? activePlan,
+    String? imageBase64,
+    String? imageMediaType,
   }) async {
     try {
       final result =
@@ -35,6 +37,8 @@ class AiChatRepository {
         'chatHistory': chatHistory,
         'preferenceSummary': preferenceSummary,
         if (activePlan != null) 'activePlan': activePlan,
+        if (imageBase64 != null) 'imageBase64': imageBase64,
+        if (imageMediaType != null) 'imageMediaType': imageMediaType,
       });
 
       final data = _deepCast(result.data);
