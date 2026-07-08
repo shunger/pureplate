@@ -122,11 +122,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.recipes,
         builder: (context, state) => const RecipeBrowserScreen(),
-      ),
-      GoRoute(
-        path: Routes.recipeDetail,
-        builder: (context, state) =>
-            RecipeDetailScreen(recipeId: state.pathParameters['id']!),
+        routes: [
+          GoRoute(
+            path: ':id',
+            builder: (context, state) =>
+                RecipeDetailScreen(recipeId: state.pathParameters['id']!),
+          ),
+        ],
       ),
       GoRoute(
         path: Routes.cookingMode,

@@ -1,6 +1,7 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../recipes/domain/models/recipe.dart';
 import '../../../recipes/domain/models/ingredient.dart';
@@ -64,8 +65,9 @@ class AiChatRepository {
   }
 
   Recipe _parseRecipe(Map<String, dynamic> m) {
+    final rawId = m['id'] as String?;
     return Recipe(
-      id: m['id'] as String? ?? '',
+      id: (rawId != null && rawId.isNotEmpty) ? rawId : const Uuid().v4(),
       name: m['name'] as String? ?? 'Untitled Recipe',
       description: m['description'] as String?,
       cuisine: m['cuisine'] as String?,

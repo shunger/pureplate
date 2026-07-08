@@ -267,16 +267,27 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                   ),
                 ),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 80)),
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
             ],
           ),
-          floatingActionButton: FloatingActionButton.extended(
-            onPressed: () =>
-                context.push('/cooking/${widget.recipeId}'),
-            icon: const Icon(Icons.restaurant),
-            label: const Text('Start Cooking'),
-            backgroundColor: AppColors.coral,
-            foregroundColor: Colors.white,
+          bottomNavigationBar: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: FilledButton.icon(
+                onPressed: () =>
+                    context.push('/cooking/${widget.recipeId}'),
+                icon: const Icon(Icons.restaurant),
+                label: const Text('Start Cooking'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.coral,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                ),
+              ),
+            ),
           ),
         );
       },

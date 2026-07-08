@@ -15,6 +15,7 @@ import '../../data/datasources/preference_summary_builder.dart';
 import '../../domain/models/family_profile.dart';
 import '../../../pantry/domain/models/pantry_item.dart';
 import '../../../recipes/data/datasources/recipe_mapper.dart';
+import '../../../recipes/domain/models/recipe.dart';
 import '../../../../shared/models/product_category.dart';
 
 /// Chat-style interface for conversational meal planning.
@@ -203,52 +204,113 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
   }
 
   Widget _buildMessageBubble(_ChatMessage message) {
+    final maxWidth = MediaQuery.of(context).size.width * 0.8;
     return Align(
       alignment:
           message.isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        constraints:
-            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
-        decoration: BoxDecoration(
-          color: message.isUser
-              ? AppColors.coral
-              : AppColors.cardBackground,
-          borderRadius: BorderRadius.circular(16).copyWith(
-            bottomRight:
-                message.isUser ? const Radius.circular(4) : null,
-            bottomLeft:
-                !message.isUser ? const Radius.circular(4) : null,
-          ),
-          border: message.isUser
-              ? null
-              : Border.all(color: AppColors.divider, width: 0.5),
-        ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (message.imageFile != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 200),
-                    child: Image.file(message.imageFile!, fit: BoxFit.cover),
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: message.isUser
+                    ? AppColors.coral
+                    : AppColors.cardBackground,
+                borderRadius: BorderRadius.circular(16).copyWith(
+                  bottomRight:
+                      message.isUser ? const Radius.circular(4) : null,
+                  bottomLeft:
+                      !message.isUser ? const Radius.circular(4) : null,
+                ),
+                border: message.isUser
+                    ? null
+                    : Border.all(color: AppColors.divider, width: 0.5),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (message.imageFile != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 200),
+                          child: Image.file(message.imageFile!,
+                              fit: BoxFit.cover),
+                        ),
+                      ),
+                    ),
+                  if (message.text.isNotEmpty)
+                    Text(
+                      message.text,
+                      style: TextStyle(
+                        color: message.isUser
+                            ? Colors.white
+                            : AppColors.textPrimary,
+                        fontSize: 15,
+                        height: 1.4,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            if (message.recipes.isNotEmpty)
+              ...message.recipes
+                  .where((r) => r.id.isNotEmpty)
+                  .map((recipe) => _buildRecipeCard(recipe)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecipeCard(Recipe recipe) {
+    return GestureDetector(
+      onTap: () => context.push('/recipes/${recipe.id}'),
+      child: Container(
+        margin: const EdgeInsets.only(top: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.cardBackground,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.coral.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    recipe.name,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${recipe.totalTimeDisplay} · ${recipe.servings} servings',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textPrimary.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
               ),
-            if (message.text.isNotEmpty)
-              Text(
-                message.text,
-                style: TextStyle(
-                  color:
-                      message.isUser ? Colors.white : AppColors.textPrimary,
-                  fontSize: 15,
-                  height: 1.4,
-                ),
-              ),
+            ),
+            const Icon(
+              Icons.chevron_right,
+              color: AppColors.coral,
+              size: 22,
+            ),
           ],
         ),
       ),
@@ -430,6 +492,7 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
         _messages.add(_ChatMessage(
           text: response.responseText,
           isUser: false,
+          recipes: response.recipes,
         ));
       });
     } on AiChatException catch (e) {
@@ -470,10 +533,12 @@ class _ChatMessage {
   final String text;
   final bool isUser;
   final File? imageFile;
+  final List<Recipe> recipes;
 
   const _ChatMessage({
     required this.text,
     required this.isUser,
     this.imageFile,
+    this.recipes = const [],
   });
 }

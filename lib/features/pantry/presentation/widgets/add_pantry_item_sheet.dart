@@ -130,12 +130,25 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
             ),
             const SizedBox(height: 16),
 
-            // Title
-            Text(
-              _isEditing ? 'Edit Item' : 'Add to Pantry',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
+            // Title + close button
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _isEditing ? 'Edit Item' : 'Add to Pantry',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                   ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                  style: IconButton.styleFrom(
+                    foregroundColor: AppColors.textSecondary,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
 
@@ -231,6 +244,7 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                       right: loc.$1 == 'freezer' ? 0 : 8,
                     ),
                     child: ChoiceChip(
+                      showCheckmark: false,
                       label: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
