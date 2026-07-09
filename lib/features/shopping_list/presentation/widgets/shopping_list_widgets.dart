@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../core/providers/database_providers.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/voice_input_button.dart';
 import '../../../../shared/models/product_category.dart';
 import '../../data/datasources/shopping_list_mapper.dart';
 import '../../domain/models/shopping_list.dart';
@@ -40,18 +41,20 @@ class _CreateListDialogState extends ConsumerState<CreateListDialog> {
           TextField(
             controller: _nameController,
             autofocus: true,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'List name',
               hintText: 'e.g. Weekly Groceries',
+              suffixIcon: VoiceInputButton(controller: _nameController),
             ),
             textCapitalization: TextCapitalization.sentences,
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _storeController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Store (optional)',
               hintText: 'e.g. Trader Joe\'s',
+              suffixIcon: VoiceInputButton(controller: _storeController),
             ),
             textCapitalization: TextCapitalization.words,
           ),
@@ -184,9 +187,10 @@ class _ShoppingListItemSheetState
             TextField(
               controller: _nameController,
               autofocus: !_isEditing,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Item name',
                 hintText: 'e.g. Whole milk',
+                suffixIcon: VoiceInputButton(controller: _nameController),
               ),
               textCapitalization: TextCapitalization.sentences,
             ),
@@ -196,7 +200,14 @@ class _ShoppingListItemSheetState
                 Expanded(
                   child: TextField(
                     controller: _quantityController,
-                    decoration: const InputDecoration(labelText: 'Qty'),
+                    decoration: InputDecoration(
+                      labelText: 'Qty',
+                      suffixIcon: VoiceInputButton(
+                        controller: _quantityController,
+                        isNumeric: true,
+                        iconSize: 18,
+                      ),
+                    ),
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
                   ),
@@ -205,7 +216,13 @@ class _ShoppingListItemSheetState
                 Expanded(
                   child: TextField(
                     controller: _unitController,
-                    decoration: const InputDecoration(labelText: 'Unit'),
+                    decoration: InputDecoration(
+                      labelText: 'Unit',
+                      suffixIcon: VoiceInputButton(
+                        controller: _unitController,
+                        iconSize: 18,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -227,9 +244,13 @@ class _ShoppingListItemSheetState
             const SizedBox(height: 12),
             TextField(
               controller: _priceController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Estimated price (optional)',
                 prefixText: '\$ ',
+                suffixIcon: VoiceInputButton(
+                  controller: _priceController,
+                  isNumeric: true,
+                ),
               ),
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
@@ -237,7 +258,10 @@ class _ShoppingListItemSheetState
             const SizedBox(height: 12),
             TextField(
               controller: _notesController,
-              decoration: const InputDecoration(labelText: 'Notes (optional)'),
+              decoration: InputDecoration(
+                labelText: 'Notes (optional)',
+                suffixIcon: VoiceInputButton(controller: _notesController),
+              ),
               maxLines: 2,
               textCapitalization: TextCapitalization.sentences,
             ),

@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../core/database/app_database.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/voice_input_button.dart';
 import '../../data/datasources/pantry_sync_orchestrator.dart';
 
 /// Bottom sheet for adding or editing a pantry item.
@@ -157,9 +158,10 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
               controller: _nameController,
               autofocus: !_isEditing,
               textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Item name',
                 hintText: 'e.g., Chicken Breast',
+                suffixIcon: VoiceInputButton(controller: _nameController),
               ),
             ),
             const SizedBox(height: 16),
@@ -310,9 +312,13 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
               controller: _priceController,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Purchase price (optional)',
                 prefixText: '\$ ',
+                suffixIcon: VoiceInputButton(
+                  controller: _priceController,
+                  isNumeric: true,
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -320,9 +326,10 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
             // Notes
             TextField(
               controller: _notesController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Notes (optional)',
                 hintText: 'e.g., organic, family size',
+                suffixIcon: VoiceInputButton(controller: _notesController),
               ),
               maxLines: 2,
             ),

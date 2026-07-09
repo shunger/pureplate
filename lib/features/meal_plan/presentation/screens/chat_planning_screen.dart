@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/voice_input_button.dart';
 import '../../../../core/routing/route_names.dart';
 import '../../../../core/providers/database_providers.dart';
 import '../../data/repositories/ai_chat_repository.dart';
@@ -186,7 +187,11 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
                     onSubmitted: (_) => _sendMessage(),
                   ),
                 ),
-                const SizedBox(width: 8),
+                VoiceInputButton(
+                  controller: _controller,
+                  color: AppColors.coral,
+                ),
+                const SizedBox(width: 4),
                 IconButton.filled(
                   onPressed: _isLoading ? null : _sendMessage,
                   icon: const Icon(Icons.send, size: 20),

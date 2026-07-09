@@ -3,15 +3,39 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/voice_input_button.dart';
 import '../providers/recipe_providers.dart';
 import '../widgets/recipe_widgets.dart';
 
 /// Recipe browser — search, filter by cuisine, grid of recipe cards.
-class RecipeBrowserScreen extends ConsumerWidget {
+class RecipeBrowserScreen extends ConsumerStatefulWidget {
   const RecipeBrowserScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RecipeBrowserScreen> createState() =>
+      _RecipeBrowserScreenState();
+}
+
+class _RecipeBrowserScreenState extends ConsumerState<RecipeBrowserScreen> {
+  final _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      ref.read(recipeSearchQueryProvider.notifier).state =
+          _searchController.text;
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final filteredAsync = ref.watch(filteredRecipesProvider);
     final cuisinesAsync = ref.watch(availableCuisinesProvider);
     final selectedCuisine = ref.watch(recipeCuisineFilterProvider);
@@ -27,11 +51,11 @@ class RecipeBrowserScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
             child: TextField(
-              onChanged: (v) =>
-                  ref.read(recipeSearchQueryProvider.notifier).state = v,
+              controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Search recipes...',
                 prefixIcon: const Icon(Icons.search, size: 20),
+                suffixIcon: VoiceInputButton(controller: _searchController),
                 filled: true,
                 fillColor: AppColors.cardBackground,
                 contentPadding:

@@ -9,6 +9,7 @@ import 'package:drift/drift.dart' as drift;
 import '../../../../core/database/app_database.dart' as db;
 import '../../../../core/providers/database_providers.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/voice_input_button.dart';
 import '../../../../core/utils/scan_feedback.dart';
 import '../../../pantry/presentation/widgets/add_pantry_item_sheet.dart';
 import '../../../products/domain/models/product.dart';
@@ -437,6 +438,11 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
                     ),
                     prefixIcon:
                         const Icon(Icons.dialpad, color: Colors.white70),
+                    suffixIcon: VoiceInputButton(
+                      controller: _pluController,
+                      color: Colors.white70,
+                      activeColor: AppColors.coral,
+                    ),
                     filled: true,
                     fillColor: Colors.white.withValues(alpha: 0.1),
                     border: OutlineInputBorder(
