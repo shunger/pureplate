@@ -4,6 +4,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/database/daos/product_dao.dart';
 import '../../../../shared/models/result.dart';
 import '../../domain/models/product.dart';
+import '../datasources/firestore_community_product_datasource.dart';
 import '../datasources/open_food_facts_datasource.dart';
 import '../datasources/product_mapper.dart';
 import '../datasources/upc_database_datasource.dart';
@@ -24,6 +25,7 @@ class ProductRepositoryImpl implements ProductRepository {
   final ProductDao _productDao;
   final OpenFoodFactsDatasource _offDatasource;
   final UPCDatabaseDatasource _upcDatasource;
+  final FirestoreCommunityProductDatasource _communityDatasource;
 
   final Map<String, _CachedProduct> _cache = {};
 
@@ -31,6 +33,7 @@ class ProductRepositoryImpl implements ProductRepository {
     required this._productDao,
     required this._offDatasource,
     required this._upcDatasource,
+    required this._communityDatasource,
   });
 
   @override
@@ -92,6 +95,20 @@ class ProductRepositoryImpl implements ProductRepository {
       });
 
       if (product != null) {
+        _cache[barcode] = _CachedProduct(product);
+        await saveProduct(product);
+        return Result.success(product);
+      }
+    } catch (_) {
+      // Fall through to community products
+    }
+
+    // 5. Try Firestore community products
+    try {
+      final communityProduct =
+          await _communityDatasource.lookupByBarcode(barcode);
+      if (communityProduct != null) {
+        final product = ProductMapper.fromCommunityProduct(communityProduct);
         _cache[barcode] = _CachedProduct(product);
         await saveProduct(product);
         return Result.success(product);

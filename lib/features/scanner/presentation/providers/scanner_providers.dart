@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/providers/database_providers.dart';
+import '../../../products/data/datasources/firestore_community_product_datasource.dart';
 import '../../../products/data/datasources/open_food_facts_datasource.dart';
 import '../../../products/data/datasources/upc_database_datasource.dart';
 import '../../../products/data/repositories/product_repository.dart';
@@ -43,9 +44,11 @@ final _productDioProvider = Provider<Dio>((ref) {
 final productRepositoryProvider = Provider<ProductRepository>((ref) {
   final dio = ref.watch(_productDioProvider);
   final productDao = ref.watch(productDaoProvider);
+  final communityDatasource = ref.watch(firestoreCommunityProductDatasourceProvider);
   return ProductRepositoryImpl(
     productDao: productDao,
     offDatasource: OpenFoodFactsDatasource(dio),
     upcDatasource: UPCDatabaseDatasource(dio),
+    communityDatasource: communityDatasource,
   );
 });

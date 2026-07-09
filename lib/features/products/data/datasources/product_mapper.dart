@@ -11,6 +11,7 @@ import '../../domain/models/identifier_type.dart';
 import '../../domain/models/nutrition_info.dart';
 import '../../domain/models/product.dart';
 import '../../domain/models/product_unit.dart';
+import 'firestore_community_product_datasource.dart';
 
 class ProductMapper {
   static const _uuid = Uuid();
@@ -35,6 +36,25 @@ class ProductMapper {
             .join(', '),
       ),
       source: 'openFoodFacts',
+      createdAt: now,
+      updatedAt: now,
+    );
+  }
+
+  /// Convert a community-contributed product to domain Product.
+  static Product fromCommunityProduct(CommunityProduct cp) {
+    final now = DateTime.now();
+    return Product(
+      id: _uuid.v4(),
+      barcode: cp.barcode,
+      identifierType: IdentifierType.barcode,
+      name: cp.name,
+      brand: cp.brand,
+      category: ProductCategory.values.firstWhere(
+        (e) => e.name == cp.category,
+        orElse: () => ProductCategory.other,
+      ),
+      source: 'community',
       createdAt: now,
       updatedAt: now,
     );

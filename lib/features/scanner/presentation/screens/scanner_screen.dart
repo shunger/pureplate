@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,9 +10,12 @@ import 'package:drift/drift.dart' as drift;
 import '../../../../core/database/app_database.dart' as db;
 import '../../../../core/providers/database_providers.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/models/product_category.dart';
 import '../../../../shared/widgets/voice_input_button.dart';
 import '../../../../core/utils/scan_feedback.dart';
 import '../../../pantry/presentation/widgets/add_pantry_item_sheet.dart';
+import '../../../products/data/datasources/firestore_community_product_datasource.dart';
+import '../../../products/data/datasources/product_mapper.dart';
 import '../../../products/domain/models/product.dart';
 import '../../data/datasources/plu_database.dart';
 import '../../domain/models/scan_mode.dart';
@@ -31,6 +35,16 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
   bool _isProcessing = false;
   String _statusText = 'Scanning...';
   Product? _foundProduct;
+
+  // Not-found overlay state
+  bool _showNotFoundOverlay = false;
+  String? _notFoundBarcode;
+  bool _showingAddForm = false;
+  bool _isSubmitting = false;
+  final _communityNameController = TextEditingController();
+  final _communityBrandController = TextEditingController();
+  ProductCategory _selectedCategory = ProductCategory.other;
+  final _formKey = GlobalKey<FormState>();
 
   late final AnimationController _pulseController;
   late final Animation<double> _pulseAnimation;
@@ -80,6 +94,8 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
     WidgetsBinding.instance.removeObserver(this);
     _controller?.dispose();
     _pluController.dispose();
+    _communityNameController.dispose();
+    _communityBrandController.dispose();
     super.dispose();
   }
 
@@ -215,6 +231,9 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
 
           // Product found overlay
           if (_foundProduct != null) _buildProductFoundOverlay(),
+
+          // Product not found overlay
+          if (_showNotFoundOverlay) _buildProductNotFoundOverlay(),
         ],
       ),
     );
@@ -892,6 +911,364 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
     );
   }
 
+  // ─── Product not found overlay ─────────────────────────────────────
+
+  Widget _buildProductNotFoundOverlay() {
+    return Positioned.fill(
+      child: GestureDetector(
+        onTap: _dismissNotFoundOverlay,
+        child: Container(
+          color: Colors.black.withValues(alpha: 0.5),
+          child: Center(
+            child: GestureDetector(
+              onTap: () {}, // absorb taps on the card
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      padding: const EdgeInsets.all(20),
+                      child: SingleChildScrollView(
+                        child: _showingAddForm
+                            ? _buildAddProductForm()
+                            : _buildNotFoundPrompt(),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotFoundPrompt() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Close button
+        Align(
+          alignment: Alignment.topRight,
+          child: GestureDetector(
+            onTap: _dismissNotFoundOverlay,
+            child: Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.close,
+                color: Colors.white70,
+                size: 16,
+              ),
+            ),
+          ),
+        ),
+        Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.search_off,
+            color: Colors.white70,
+            size: 32,
+          ),
+        ),
+        const SizedBox(height: 14),
+        const Text(
+          'Product Not Found',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Barcode $_notFoundBarcode wasn\'t found in any database. '
+          'You can help by adding its info for future scans.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.7),
+            fontSize: 13,
+          ),
+        ),
+        const SizedBox(height: 20),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () {
+              setState(() {
+                _showingAddForm = true;
+                _communityNameController.clear();
+                _communityBrandController.clear();
+                _selectedCategory = ProductCategory.other;
+              });
+            },
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text(
+              'Add Product Info',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.coral,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          width: double.infinity,
+          child: TextButton(
+            onPressed: _dismissNotFoundOverlay,
+            child: const Text(
+              'Skip',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 15,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAddProductForm() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'Add Product',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _notFoundBarcode ?? '',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.5),
+              fontSize: 12,
+              fontFamily: 'monospace',
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _communityNameController,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              labelText: 'Product Name *',
+              labelStyle: TextStyle(
+                color: Colors.white.withValues(alpha: 0.7),
+              ),
+              filled: true,
+              fillColor: Colors.white.withValues(alpha: 0.1),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Product name is required';
+              }
+              if (value.trim().length > 200) {
+                return 'Name must be 200 characters or less';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: _communityBrandController,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              labelText: 'Brand (optional)',
+              labelStyle: TextStyle(
+                color: Colors.white.withValues(alpha: 0.7),
+              ),
+              filled: true,
+              fillColor: Colors.white.withValues(alpha: 0.1),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<ProductCategory>(
+            value: _selectedCategory,
+            dropdownColor: const Color(0xFF2A2A2A),
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              labelText: 'Category',
+              labelStyle: TextStyle(
+                color: Colors.white.withValues(alpha: 0.7),
+              ),
+              filled: true,
+              fillColor: Colors.white.withValues(alpha: 0.1),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            items: ProductCategory.values.map((cat) {
+              return DropdownMenuItem(
+                value: cat,
+                child: Text('${cat.emoji} ${cat.displayName}'),
+              );
+            }).toList(),
+            onChanged: (value) {
+              if (value != null) {
+                setState(() => _selectedCategory = value);
+              }
+            },
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _isSubmitting ? null : _submitCommunityProduct,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.coral,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: _isSubmitting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Text(
+                      'Submit',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: _isSubmitting
+                ? null
+                : () => setState(() => _showingAddForm = false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _submitCommunityProduct() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final barcode = _notFoundBarcode!;
+      final name = _communityNameController.text.trim();
+      final brand = _communityBrandController.text.trim();
+      final uid = FirebaseAuth.instance.currentUser?.uid ?? 'anonymous';
+
+      // Write to Firestore (transaction prevents duplicates)
+      final datasource = ref.read(firestoreCommunityProductDatasourceProvider);
+      final existing = await datasource.addProduct(
+        barcode: barcode,
+        name: name,
+        brand: brand.isNotEmpty ? brand : null,
+        category: _selectedCategory.name,
+        contributedBy: uid,
+      );
+
+      // Use existing product if the barcode was already contributed
+      final communityProduct = existing ??
+          CommunityProduct(
+            barcode: barcode,
+            name: name,
+            brand: brand.isNotEmpty ? brand : null,
+            category: _selectedCategory.name,
+            contributedBy: uid,
+          );
+
+      // Create domain Product and save locally
+      final product =
+          ProductMapper.fromCommunityProduct(communityProduct);
+      final repo = ref.read(productRepositoryProvider);
+      await repo.saveProduct(product);
+
+      if (!mounted) return;
+
+      // Transition to the product-found overlay
+      setState(() {
+        _showNotFoundOverlay = false;
+        _notFoundBarcode = null;
+        _showingAddForm = false;
+        _isSubmitting = false;
+        _foundProduct = product;
+        _statusText = '${product.name} added';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save product: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
+  void _dismissNotFoundOverlay() {
+    setState(() {
+      _showNotFoundOverlay = false;
+      _notFoundBarcode = null;
+      _showingAddForm = false;
+    });
+    _controller?.start();
+    _resetScanning();
+  }
+
   Widget _buildCategoryAvatar(Product product) {
     return Container(
       width: 80,
@@ -1002,12 +1379,15 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
                 ),
               );
 
+          _controller?.stop();
           _pulseController.repeat(reverse: true);
           setState(() {
             _isProcessing = false;
-            _statusText = 'Not found — try again';
+            _statusText = 'Not found';
+            _showNotFoundOverlay = true;
+            _notFoundBarcode = barcode.rawValue;
+            _showingAddForm = false;
           });
-          _scheduleScanReset();
         },
       );
     } catch (e) {
