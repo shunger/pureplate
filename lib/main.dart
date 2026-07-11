@@ -24,7 +24,7 @@ Future<void> main() async {
       androidProvider:
           kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
       appleProvider:
-          kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
+          kDebugMode ? AppleProvider.debug : AppleProvider.appAttestWithDeviceCheckFallback,
     );
 
     // Silent anonymous sign-in — ensures a UID exists for Cloud Functions.

@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -31,37 +32,59 @@ class AiChatRepository {
     String? imageBase64,
     String? imageMediaType,
   }) async {
-    try {
-      final result =
-          await _functions.httpsCallable('chatWithChef').call({
-        'userMessage': userMessage,
-        'chatHistory': chatHistory,
-        'preferenceSummary': preferenceSummary,
-        if (activePlan != null) 'activePlan': activePlan,
-        if (imageBase64 != null) 'imageBase64': imageBase64,
-        if (imageMediaType != null) 'imageMediaType': imageMediaType,
-      });
+    final params = {
+      'userMessage': userMessage,
+      'chatHistory': chatHistory,
+      'preferenceSummary': preferenceSummary,
+      if (activePlan != null) 'activePlan': activePlan,
+      if (imageBase64 != null) 'imageBase64': imageBase64,
+      if (imageMediaType != null) 'imageMediaType': imageMediaType,
+    };
 
-      final data = _deepCast(result.data);
-      final responseText = data['responseText'] as String? ?? '';
-      final recipesData = data['recipes'] as List<dynamic>? ?? [];
+    for (var attempt = 0; attempt < 2; attempt++) {
+      try {
+        final result =
+            await _functions.httpsCallable('chatWithChef').call(params);
 
-      final recipes = recipesData
-          .whereType<Map>()
-          .map((m) => _parseRecipe(_deepCast(m)))
-          .toList();
+        final data = _deepCast(result.data);
+        final responseText = data['responseText'] as String? ?? '';
+        final recipesData = data['recipes'] as List<dynamic>? ?? [];
 
-      return ChatResponse(responseText: responseText, recipes: recipes);
-    } on FirebaseFunctionsException catch (e) {
-      throw AiChatException(_userFriendlyMessage(e.code), code: e.code);
-    } catch (e, stackTrace) {
-      debugPrint('AiChatRepository error: $e');
-      debugPrint('AiChatRepository stack: $stackTrace');
-      throw AiChatException(
-        'Something went wrong. Please try again.',
-        code: 'unknown',
-      );
+        final recipes = recipesData
+            .whereType<Map>()
+            .map((m) => _parseRecipe(_deepCast(m)))
+            .toList();
+
+        return ChatResponse(responseText: responseText, recipes: recipes);
+      } on FirebaseFunctionsException catch (e) {
+        final isAppCheckError =
+            e.code == 'unauthenticated' || e.code == 'UNAUTHENTICATED';
+        if (isAppCheckError && attempt == 0) {
+          // App Check token may be stale — force refresh and retry once.
+          debugPrint('App Check token may be stale, forcing refresh...');
+          try {
+            await FirebaseAppCheck.instance.getToken(true);
+          } catch (_) {}
+          continue;
+        }
+        debugPrint('AiChat FirebaseFunctionsException: code=${e.code}, '
+            'message=${e.message}');
+        throw AiChatException(_userFriendlyMessage(e.code), code: e.code);
+      } catch (e, stackTrace) {
+        debugPrint('AiChatRepository error: $e');
+        debugPrint('AiChatRepository stack: $stackTrace');
+        throw AiChatException(
+          'Something went wrong. Please try again.',
+          code: e.runtimeType.toString(),
+        );
+      }
     }
+
+    // Unreachable — the loop always returns or throws.
+    throw AiChatException(
+      'Something went wrong. Please try again.',
+      code: 'unknown',
+    );
   }
 
   Recipe _parseRecipe(Map<String, dynamic> m) {
@@ -141,6 +164,15 @@ class AiChatRepository {
         return 'Your account has been restricted. Contact support for help.';
       case 'deadline-exceeded':
         return 'The request timed out. Check your connection and try again.';
+      case 'unauthenticated':
+      case 'UNAUTHENTICATED':
+        return 'Unable to verify this app. Please restart the app and try again.';
+      case 'internal':
+        return 'The AI chef encountered an error. Please try again.';
+      case 'not-found':
+        return 'This feature is currently unavailable. Please update the app.';
+      case 'invalid-argument':
+        return 'Something was wrong with the request. Please try again.';
       default:
         return 'Something went wrong. Please try again.';
     }

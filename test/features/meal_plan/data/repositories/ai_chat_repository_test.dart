@@ -133,7 +133,133 @@ void main() {
         );
       });
 
-      test('unknown error maps to generic message', () async {
+      test('unauthenticated maps to app verification message', () async {
+        when(() => mockCallable.call(any())).thenThrow(
+          TestFirebaseFunctionsException('unauthenticated'),
+        );
+
+        expect(
+          () => repository.sendMessage(
+            userMessage: 'Hi',
+            chatHistory: '',
+            preferenceSummary: {},
+          ),
+          throwsA(isA<AiChatException>()
+              .having((e) => e.code, 'code', 'unauthenticated')
+              .having((e) => e.message, 'message',
+                  'Unable to verify this app. Please restart the app and try again.')),
+        );
+      });
+
+      test('UNAUTHENTICATED maps to app verification message', () async {
+        when(() => mockCallable.call(any())).thenThrow(
+          TestFirebaseFunctionsException('UNAUTHENTICATED'),
+        );
+
+        expect(
+          () => repository.sendMessage(
+            userMessage: 'Hi',
+            chatHistory: '',
+            preferenceSummary: {},
+          ),
+          throwsA(isA<AiChatException>()
+              .having((e) => e.code, 'code', 'UNAUTHENTICATED')
+              .having((e) => e.message, 'message',
+                  'Unable to verify this app. Please restart the app and try again.')),
+        );
+      });
+
+      test('internal maps to AI error message', () async {
+        when(() => mockCallable.call(any())).thenThrow(
+          TestFirebaseFunctionsException('internal'),
+        );
+
+        expect(
+          () => repository.sendMessage(
+            userMessage: 'Hi',
+            chatHistory: '',
+            preferenceSummary: {},
+          ),
+          throwsA(isA<AiChatException>()
+              .having((e) => e.code, 'code', 'internal')
+              .having((e) => e.message, 'message',
+                  'The AI chef encountered an error. Please try again.')),
+        );
+      });
+
+      test('not-found maps to feature unavailable message', () async {
+        when(() => mockCallable.call(any())).thenThrow(
+          TestFirebaseFunctionsException('not-found'),
+        );
+
+        expect(
+          () => repository.sendMessage(
+            userMessage: 'Hi',
+            chatHistory: '',
+            preferenceSummary: {},
+          ),
+          throwsA(isA<AiChatException>()
+              .having((e) => e.code, 'code', 'not-found')
+              .having((e) => e.message, 'message',
+                  'This feature is currently unavailable. Please update the app.')),
+        );
+      });
+
+      test('invalid-argument maps to request error message', () async {
+        when(() => mockCallable.call(any())).thenThrow(
+          TestFirebaseFunctionsException('invalid-argument'),
+        );
+
+        expect(
+          () => repository.sendMessage(
+            userMessage: 'Hi',
+            chatHistory: '',
+            preferenceSummary: {},
+          ),
+          throwsA(isA<AiChatException>()
+              .having((e) => e.code, 'code', 'invalid-argument')
+              .having((e) => e.message, 'message',
+                  'Something was wrong with the request. Please try again.')),
+        );
+      });
+
+      test('deadline-exceeded maps to timeout message', () async {
+        when(() => mockCallable.call(any())).thenThrow(
+          TestFirebaseFunctionsException('deadline-exceeded'),
+        );
+
+        expect(
+          () => repository.sendMessage(
+            userMessage: 'Hi',
+            chatHistory: '',
+            preferenceSummary: {},
+          ),
+          throwsA(isA<AiChatException>()
+              .having((e) => e.code, 'code', 'deadline-exceeded')
+              .having((e) => e.message, 'message',
+                  'The request timed out. Check your connection and try again.')),
+        );
+      });
+
+      test('permission-denied maps to account restricted message', () async {
+        when(() => mockCallable.call(any())).thenThrow(
+          TestFirebaseFunctionsException('permission-denied'),
+        );
+
+        expect(
+          () => repository.sendMessage(
+            userMessage: 'Hi',
+            chatHistory: '',
+            preferenceSummary: {},
+          ),
+          throwsA(isA<AiChatException>()
+              .having((e) => e.code, 'code', 'permission-denied')
+              .having((e) => e.message, 'message',
+                  'Your account has been restricted. Contact support for help.')),
+        );
+      });
+
+      test('non-FirebaseFunctionsException preserves exception type in code', () async {
         when(() => mockCallable.call(any()))
             .thenThrow(Exception('random'));
 
@@ -146,7 +272,7 @@ void main() {
           throwsA(isA<AiChatException>().having(
             (e) => e.code,
             'code',
-            'unknown',
+            '_Exception',
           )),
         );
       });

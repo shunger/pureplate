@@ -510,12 +510,13 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
       debugPrint('ChatScreen error: $e');
       debugPrint('ChatScreen stack: $stackTrace');
       if (!mounted) return;
+      final wrapped = AiChatException(
+        'Something went wrong. Please try again.',
+        code: e.runtimeType.toString(),
+      );
       setState(() {
         _isLoading = false;
-        _messages.add(const _ChatMessage(
-          text: 'Something went wrong. Please check your connection and try again.',
-          isUser: false,
-        ));
+        _messages.add(_ChatMessage(text: wrapped.message, isUser: false));
       });
     }
     _scrollToBottom();
