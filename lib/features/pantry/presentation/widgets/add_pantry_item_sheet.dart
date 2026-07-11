@@ -110,7 +110,7 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
       padding: EdgeInsets.only(
         left: 20,
         right: 20,
-        top: 16,
+        top: 12,
         bottom: MediaQuery.of(context).viewInsets.bottom + 16,
       ),
       child: SingleChildScrollView(
@@ -129,7 +129,7 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             // Title + close button
             Row(
@@ -151,12 +151,12 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             // Name
             TextField(
               controller: _nameController,
-              autofocus: !_isEditing,
+              autofocus: !_isEditing && widget.initialName == null,
               textCapitalization: TextCapitalization.words,
               decoration: InputDecoration(
                 labelText: 'Item name',
@@ -164,7 +164,7 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                 suffixIcon: VoiceInputButton(controller: _nameController),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             // Quantity + Unit
             Row(
@@ -229,14 +229,14 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             // Location selector
             Text('Location',
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                       color: AppColors.textSecondary,
                     )),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Row(
               children: _locations.map((loc) {
                 final isSelected = _location == loc.$1;
@@ -266,7 +266,7 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                 );
               }).toList(),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             // Category
             DropdownButtonFormField<String>(
@@ -279,7 +279,7 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                   .toList(),
               onChanged: (v) => setState(() => _category = v!),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             // Expiry date
             ListTile(
@@ -307,37 +307,53 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
               onTap: _pickExpiryDate,
             ),
 
-            // Price
-            TextField(
-              controller: _priceController,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: InputDecoration(
-                labelText: 'Purchase price (optional)',
-                prefixText: '\$ ',
-                suffixIcon: VoiceInputButton(
-                  controller: _priceController,
-                  isNumeric: true,
+            // Price + Notes buttons (side by side)
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _showPriceDialog,
+                    icon: const Icon(Icons.attach_money, size: 18),
+                    label: Text(
+                      _priceController.text.isNotEmpty
+                          ? '\$${_priceController.text}'
+                          : 'Price',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _priceController.text.isNotEmpty
+                          ? AppColors.textPrimary
+                          : AppColors.textTertiary,
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _showNotesDialog,
+                    icon: const Icon(Icons.note_outlined, size: 18),
+                    label: Text(
+                      _notesController.text.isNotEmpty
+                          ? _notesController.text
+                          : 'Notes',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _notesController.text.isNotEmpty
+                          ? AppColors.textPrimary
+                          : AppColors.textTertiary,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-
-            // Notes
-            TextField(
-              controller: _notesController,
-              decoration: InputDecoration(
-                labelText: 'Notes (optional)',
-                hintText: 'e.g., organic, family size',
-                suffixIcon: VoiceInputButton(controller: _notesController),
-              ),
-              maxLines: 2,
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
 
             // Staple toggle
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
+              dense: true,
+              visualDensity: VisualDensity.compact,
               title: const Text('Staple item'),
               subtitle: const Text('Get reorder alerts when running low'),
               value: _isStaple,
@@ -373,13 +389,15 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
             // Bulk toggle
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
+              dense: true,
+              visualDensity: VisualDensity.compact,
               title: const Text('Bulk item'),
               subtitle: const Text('Track as bulk quantity (no per-unit use)'),
               value: _isBulk,
               onChanged: (v) => setState(() => _isBulk = v),
               activeThumbColor: AppColors.coral,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             // Action buttons
             Row(
@@ -404,11 +422,77 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _showPriceDialog() async {
+    final controller = TextEditingController(text: _priceController.text);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Purchase price'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: const InputDecoration(
+            prefixText: '\$ ',
+            hintText: '0.00',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (result != null) {
+      setState(() => _priceController.text = result.trim());
+    }
+    controller.dispose();
+  }
+
+  Future<void> _showNotesDialog() async {
+    final controller = TextEditingController(text: _notesController.text);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Notes'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: const InputDecoration(
+            hintText: 'e.g., organic, family size',
+          ),
+          maxLines: 3,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (result != null) {
+      setState(() => _notesController.text = result.trim());
+    }
+    controller.dispose();
   }
 
   Future<void> _pickExpiryDate() async {

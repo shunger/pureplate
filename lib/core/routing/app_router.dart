@@ -111,14 +111,14 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
+          GoRoute(
+            path: Routes.scanner,
+            builder: (context, state) => const ScannerScreen(),
+          ),
         ],
       ),
 
       // Full-screen routes (no bottom nav)
-      GoRoute(
-        path: Routes.scanner,
-        builder: (context, state) => const ScannerScreen(),
-      ),
       GoRoute(
         path: Routes.recipes,
         builder: (context, state) => const RecipeBrowserScreen(),

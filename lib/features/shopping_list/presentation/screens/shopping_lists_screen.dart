@@ -12,11 +12,22 @@ import '../providers/shopping_list_providers.dart';
 import '../widgets/shopping_list_widgets.dart';
 
 /// Main shopping lists tab — shows active and archived lists.
-class ShoppingListsScreen extends ConsumerWidget {
+class ShoppingListsScreen extends ConsumerStatefulWidget {
   const ShoppingListsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ShoppingListsScreen> createState() =>
+      _ShoppingListsScreenState();
+}
+
+class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen> {
+  // FAB position – null until first layout, then defaults to bottom-right.
+  Offset? _fabOffset;
+  static const _fabSize = 56.0;
+  static const _fabMargin = 16.0;
+
+  @override
+  Widget build(BuildContext context) {
     final activeAsync = ref.watch(activeShoppingListsDomainProvider);
     final archivedAsync = ref.watch(archivedShoppingListsProvider);
 
@@ -31,46 +42,78 @@ class ShoppingListsScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: activeAsync.when(
-        data: (activeLists) {
-          final archivedLists = archivedAsync.valueOrNull ?? [];
-          if (activeLists.isEmpty && archivedLists.isEmpty) {
-            return const _EmptyState();
-          }
-          return ListView(
-            padding: const EdgeInsets.only(bottom: 100),
-            children: [
-              // Active lists
-              if (activeLists.isNotEmpty) ...[
-                _SectionHeader(
-                  title: 'Active',
-                  count: activeLists.length,
-                ),
-                ...activeLists.map((list) => ShoppingListCard(
-                      list: list,
-                      onTap: () => _openDetail(context, list.id),
-                      onArchive: () => _archiveList(ref, list.id),
-                      onDelete: () => _deleteList(ref, list.id),
-                    )),
-              ],
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          // Default position: bottom-right with margin.
+          _fabOffset ??= Offset(
+            constraints.maxWidth - _fabSize - _fabMargin,
+            constraints.maxHeight - _fabSize - _fabMargin,
+          );
 
-              // Archived lists
-              if (archivedLists.isNotEmpty)
-                _ArchivedSection(
-                  lists: archivedLists,
-                  onTap: (id) => _openDetail(context, id),
-                  onRestore: (id) => _restoreList(ref, id),
-                  onDelete: (id) => _deleteList(ref, id),
+          final bodyContent = activeAsync.when(
+            data: (activeLists) {
+              final archivedLists = archivedAsync.valueOrNull ?? [];
+              if (activeLists.isEmpty && archivedLists.isEmpty) {
+                return const _EmptyState();
+              }
+              return ListView(
+                padding: const EdgeInsets.only(bottom: 100),
+                children: [
+                  // Active lists
+                  if (activeLists.isNotEmpty) ...[
+                    _SectionHeader(
+                      title: 'Active',
+                      count: activeLists.length,
+                    ),
+                    ...activeLists.map((list) => ShoppingListCard(
+                          list: list,
+                          onTap: () => _openDetail(list.id),
+                          onArchive: () => _archiveList(list.id),
+                          onDelete: () => _deleteList(list.id),
+                        )),
+                  ],
+
+                  // Archived lists
+                  if (archivedLists.isNotEmpty)
+                    _ArchivedSection(
+                      lists: archivedLists,
+                      onTap: (id) => _openDetail(id),
+                      onRestore: (id) => _restoreList(id),
+                      onDelete: (id) => _deleteList(id),
+                    ),
+                ],
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => Center(child: Text('Error: $e')),
+          );
+
+          return Stack(
+            children: [
+              bodyContent,
+              Positioned(
+                left: _fabOffset!.dx,
+                top: _fabOffset!.dy,
+                child: GestureDetector(
+                  onPanUpdate: (details) {
+                    setState(() {
+                      _fabOffset = Offset(
+                        (_fabOffset!.dx + details.delta.dx)
+                            .clamp(0, constraints.maxWidth - _fabSize),
+                        (_fabOffset!.dy + details.delta.dy)
+                            .clamp(0, constraints.maxHeight - _fabSize),
+                      );
+                    });
+                  },
+                  child: FloatingActionButton(
+                    onPressed: () => _showCreateDialog(context),
+                    child: const Icon(Icons.add),
+                  ),
                 ),
+              ),
             ],
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showCreateDialog(context),
-        child: const Icon(Icons.add),
       ),
     );
   }
@@ -82,15 +125,15 @@ class ShoppingListsScreen extends ConsumerWidget {
     );
   }
 
-  void _openDetail(BuildContext context, String listId) {
+  void _openDetail(String listId) {
     context.go('${Routes.lists}/$listId');
   }
 
-  Future<void> _archiveList(WidgetRef ref, String id) async {
+  Future<void> _archiveList(String id) async {
     await ref.read(shoppingListDaoProvider).archiveList(id);
   }
 
-  Future<void> _restoreList(WidgetRef ref, String id) async {
+  Future<void> _restoreList(String id) async {
     final dao = ref.read(shoppingListDaoProvider);
     await dao.updateList(db.ShoppingListsCompanion(
       id: Value(id),
@@ -99,7 +142,7 @@ class ShoppingListsScreen extends ConsumerWidget {
     ));
   }
 
-  Future<void> _deleteList(WidgetRef ref, String id) async {
+  Future<void> _deleteList(String id) async {
     await ref.read(shoppingListDaoProvider).deleteList(id);
   }
 }

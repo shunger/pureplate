@@ -12,11 +12,22 @@ import '../widgets/add_pantry_item_sheet.dart';
 
 /// Main pantry screen — shows grouped inventory with location filters,
 /// search, expiry warnings, and swipe actions.
-class PantryScreen extends ConsumerWidget {
+class PantryScreen extends ConsumerStatefulWidget {
   const PantryScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PantryScreen> createState() => _PantryScreenState();
+}
+
+class _PantryScreenState extends ConsumerState<PantryScreen> {
+  // FAB positions – null until first layout, then default to corners.
+  Offset? _fabOffset;
+  Offset? _scanFabOffset;
+  static const _fabSize = 56.0;
+  static const _fabMargin = 16.0;
+
+  @override
+  Widget build(BuildContext context) {
     final groupsAsync = ref.watch(filteredPantryGroupsProvider);
     final locationFilter = ref.watch(pantryLocationFilterProvider);
     final countsAsync = ref.watch(pantryLocationCountsProvider);
@@ -32,7 +43,7 @@ class PantryScreen extends ConsumerWidget {
             data: (items) => items.isEmpty
                 ? const SizedBox.shrink()
                 : IconButton(
-                    onPressed: () => _showExpiringSheet(context, ref),
+                    onPressed: () => _showExpiringSheet(),
                     icon: Badge(
                       label: Text('${items.length}'),
                       backgroundColor: AppColors.warning,
@@ -43,54 +54,112 @@ class PantryScreen extends ConsumerWidget {
             error: (_, _) => const SizedBox.shrink(),
           ),
           IconButton(
-            onPressed: () => _openSearch(context, ref),
+            onPressed: () => _openSearch(),
             icon: const Icon(Icons.search),
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Location filter chips
-          countsAsync.when(
-            data: (counts) => _LocationFilterBar(
-              selectedLocation: locationFilter,
-              counts: counts,
-              onSelected: (loc) =>
-                  ref.read(pantryLocationFilterProvider.notifier).state = loc,
-            ),
-            loading: () => const SizedBox(height: 48),
-            error: (_, _) => const SizedBox.shrink(),
-          ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          _fabOffset ??= Offset(
+            constraints.maxWidth - _fabSize - _fabMargin,
+            constraints.maxHeight - _fabSize - _fabMargin,
+          );
+          _scanFabOffset ??= Offset(
+            _fabMargin,
+            constraints.maxHeight - _fabSize - _fabMargin,
+          );
 
-          // Item list
-          Expanded(
-            child: groupsAsync.when(
-              data: (groups) => groups.isEmpty
-                  ? _EmptyState(
-                      hasFilter: locationFilter != null ||
-                          ref.watch(pantrySearchQueryProvider).isNotEmpty,
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.only(bottom: 100),
-                      itemCount: groups.length,
-                      itemBuilder: (context, index) =>
-                          _PantryGroupTile(group: groups[index]),
+          return Stack(
+            children: [
+              Column(
+                children: [
+                  // Location filter chips
+                  countsAsync.when(
+                    data: (counts) => _LocationFilterBar(
+                      selectedLocation: locationFilter,
+                      counts: counts,
+                      onSelected: (loc) => ref
+                          .read(pantryLocationFilterProvider.notifier)
+                          .state = loc,
                     ),
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(child: Text('Error: $e')),
-            ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddSheet(context),
-        child: const Icon(Icons.add),
+                    loading: () => const SizedBox(height: 48),
+                    error: (_, _) => const SizedBox.shrink(),
+                  ),
+
+                  // Item list
+                  Expanded(
+                    child: groupsAsync.when(
+                      data: (groups) => groups.isEmpty
+                          ? _EmptyState(
+                              hasFilter: locationFilter != null ||
+                                  ref
+                                      .watch(pantrySearchQueryProvider)
+                                      .isNotEmpty,
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.only(bottom: 100),
+                              itemCount: groups.length,
+                              itemBuilder: (context, index) =>
+                                  _PantryGroupTile(group: groups[index]),
+                            ),
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (e, _) => Center(child: Text('Error: $e')),
+                    ),
+                  ),
+                ],
+              ),
+              Positioned(
+                left: _scanFabOffset!.dx,
+                top: _scanFabOffset!.dy,
+                child: GestureDetector(
+                  onPanUpdate: (details) {
+                    setState(() {
+                      _scanFabOffset = Offset(
+                        (_scanFabOffset!.dx + details.delta.dx)
+                            .clamp(0, constraints.maxWidth - _fabSize),
+                        (_scanFabOffset!.dy + details.delta.dy)
+                            .clamp(0, constraints.maxHeight - _fabSize),
+                      );
+                    });
+                  },
+                  child: FloatingActionButton(
+                    heroTag: 'scan',
+                    onPressed: () => context.push(Routes.scanner),
+                    child: const Icon(Icons.photo_camera_outlined),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: _fabOffset!.dx,
+                top: _fabOffset!.dy,
+                child: GestureDetector(
+                  onPanUpdate: (details) {
+                    setState(() {
+                      _fabOffset = Offset(
+                        (_fabOffset!.dx + details.delta.dx)
+                            .clamp(0, constraints.maxWidth - _fabSize),
+                        (_fabOffset!.dy + details.delta.dy)
+                            .clamp(0, constraints.maxHeight - _fabSize),
+                      );
+                    });
+                  },
+                  child: FloatingActionButton(
+                    heroTag: 'add',
+                    onPressed: () => _showAddSheet(),
+                    child: const Icon(Icons.add),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
-  void _showAddSheet(BuildContext context) {
+  void _showAddSheet() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -101,7 +170,7 @@ class PantryScreen extends ConsumerWidget {
     );
   }
 
-  void _showExpiringSheet(BuildContext context, WidgetRef ref) {
+  void _showExpiringSheet() {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -112,7 +181,7 @@ class PantryScreen extends ConsumerWidget {
     );
   }
 
-  void _openSearch(BuildContext context, WidgetRef ref) {
+  void _openSearch() {
     showSearch(
       context: context,
       delegate: _PantrySearchDelegate(ref),
