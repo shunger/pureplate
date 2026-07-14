@@ -26,28 +26,28 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
 
     return recipeAsync.when(
       loading: () => Scaffold(
-        backgroundColor: AppColors.cream,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(),
         body: const Center(
           child: CircularProgressIndicator(color: AppColors.coral),
         ),
       ),
       error: (e, _) => Scaffold(
-        backgroundColor: AppColors.cream,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(),
         body: Center(child: Text('Error: $e')),
       ),
       data: (recipe) {
         if (recipe == null) {
           return Scaffold(
-            backgroundColor: AppColors.cream,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             appBar: AppBar(),
             body: const Center(child: Text('Recipe not found')),
           );
         }
 
         return Scaffold(
-          backgroundColor: AppColors.cream,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: CustomScrollView(
             slivers: [
               // Hero app bar
@@ -57,6 +57,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 actions: [
                   IconButton(
                     icon: const Icon(Icons.favorite_border),
+                    tooltip: 'Favorite recipe',
                     onPressed: () {
                       ref
                           .read(recipeDaoProvider)
@@ -69,6 +70,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                         background: Image.network(
                           recipe.imageUrl!,
                           fit: BoxFit.cover,
+                          semanticLabel: 'Photo of recipe',
                           errorBuilder: (_, __, ___) => Container(
                             color: AppColors.coral.withValues(alpha: 0.1),
                             child: const Center(
@@ -95,15 +97,15 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                             .headlineSmall
                             ?.copyWith(
                               fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                       ),
                       if (recipe.description != null) ...[
                         const SizedBox(height: 8),
                         Text(
                           recipe.description!,
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             fontSize: 14,
                             height: 1.5,
                           ),
@@ -306,11 +308,11 @@ class _MetaChip extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: AppColors.textTertiary),
+        Icon(icon, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
         const SizedBox(width: 4),
         Text(label,
-            style: const TextStyle(
-                fontSize: 13, color: AppColors.textSecondary)),
+            style: TextStyle(
+                fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
       ],
     );
   }
@@ -353,18 +355,18 @@ class _NutrientValue extends StatelessWidget {
       children: [
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
-            color: AppColors.textSecondary,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
       ],

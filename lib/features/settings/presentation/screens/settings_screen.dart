@@ -18,7 +18,7 @@ class SettingsScreen extends ConsumerWidget {
     final version = ref.watch(appVersionProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Settings'),
       ),
@@ -45,7 +45,7 @@ class SettingsScreen extends ConsumerWidget {
                   : 'Set up your profile'),
               subtitle: const Text('Family profile & preferences'),
               trailing:
-                  const Icon(Icons.chevron_right, color: AppColors.textTertiary),
+                  Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurfaceVariant),
               onTap: () => context.push(Routes.profileEdit),
             ),
           ),
@@ -60,16 +60,16 @@ class SettingsScreen extends ConsumerWidget {
             data: (prefs) => Column(
               children: [
                 ListTile(
-                  leading: const Icon(Icons.attach_money,
-                      color: AppColors.textSecondary),
+                  leading: Icon(Icons.attach_money,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   title: const Text('Currency'),
                   trailing: Text(prefs.preferredCurrency,
-                      style: const TextStyle(color: AppColors.textSecondary)),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                   onTap: () => _showCurrencyPicker(context, ref, prefs.preferredCurrency),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.brightness_6,
-                      color: AppColors.textSecondary),
+                  leading: Icon(Icons.brightness_6,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   title: const Text('Theme'),
                   trailing: Text(
                     prefs.theme == 'system'
@@ -77,13 +77,13 @@ class SettingsScreen extends ConsumerWidget {
                         : prefs.theme == 'dark'
                             ? 'Dark'
                             : 'Light',
-                    style: const TextStyle(color: AppColors.textSecondary),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                   onTap: () => _showThemePicker(context, ref, prefs.theme),
                 ),
                 SwitchListTile(
-                  secondary: const Icon(Icons.volume_up,
-                      color: AppColors.textSecondary),
+                  secondary: Icon(Icons.volume_up,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   title: const Text('Scan sound'),
                   value: prefs.scanSound,
                   onChanged: (v) =>
@@ -91,8 +91,8 @@ class SettingsScreen extends ConsumerWidget {
                   activeColor: AppColors.coral,
                 ),
                 SwitchListTile(
-                  secondary: const Icon(Icons.vibration,
-                      color: AppColors.textSecondary),
+                  secondary: Icon(Icons.vibration,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   title: const Text('Haptic feedback'),
                   value: prefs.hapticFeedback,
                   onChanged: (v) =>
@@ -113,8 +113,8 @@ class SettingsScreen extends ConsumerWidget {
             data: (prefs) => Column(
               children: [
                 SwitchListTile(
-                  secondary: const Icon(Icons.timer_outlined,
-                      color: AppColors.textSecondary),
+                  secondary: Icon(Icons.timer_outlined,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   title: const Text('Expiry alerts'),
                   subtitle:
                       const Text('Notify when pantry items are expiring'),
@@ -125,8 +125,8 @@ class SettingsScreen extends ConsumerWidget {
                   activeColor: AppColors.coral,
                 ),
                 SwitchListTile(
-                  secondary: const Icon(Icons.group_outlined,
-                      color: AppColors.textSecondary),
+                  secondary: Icon(Icons.group_outlined,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   title: const Text('Sharing events'),
                   subtitle: const Text(
                       'Notify when collaborators update shared pantry'),
@@ -137,8 +137,8 @@ class SettingsScreen extends ConsumerWidget {
                   activeColor: AppColors.coral,
                 ),
                 SwitchListTile(
-                  secondary: const Icon(Icons.shopping_bag_outlined,
-                      color: AppColors.textSecondary),
+                  secondary: Icon(Icons.shopping_bag_outlined,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                   title: const Text('Reorder alerts'),
                   subtitle: const Text(
                       'Notify when staple items are running low'),
@@ -162,7 +162,7 @@ class SettingsScreen extends ConsumerWidget {
             title: const Text('Pure Pantry Premium'),
             subtitle: const Text('Unlimited meal plans & more'),
             trailing:
-                const Icon(Icons.chevron_right, color: AppColors.textTertiary),
+                Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurfaceVariant),
             onTap: () => context.push(Routes.premium),
           ),
 
@@ -172,14 +172,14 @@ class SettingsScreen extends ConsumerWidget {
           _SectionHeader(title: 'About'),
           ListTile(
             leading:
-                const Icon(Icons.info_outline, color: AppColors.textSecondary),
+                Icon(Icons.info_outline, color: Theme.of(context).colorScheme.onSurfaceVariant),
             title: const Text('Version'),
             trailing: Text(version,
-                style: const TextStyle(color: AppColors.textSecondary)),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
           ),
           ListTile(
-            leading: const Icon(Icons.description_outlined,
-                color: AppColors.textSecondary),
+            leading: Icon(Icons.description_outlined,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
             title: const Text('Licenses'),
             onTap: () => showLicensePage(context: context),
           ),
@@ -250,7 +250,7 @@ class _SectionHeader extends StatelessWidget {
       child: Text(
         title,
         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: AppColors.textTertiary,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.5,
             ),

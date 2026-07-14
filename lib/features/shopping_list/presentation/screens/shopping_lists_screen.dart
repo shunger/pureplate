@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/database/app_database.dart' as db;
 import '../../../../core/providers/database_providers.dart';
 import '../../../../core/routing/route_names.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../domain/models/shopping_list.dart';
 import '../providers/shopping_list_providers.dart';
 import '../widgets/shopping_list_widgets.dart';
@@ -32,7 +31,7 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen> {
     final archivedAsync = ref.watch(archivedShoppingListsProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Lists'),
         actions: [
@@ -164,15 +163,15 @@ class _SectionHeader extends StatelessWidget {
           Text(
             title,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w700,
                 ),
           ),
           const SizedBox(width: 6),
           Text(
             '($count)',
-            style: const TextStyle(
-              color: AppColors.textTertiary,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontSize: 12,
             ),
           ),
@@ -217,15 +216,15 @@ class _ArchivedSectionState extends State<_ArchivedSection> {
                 Text(
                   'Archived',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: AppColors.textSecondary,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w700,
                       ),
                 ),
                 const SizedBox(width: 6),
                 Text(
                   '(${widget.lists.length})',
-                  style: const TextStyle(
-                    color: AppColors.textTertiary,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 12,
                   ),
                 ),
@@ -234,7 +233,7 @@ class _ArchivedSectionState extends State<_ArchivedSection> {
                   _expanded
                       ? Icons.keyboard_arrow_up
                       : Icons.keyboard_arrow_down,
-                  color: AppColors.textTertiary,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   size: 20,
                 ),
               ],
@@ -266,23 +265,23 @@ class _EmptyState extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.shopping_cart_outlined,
               size: 64,
-              color: AppColors.textTertiary,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             const SizedBox(height: 16),
             Text(
               'No shopping lists yet',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Tap + to create your first list',
               style: TextStyle(
-                color: AppColors.textTertiary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 14,
               ),
               textAlign: TextAlign.center,

@@ -22,6 +22,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _fadeAnimation;
+  bool _reduceMotionChecked = false;
 
   @override
   void initState() {
@@ -34,8 +35,23 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       parent: _controller,
       curve: Curves.easeIn,
     );
-    _controller.forward();
+    // Animation is started in didChangeDependencies after reduce-motion check.
     _navigateAfterDelay();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_reduceMotionChecked) {
+      _reduceMotionChecked = true;
+      final reduceMotion = MediaQuery.of(context).disableAnimations;
+      if (reduceMotion) {
+        // Skip fade-in; show content immediately.
+        _controller.value = 1.0;
+      } else {
+        _controller.forward();
+      }
+    }
   }
 
   @override
@@ -87,7 +103,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: FadeTransition(
           opacity: _fadeAnimation,
@@ -124,7 +140,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 'Pure Pantry AI',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).colorScheme.onSurface,
                       letterSpacing: -0.5,
                     ),
               ),

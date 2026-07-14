@@ -73,7 +73,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Edit Profile'),
         actions: [
@@ -120,7 +120,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                 style: Theme.of(context)
                     .textTheme
                     .labelLarge
-                    ?.copyWith(color: AppColors.textSecondary)),
+                    ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -400,14 +400,14 @@ class _StepperRow extends StatelessWidget {
     return Row(
       children: [
         Text(label,
-            style: const TextStyle(fontSize: 16, color: AppColors.textPrimary)),
+            style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface)),
         const Spacer(),
         IconButton.filled(
           onPressed: onDecrement,
           icon: const Icon(Icons.remove, size: 18),
           style: IconButton.styleFrom(
-            backgroundColor: AppColors.cream,
-            foregroundColor: AppColors.textPrimary,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            foregroundColor: Theme.of(context).colorScheme.onSurface,
             minimumSize: const Size(36, 36),
           ),
         ),

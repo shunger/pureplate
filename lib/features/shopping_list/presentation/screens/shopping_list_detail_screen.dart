@@ -52,7 +52,7 @@ class _DetailBody extends ConsumerWidget {
       ..sort((a, b) => a.index.compareTo(b.index));
 
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(list.name),
         actions: [
@@ -86,24 +86,24 @@ class _DetailBody extends ConsumerWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.add_shopping_cart,
                       size: 64,
-                      color: AppColors.textTertiary,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(height: 16),
                     Text(
                       'No items yet',
                       style:
                           Theme.of(context).textTheme.titleMedium?.copyWith(
-                                color: AppColors.textSecondary,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'Tap + to add items to this list',
                       style: TextStyle(
-                        color: AppColors.textTertiary,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontSize: 14,
                       ),
                     ),
@@ -211,7 +211,7 @@ class _CategoryHeader extends StatelessWidget {
       child: Text(
         '${category.emoji} ${category.displayName}',
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: AppColors.textSecondary,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w700,
             ),
       ),
@@ -274,8 +274,8 @@ class _ItemTile extends ConsumerWidget {
                               ? TextDecoration.lineThrough
                               : null,
                           color: item.isCompleted
-                              ? AppColors.textTertiary
-                              : AppColors.textPrimary,
+                              ? Theme.of(context).colorScheme.onSurfaceVariant
+                              : Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                       if (_subtitle.isNotEmpty)
@@ -283,8 +283,8 @@ class _ItemTile extends ConsumerWidget {
                           _subtitle,
                           style: TextStyle(
                             color: item.isCompleted
-                                ? AppColors.textTertiary
-                                : AppColors.textSecondary,
+                                ? Theme.of(context).colorScheme.onSurfaceVariant
+                                : Theme.of(context).colorScheme.onSurfaceVariant,
                             fontSize: 12,
                           ),
                         ),
@@ -298,8 +298,8 @@ class _ItemTile extends ConsumerWidget {
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                       color: item.isCompleted
-                          ? AppColors.textTertiary
-                          : AppColors.textPrimary,
+                          ? Theme.of(context).colorScheme.onSurfaceVariant
+                          : Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
               ],
@@ -350,29 +350,29 @@ class _CompletionBar extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      decoration: const BoxDecoration(
-        color: AppColors.cardBackground,
-        border: Border(top: BorderSide(color: AppColors.divider)),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        border: Border(top: BorderSide(color: Theme.of(context).colorScheme.outline)),
       ),
       child: Row(
         children: [
           Text(
             '$completed/$total items',
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           if (cost > 0) ...[
-            const Text(
+            Text(
               ' · ',
-              style: TextStyle(color: AppColors.textTertiary),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             Text(
               '\$${cost.toStringAsFixed(2)} est.',
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w500,
-                color: AppColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -383,7 +383,7 @@ class _CompletionBar extends StatelessWidget {
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
                 value: list.completionPercent,
-                backgroundColor: AppColors.divider,
+                backgroundColor: Theme.of(context).colorScheme.outline,
                 color: list.completionPercent >= 1.0
                     ? AppColors.success
                     : AppColors.coral,

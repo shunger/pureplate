@@ -93,6 +93,7 @@ class _VoiceInputButtonState extends ConsumerState<VoiceInputButton>
     }
 
     final stt = ref.read(speechToTextProvider);
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
 
     // Initialise (requests permission on first call)
     final available = await stt.initialize(
@@ -129,7 +130,7 @@ class _VoiceInputButtonState extends ConsumerState<VoiceInputButton>
     // Acquire lock
     ref.read(isListeningProvider.notifier).state = true;
     setState(() => _listening = true);
-    _pulse.repeat(reverse: true);
+    if (!reduceMotion) _pulse.repeat(reverse: true);
 
     stt.listen(
       onResult: (result) {
@@ -182,8 +183,9 @@ class _VoiceInputButtonState extends ConsumerState<VoiceInputButton>
 
   @override
   Widget build(BuildContext context) {
-    final defaultColor = widget.color ?? AppColors.textTertiary;
+    final defaultColor = widget.color ?? Theme.of(context).colorScheme.onSurfaceVariant;
     final activeClr = widget.activeColor ?? AppColors.coral;
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
 
     return AnimatedBuilder(
       animation: _pulse,
@@ -194,7 +196,9 @@ class _VoiceInputButtonState extends ConsumerState<VoiceInputButton>
             _listening ? Icons.mic : Icons.mic_none,
             size: widget.iconSize,
             color: _listening
-                ? Color.lerp(activeClr.withValues(alpha: 0.4), activeClr, _pulse.value)
+                ? (reduceMotion
+                    ? activeClr
+                    : Color.lerp(activeClr.withValues(alpha: 0.4), activeClr, _pulse.value))
                 : defaultColor,
           ),
           splashRadius: widget.iconSize,

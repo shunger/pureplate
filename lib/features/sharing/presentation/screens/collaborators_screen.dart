@@ -17,7 +17,7 @@ class CollaboratorsScreen extends ConsumerWidget {
     final itemsAsync = ref.watch(sharedPantryItemsProvider(firestoreId));
 
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Shared Pantry'),
       ),
@@ -37,10 +37,10 @@ class CollaboratorsScreen extends ConsumerWidget {
                           .titleSmall
                           ?.copyWith(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Share this code with family members to let them join your pantry.',
                     style:
-                        TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                        TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13),
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -49,18 +49,18 @@ class CollaboratorsScreen extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 20, vertical: 12),
                         decoration: BoxDecoration(
-                          color: AppColors.cream,
+                          color: Theme.of(context).scaffoldBackgroundColor,
                           borderRadius: BorderRadius.circular(10),
                           border:
-                              Border.all(color: AppColors.divider, width: 1),
+                              Border.all(color: Theme.of(context).colorScheme.outline, width: 1),
                         ),
                         child: Text(
                           firestoreId.substring(0, 6).toUpperCase(),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 4,
-                            color: AppColors.textPrimary,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       ),
@@ -120,10 +120,10 @@ class CollaboratorsScreen extends ConsumerWidget {
                     const SizedBox(width: 12),
                     Text(
                       '${items.length} shared items',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ],
@@ -180,12 +180,12 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: AppColors.textTertiary),
+          Icon(icon, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(width: 10),
           Expanded(
             child: Text(text,
-                style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 13)),
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
           ),
         ],
       ),

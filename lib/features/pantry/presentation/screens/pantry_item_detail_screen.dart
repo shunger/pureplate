@@ -19,14 +19,14 @@ class PantryItemDetailScreen extends ConsumerWidget {
 
     return pantryAsync.when(
       loading: () => Scaffold(
-        backgroundColor: AppColors.cream,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(),
         body: const Center(
           child: CircularProgressIndicator(color: AppColors.coral),
         ),
       ),
       error: (e, _) => Scaffold(
-        backgroundColor: AppColors.cream,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(),
         body: Center(child: Text('Error: $e')),
       ),
@@ -34,7 +34,7 @@ class PantryItemDetailScreen extends ConsumerWidget {
         final item = items.where((i) => i.id == itemId).firstOrNull;
         if (item == null) {
           return Scaffold(
-            backgroundColor: AppColors.cream,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             appBar: AppBar(),
             body: const Center(child: Text('Item not found')),
           );
@@ -47,17 +47,19 @@ class PantryItemDetailScreen extends ConsumerWidget {
             item.isStaple && item.quantity <= item.reorderThreshold;
 
         return Scaffold(
-          backgroundColor: AppColors.cream,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
             title: Text(item.name),
             actions: [
               IconButton(
                 icon: const Icon(Icons.edit),
                 onPressed: () => _showEditSheet(context, item),
+                tooltip: 'Edit item',
               ),
               IconButton(
                 icon: const Icon(Icons.delete_outline, color: AppColors.error),
                 onPressed: () => _confirmDelete(context, ref, item),
+                tooltip: 'Delete item',
               ),
             ],
           ),
@@ -78,7 +80,7 @@ class PantryItemDetailScreen extends ConsumerWidget {
                             .headlineSmall
                             ?.copyWith(
                               fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
                       ),
                       const SizedBox(height: 16),
@@ -105,7 +107,7 @@ class PantryItemDetailScreen extends ConsumerWidget {
                           icon: Icons.event,
                           label: 'Expires',
                           value: _formatDate(item.expiresAt!),
-                          valueColor: _expiryColor(daysUntilExpiry),
+                          valueColor: _expiryColor(context, daysUntilExpiry),
                         ),
                       if (item.purchasedAt != null)
                         _DetailRow(
@@ -197,8 +199,8 @@ class PantryItemDetailScreen extends ConsumerWidget {
                                 ?.copyWith(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 8),
                         Text(item.notes!,
-                            style: const TextStyle(
-                                color: AppColors.textSecondary, fontSize: 14)),
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
                       ],
                     ),
                   ),
@@ -287,8 +289,8 @@ class PantryItemDetailScreen extends ConsumerWidget {
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
-  Color _expiryColor(int? days) {
-    if (days == null) return AppColors.textSecondary;
+  Color _expiryColor(BuildContext context, int? days) {
+    if (days == null) return Theme.of(context).colorScheme.onSurfaceVariant;
     if (days < 0) return AppColors.error;
     if (days <= 3) return AppColors.warning;
     return AppColors.success;
@@ -314,16 +316,16 @@ class _DetailRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: AppColors.textTertiary),
+          Icon(icon, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(width: 12),
           Text(label,
-              style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 14)),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14)),
           const Spacer(),
           Text(
             value,
             style: TextStyle(
-              color: valueColor ?? AppColors.textPrimary,
+              color: valueColor ?? Theme.of(context).colorScheme.onSurface,
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),

@@ -24,7 +24,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -38,7 +38,7 @@ class HomeScreen extends ConsumerWidget {
                     Text(
                       _greeting(),
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            color: AppColors.textPrimary,
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontWeight: FontWeight.w700,
                           ),
                     ),
@@ -46,7 +46,7 @@ class HomeScreen extends ConsumerWidget {
                     Text(
                       _formattedDate(),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textSecondary,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                     ),
                   ],

@@ -12,7 +12,7 @@ class ActivityFeedScreen extends ConsumerWidget {
     // Use the local activity event DAO for now
     // In a full implementation, this would also pull from Firestore
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Activity Feed'),
       ),
@@ -39,15 +39,15 @@ class ActivityFeedScreen extends ConsumerWidget {
                 'No activity yet',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Activity from shared pantry members\nwill appear here.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 14,
                   height: 1.5,
                 ),

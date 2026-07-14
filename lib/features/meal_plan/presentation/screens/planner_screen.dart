@@ -17,7 +17,7 @@ class PlannerScreen extends ConsumerWidget {
     final planAsync = ref.watch(latestMealPlanProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Meal Planner'),
         actions: [
@@ -69,15 +69,15 @@ class PlannerScreen extends ConsumerWidget {
               'No meal plan yet',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Generate a personalized meal plan based on\nyour pantry and preferences.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 14,
                 height: 1.5,
               ),

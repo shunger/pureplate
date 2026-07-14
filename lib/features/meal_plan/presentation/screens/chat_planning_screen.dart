@@ -86,7 +86,7 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(_isMealMode ? 'Chat Planner' : 'Chat'),
         actions: [
@@ -118,10 +118,10 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
           if (_selectedImage != null)
             Container(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              decoration: const BoxDecoration(
-                color: AppColors.cardBackground,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
                 border: Border(
-                  top: BorderSide(color: AppColors.divider, width: 0.5),
+                  top: BorderSide(color: Theme.of(context).colorScheme.outline, width: 0.5),
                 ),
               ),
               child: Align(
@@ -140,16 +140,20 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
                     Positioned(
                       top: 2,
                       right: 2,
-                      child: GestureDetector(
-                        onTap: () => setState(() => _selectedImage = null),
-                        child: Container(
-                          decoration: const BoxDecoration(
-                            color: Colors.black54,
-                            shape: BoxShape.circle,
+                      child: Semantics(
+                        button: true,
+                        label: 'Remove attached photo',
+                        child: GestureDetector(
+                          onTap: () => setState(() => _selectedImage = null),
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              color: Colors.black54,
+                              shape: BoxShape.circle,
+                            ),
+                            padding: const EdgeInsets.all(4),
+                            child: const Icon(Icons.close,
+                                size: 14, color: Colors.white),
                           ),
-                          padding: const EdgeInsets.all(4),
-                          child: const Icon(Icons.close,
-                              size: 14, color: Colors.white),
                         ),
                       ),
                     ),
@@ -163,10 +167,10 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
             padding: EdgeInsets.fromLTRB(
                 16, 8, 16, MediaQuery.of(context).viewPadding.bottom + 8),
             decoration: BoxDecoration(
-              color: AppColors.cardBackground,
+              color: Theme.of(context).colorScheme.surface,
               border: _selectedImage == null
-                  ? const Border(
-                      top: BorderSide(color: AppColors.divider, width: 0.5),
+                  ? Border(
+                      top: BorderSide(color: Theme.of(context).colorScheme.outline, width: 0.5),
                     )
                   : null,
             ),
@@ -176,6 +180,7 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
                   onPressed: _isLoading ? null : _showImageSourceSheet,
                   icon: const Icon(Icons.camera_alt_outlined, size: 24),
                   color: AppColors.coral,
+                  tooltip: 'Attach photo',
                 ),
                 const SizedBox(width: 4),
                 Expanded(
@@ -185,7 +190,7 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
                     decoration: InputDecoration(
                       hintText: 'What are you in the mood for?',
                       filled: true,
-                      fillColor: AppColors.cream,
+                      fillColor: Theme.of(context).scaffoldBackgroundColor,
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 12),
                       border: OutlineInputBorder(
@@ -204,6 +209,7 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
                 IconButton.filled(
                   onPressed: _isLoading ? null : _sendMessage,
                   icon: const Icon(Icons.send, size: 20),
+                  tooltip: 'Send message',
                   style: IconButton.styleFrom(
                     backgroundColor: AppColors.coral,
                     foregroundColor: Colors.white,
@@ -234,7 +240,7 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
               decoration: BoxDecoration(
                 color: message.isUser
                     ? AppColors.coral
-                    : AppColors.cardBackground,
+                    : Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(16).copyWith(
                   bottomRight:
                       message.isUser ? const Radius.circular(4) : null,
@@ -243,7 +249,7 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
                 ),
                 border: message.isUser
                     ? null
-                    : Border.all(color: AppColors.divider, width: 0.5),
+                    : Border.all(color: Theme.of(context).colorScheme.outline, width: 0.5),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,7 +272,7 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
                       style: TextStyle(
                         color: message.isUser
                             ? Colors.white
-                            : AppColors.textPrimary,
+                            : Theme.of(context).colorScheme.onSurface,
                         fontSize: 15,
                         height: 1.4,
                       ),
@@ -291,7 +297,7 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
         margin: const EdgeInsets.only(top: 6),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: AppColors.cardBackground,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColors.coral.withValues(alpha: 0.3)),
         ),
@@ -303,10 +309,10 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
                 children: [
                   Text(
                     recipe.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -314,7 +320,7 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
                     '${recipe.totalTimeDisplay} · ${recipe.servings} servings',
                     style: TextStyle(
                       fontSize: 13,
-                      color: AppColors.textPrimary.withValues(alpha: 0.6),
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
                 ],
@@ -338,11 +344,11 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: AppColors.cardBackground,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16).copyWith(
             bottomLeft: const Radius.circular(4),
           ),
-          border: Border.all(color: AppColors.divider, width: 0.5),
+          border: Border.all(color: Theme.of(context).colorScheme.outline, width: 0.5),
         ),
         child: const SizedBox(
           width: 40,

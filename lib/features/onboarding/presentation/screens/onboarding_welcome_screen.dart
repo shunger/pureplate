@@ -11,7 +11,7 @@ class OnboardingWelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 40),
@@ -52,18 +52,18 @@ class OnboardingWelcomeScreen extends StatelessWidget {
                 'Pure Pantry AI',
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                       fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).colorScheme.onSurface,
                       letterSpacing: -0.5,
                     ),
               ),
               const SizedBox(height: 12),
 
               // Tagline
-              const Text(
+              Text(
                 'Smart meal planning powered by\nyour pantry and preferences',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 16,
                   height: 1.5,
                 ),
@@ -89,10 +89,10 @@ class OnboardingWelcomeScreen extends StatelessWidget {
               // Skip option
               TextButton(
                 onPressed: () => context.go(Routes.home),
-                child: const Text(
+                child: Text(
                   'Skip for now',
                   style: TextStyle(
-                    color: AppColors.textTertiary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontSize: 14,
                   ),
                 ),

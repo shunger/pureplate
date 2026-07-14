@@ -11,12 +11,15 @@ class WhatsForDinnerButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => context.push('${Routes.chat}?mode=dinner'),
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
+    return Semantics(
+      button: true,
+      label: "What's for dinner?",
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => context.push('${Routes.chat}?mode=dinner'),
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           decoration: BoxDecoration(
@@ -53,22 +56,24 @@ class WhatsForDinnerButton extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       "What's for dinner?",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.5,
-                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.5,
+                          ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       'AI recipes from your pantry',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.85),
-                        fontSize: 13,
-                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.white.withValues(alpha: 0.85),
+                          ),
                     ),
                   ],
                 ),
@@ -82,6 +87,7 @@ class WhatsForDinnerButton extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 }

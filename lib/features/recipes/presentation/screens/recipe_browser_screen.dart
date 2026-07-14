@@ -41,7 +41,7 @@ class _RecipeBrowserScreenState extends ConsumerState<RecipeBrowserScreen> {
     final selectedCuisine = ref.watch(recipeCuisineFilterProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Recipes'),
       ),
@@ -57,16 +57,16 @@ class _RecipeBrowserScreenState extends ConsumerState<RecipeBrowserScreen> {
                 prefixIcon: const Icon(Icons.search, size: 20),
                 suffixIcon: VoiceInputButton(controller: _searchController),
                 filled: true,
-                fillColor: AppColors.cardBackground,
+                fillColor: Theme.of(context).colorScheme.surface,
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.divider),
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.divider),
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
                 ),
               ),
             ),
@@ -128,20 +128,20 @@ class _RecipeBrowserScreenState extends ConsumerState<RecipeBrowserScreen> {
                       children: [
                         Icon(Icons.menu_book,
                             size: 48,
-                            color: AppColors.textTertiary.withValues(alpha: 0.5)),
+                            color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
                         const SizedBox(height: 16),
-                        const Text(
+                        Text(
                           'No recipes found',
                           style: TextStyle(
-                            color: AppColors.textSecondary,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             fontSize: 16,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
+                        Text(
                           'Generate a meal plan to add recipes',
                           style: TextStyle(
-                            color: AppColors.textTertiary,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                             fontSize: 14,
                           ),
                         ),

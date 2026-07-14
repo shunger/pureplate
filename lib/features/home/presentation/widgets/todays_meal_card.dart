@@ -36,6 +36,8 @@ class TodaysMealCard extends ConsumerWidget {
                         children: [
                           Text(
                             "Tonight's Dinner",
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: Theme.of(context)
                                 .textTheme
                                 .labelSmall
@@ -48,11 +50,12 @@ class TodaysMealCard extends ConsumerWidget {
                           const SizedBox(height: 4),
                           Text(
                             meal.recipeName ?? 'Planned Meal',
-                            style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
                           ),
                         ],
                       ),

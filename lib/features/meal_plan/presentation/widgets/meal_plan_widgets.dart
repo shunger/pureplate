@@ -42,7 +42,7 @@ class PlanSummaryHeader extends StatelessWidget {
                     style: TextStyle(
                       color: percent == 100
                           ? AppColors.success
-                          : AppColors.textSecondary,
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
@@ -54,7 +54,7 @@ class PlanSummaryHeader extends StatelessWidget {
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
                   value: plan.completionPercent,
-                  backgroundColor: AppColors.divider,
+                  backgroundColor: Theme.of(context).colorScheme.outline,
                   color: AppColors.sage,
                   minHeight: 6,
                 ),
@@ -113,7 +113,7 @@ class MealPlanDayCard extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                         color: isToday
                             ? AppColors.coral
-                            : AppColors.textSecondary,
+                            : Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     if (isToday)
@@ -135,7 +135,7 @@ class MealPlanDayCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).colorScheme.onSurface,
                       decoration:
                           day.isCooked ? TextDecoration.lineThrough : null,
                     ),

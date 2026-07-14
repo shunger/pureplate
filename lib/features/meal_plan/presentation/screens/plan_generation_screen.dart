@@ -30,12 +30,13 @@ class _PlanGenerationScreenState extends ConsumerState<PlanGenerationScreen> {
     final generationState = ref.watch(planGenerationStateProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Plan Your Week'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => context.pop(),
+          tooltip: 'Close',
         ),
       ),
       body: generationState.isGenerating
@@ -57,14 +58,14 @@ class _PlanGenerationScreenState extends ConsumerState<PlanGenerationScreen> {
             'How many dinners?',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'AI will create a personalized plan based on your pantry, '
             'preferences, and what needs to be used soon.',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
           ),
           const SizedBox(height: 24),
 
@@ -89,12 +90,12 @@ class _PlanGenerationScreenState extends ConsumerState<PlanGenerationScreen> {
                         decoration: BoxDecoration(
                           color: isSelected
                               ? AppColors.coral
-                              : AppColors.cardBackground,
+                              : Theme.of(context).colorScheme.surface,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
                             color: isSelected
                                 ? AppColors.coral
-                                : AppColors.divider,
+                                : Theme.of(context).colorScheme.outline,
                             width: isSelected ? 2 : 1,
                           ),
                           boxShadow: isSelected
@@ -116,7 +117,7 @@ class _PlanGenerationScreenState extends ConsumerState<PlanGenerationScreen> {
                                 fontWeight: FontWeight.w700,
                                 color: isSelected
                                     ? Colors.white
-                                    : AppColors.textPrimary,
+                                    : Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -126,7 +127,7 @@ class _PlanGenerationScreenState extends ConsumerState<PlanGenerationScreen> {
                                 fontSize: 14,
                                 color: isSelected
                                     ? Colors.white70
-                                    : AppColors.textSecondary,
+                                    : Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -230,10 +231,10 @@ class _PlanGenerationScreenState extends ConsumerState<PlanGenerationScreen> {
           Center(
             child: TextButton(
               onPressed: () => context.push(Routes.chat),
-              child: const Text(
+              child: Text(
                 'Or chat with AI for a custom plan',
                 style: TextStyle(
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontSize: 13,
                 ),
               ),
@@ -264,16 +265,16 @@ class _PlanGenerationScreenState extends ConsumerState<PlanGenerationScreen> {
               'Creating your meal plan...',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Checking your pantry, matching your preferences,\n'
               'and finding the best recipes for you.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: AppColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 14,
                 height: 1.5,
               ),
@@ -316,8 +317,8 @@ class _ContextRow extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 13,
               ),
             ),

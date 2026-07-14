@@ -17,7 +17,7 @@ class OnboardingDietaryScreen extends ConsumerWidget {
     final notifier = ref.read(onboardingStateProvider.notifier);
 
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Dietary Preferences'),
       ),
@@ -30,13 +30,13 @@ class OnboardingDietaryScreen extends ConsumerWidget {
               'Any dietary needs?',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Select all that apply. We\'ll filter recipes accordingly.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
             ),
             const SizedBox(height: 24),
 
@@ -87,9 +87,9 @@ class OnboardingDietaryScreen extends ConsumerWidget {
             Center(
               child: TextButton(
                 onPressed: () => context.go(Routes.onboardingCooking),
-                child: const Text(
+                child: Text(
                   'No restrictions',
-                  style: TextStyle(color: AppColors.textTertiary, fontSize: 14),
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
                 ),
               ),
             ),

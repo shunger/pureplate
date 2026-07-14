@@ -48,6 +48,8 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
 
   late final AnimationController _pulseController;
   late final Animation<double> _pulseAnimation;
+  bool _reduceMotion = false;
+  bool _reduceMotionChecked = false;
 
   // PLU mode
   final _pluController = TextEditingController();
@@ -60,10 +62,23 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
+    );
     _pulseAnimation = Tween<double>(begin: 0.3, end: 1.0).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+    // Pulse animation is started in didChangeDependencies after reduce-motion check.
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_reduceMotionChecked) {
+      _reduceMotionChecked = true;
+      _reduceMotion = MediaQuery.of(context).disableAnimations;
+      if (!_reduceMotion) {
+        _pulseController.repeat(reverse: true);
+      }
+    }
   }
 
   void _initCamera() {
@@ -143,35 +158,65 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
               left: 0,
               right: 0,
               child: Center(
-                child: FadeTransition(
-                  opacity: _pulseAnimation,
-                  child: SizedBox(
-                    width: 296,
-                    height: 176,
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          left: 8,
-                          top: 8,
-                          right: 8,
-                          bottom: 8,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: _isProcessing
-                                    ? Colors.yellowAccent
-                                    : AppColors.success,
-                                width: 3,
+                child: _reduceMotion
+                  ? Opacity(
+                      opacity: 1.0,
+                      child: SizedBox(
+                        width: 296,
+                        height: 176,
+                        child: Stack(
+                          children: [
+                            Positioned.fill(
+                              left: 8,
+                              top: 8,
+                              right: 8,
+                              bottom: 8,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: _isProcessing
+                                        ? Colors.yellowAccent
+                                        : AppColors.success,
+                                    width: 3,
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
                               ),
-                              borderRadius: BorderRadius.circular(16),
                             ),
-                          ),
+                            ..._buildCornerAccents(),
+                          ],
                         ),
-                        ..._buildCornerAccents(),
-                      ],
+                      ),
+                    )
+                  : FadeTransition(
+                      opacity: _pulseAnimation,
+                      child: SizedBox(
+                        width: 296,
+                        height: 176,
+                        child: Stack(
+                          children: [
+                            Positioned.fill(
+                              left: 8,
+                              top: 8,
+                              right: 8,
+                              bottom: 8,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: _isProcessing
+                                        ? Colors.yellowAccent
+                                        : AppColors.success,
+                                    width: 3,
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                            ),
+                            ..._buildCornerAccents(),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                ),
               ),
             ),
 
@@ -335,6 +380,15 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
                     color: Colors.white,
+                  ),
+                )
+              else if (_reduceMotion)
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: AppColors.success,
+                    shape: BoxShape.circle,
                   ),
                 )
               else
@@ -1331,7 +1385,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
 
     playScanFeedback(sound: true, haptic: true);
 
-    _pulseController.stop();
+    if (!_reduceMotion) _pulseController.stop();
     setState(() {
       _isProcessing = true;
       _statusText = 'Looking up ${barcode.rawValue}...';
@@ -1358,7 +1412,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
               );
 
           _controller?.stop();
-          _pulseController.repeat(reverse: true);
+          if (!_reduceMotion) _pulseController.repeat(reverse: true);
 
           setState(() {
             _isProcessing = false;
@@ -1380,7 +1434,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
               );
 
           _controller?.stop();
-          _pulseController.repeat(reverse: true);
+          if (!_reduceMotion) _pulseController.repeat(reverse: true);
           setState(() {
             _isProcessing = false;
             _statusText = 'Not found';
@@ -1392,7 +1446,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
       );
     } catch (e) {
       if (mounted) {
-        _pulseController.repeat(reverse: true);
+        if (!_reduceMotion) _pulseController.repeat(reverse: true);
         setState(() {
           _isProcessing = false;
           _statusText = 'Error — try again';
@@ -1411,7 +1465,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen>
   }
 
   void _resetScanning() {
-    _pulseController.repeat(reverse: true);
+    if (!_reduceMotion) _pulseController.repeat(reverse: true);
     setState(() {
       _isProcessing = false;
       _statusText = 'Scanning...';

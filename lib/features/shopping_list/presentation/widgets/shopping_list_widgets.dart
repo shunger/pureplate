@@ -171,7 +171,7 @@ class _ShoppingListItemSheetState
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.divider,
+                  color: Theme.of(context).colorScheme.outline,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -447,7 +447,7 @@ class ShoppingListCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
                       value: progress,
-                      backgroundColor: AppColors.divider,
+                      backgroundColor: Theme.of(context).colorScheme.outline,
                       color: progress >= 1.0
                           ? AppColors.success
                           : AppColors.coral,
@@ -462,19 +462,19 @@ class ShoppingListCard extends StatelessWidget {
                       itemCount == 0
                           ? 'No items'
                           : '$completed/$itemCount items',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontSize: 12,
                       ),
                     ),
                     if (list.storeName != null) ...[
                       const SizedBox(width: 8),
-                      Icon(Icons.store, size: 12, color: AppColors.textTertiary),
+                      Icon(Icons.store, size: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       const SizedBox(width: 2),
                       Text(
                         list.storeName!,
-                        style: const TextStyle(
-                          color: AppColors.textTertiary,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                           fontSize: 12,
                         ),
                       ),
@@ -483,10 +483,10 @@ class ShoppingListCard extends StatelessWidget {
                     if (cost > 0)
                       Text(
                         '\$${cost.toStringAsFixed(2)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                   ],

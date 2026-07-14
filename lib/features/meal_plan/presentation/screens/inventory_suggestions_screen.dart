@@ -17,7 +17,7 @@ class InventorySuggestionsScreen extends ConsumerWidget {
     final pantryAsync = ref.watch(pantryItemsProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Use What You Have'),
       ),
@@ -34,15 +34,15 @@ class InventorySuggestionsScreen extends ConsumerWidget {
                     'What can I make?',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Here are items you should use soon. Generate a meal '
                     'plan that prioritizes these ingredients.',
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 14,
                       height: 1.5,
                     ),
@@ -87,19 +87,19 @@ class InventorySuggestionsScreen extends ConsumerWidget {
                             const Icon(Icons.check_circle_outline,
                                 size: 40, color: AppColors.success),
                             const SizedBox(height: 12),
-                            const Text(
+                            Text(
                               'Nothing expiring soon!',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
+                                color: Theme.of(context).colorScheme.onSurface,
                               ),
                             ),
                             const SizedBox(height: 4),
-                            const Text(
+                            Text(
                               'Your pantry is in great shape.',
                               style: TextStyle(
-                                color: AppColors.textSecondary,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                                 fontSize: 14,
                               ),
                             ),
@@ -205,9 +205,9 @@ class InventorySuggestionsScreen extends ConsumerWidget {
                         const SizedBox(width: 12),
                         Text(
                           '${items.length} items in your pantry',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
-                            color: AppColors.textPrimary,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       ],

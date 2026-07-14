@@ -15,7 +15,7 @@ class PremiumScreen extends ConsumerWidget {
     final prefsAsync = ref.watch(userPreferencesProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Pure Pantry Premium'),
       ),
@@ -271,9 +271,9 @@ class _SubscribeSection extends ConsumerWidget {
           onPressed: isProcessing
               ? null
               : () => ref.read(purchaseServiceProvider).restorePurchases(),
-          child: const Text(
+          child: Text(
             'Restore Purchases',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
           ),
         ),
       ],
@@ -314,13 +314,13 @@ class _FeatureRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary)),
+                        color: Theme.of(context).colorScheme.onSurface)),
                 Text(subtitle,
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColors.textSecondary)),
+                    style: TextStyle(
+                        fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
               ],
             ),
           ),

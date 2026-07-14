@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -34,7 +35,7 @@ class _PantryScreenState extends ConsumerState<PantryScreen> {
     final expiringAsync = ref.watch(expiringItemsProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Pantry'),
         actions: [
@@ -49,6 +50,7 @@ class _PantryScreenState extends ConsumerState<PantryScreen> {
                       backgroundColor: AppColors.warning,
                       child: const Icon(Icons.schedule),
                     ),
+                    tooltip: 'Expiring items',
                   ),
             loading: () => const SizedBox.shrink(),
             error: (_, _) => const SizedBox.shrink(),
@@ -56,6 +58,7 @@ class _PantryScreenState extends ConsumerState<PantryScreen> {
           IconButton(
             onPressed: () => _openSearch(),
             icon: const Icon(Icons.search),
+            tooltip: 'Search pantry',
           ),
         ],
       ),
@@ -127,6 +130,7 @@ class _PantryScreenState extends ConsumerState<PantryScreen> {
                   child: FloatingActionButton(
                     heroTag: 'scan',
                     onPressed: () => context.push(Routes.scanner),
+                    tooltip: 'Scan barcode',
                     child: const Icon(Icons.photo_camera_outlined),
                   ),
                 ),
@@ -148,6 +152,7 @@ class _PantryScreenState extends ConsumerState<PantryScreen> {
                   child: FloatingActionButton(
                     heroTag: 'add',
                     onPressed: () => _showAddSheet(),
+                    tooltip: 'Add item',
                     child: const Icon(Icons.add),
                   ),
                 ),
@@ -268,16 +273,22 @@ class _FilterChip extends StatelessWidget {
         children: [
           if (icon != null) ...[
             Icon(icon, size: 14,
-                color: isSelected ? AppColors.coral : AppColors.textTertiary),
+                color: isSelected ? AppColors.coral : Theme.of(context).colorScheme.onSurfaceVariant),
             const SizedBox(width: 4),
           ],
-          Text(label),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
           if (count > 0) ...[
             const SizedBox(width: 4),
             Text('($count)',
                 style: TextStyle(
                   fontSize: 11,
-                  color: isSelected ? AppColors.coral : AppColors.textTertiary,
+                  color: isSelected ? AppColors.coral : Theme.of(context).colorScheme.onSurfaceVariant,
                 )),
           ],
         ],
@@ -299,45 +310,50 @@ class _PantryGroupTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final item = group.batches.first;
 
-    return Dismissible(
-      key: Key(item.id),
-      direction: DismissDirection.horizontal,
-      confirmDismiss: (direction) async {
-        if (direction == DismissDirection.endToStart) {
-          // Swipe left = delete
-          return await _confirmDelete(context, ref, item);
-        } else {
-          // Swipe right = use one (FIFO)
-          await _useOne(ref);
-          return false;
-        }
+    return Semantics(
+      customSemanticsActions: {
+        const CustomSemanticsAction(label: 'Use one'): () => _useOne(ref),
+        const CustomSemanticsAction(label: 'Delete'): () => _confirmDelete(context, ref, item),
       },
-      background: Container(
-        color: AppColors.sage,
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.only(left: 20),
-        child: const Row(
-          children: [
-            Icon(Icons.remove_circle_outline, color: Colors.white),
-            SizedBox(width: 8),
-            Text('Use 1', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-          ],
+      child: Dismissible(
+        key: Key(item.id),
+        direction: DismissDirection.horizontal,
+        confirmDismiss: (direction) async {
+          if (direction == DismissDirection.endToStart) {
+            // Swipe left = delete
+            return await _confirmDelete(context, ref, item);
+          } else {
+            // Swipe right = use one (FIFO)
+            await _useOne(ref);
+            return false;
+          }
+        },
+        background: Container(
+          color: AppColors.sage,
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.only(left: 20),
+          child: const Row(
+            children: [
+              Icon(Icons.remove_circle_outline, color: Colors.white),
+              SizedBox(width: 8),
+              Text('Use 1', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+            ],
+          ),
         ),
-      ),
-      secondaryBackground: Container(
-        color: AppColors.error,
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-            SizedBox(width: 8),
-            Icon(Icons.delete_outline, color: Colors.white),
-          ],
+        secondaryBackground: Container(
+          color: AppColors.error,
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 20),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+              SizedBox(width: 8),
+              Icon(Icons.delete_outline, color: Colors.white),
+            ],
+          ),
         ),
-      ),
-      child: Card(
+        child: Card(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: InkWell(
           onTap: () => _showEditSheet(context, item),
@@ -346,15 +362,8 @@ class _PantryGroupTile extends ConsumerWidget {
             padding: const EdgeInsets.all(14),
             child: Row(
               children: [
-                // Expiry indicator dot
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _expiryColor(group.expiryStatus),
-                  ),
-                ),
+                // Expiry indicator icon
+                _expiryIcon(group.expiryStatus),
                 const SizedBox(width: 12),
 
                 // Name and details
@@ -364,37 +373,43 @@ class _PantryGroupTile extends ConsumerWidget {
                     children: [
                       Text(
                         group.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         _subtitle(item),
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
-                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
                       ),
                     ],
                   ),
                 ),
 
                 // Quantity
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.cream,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    _quantityLabel(),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                      color: AppColors.textPrimary,
+                Flexible(
+                  flex: 0,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _quantityLabel(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                     ),
                   ),
                 ),
@@ -409,7 +424,7 @@ class _PantryGroupTile extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      '×${group.batches.length}',
+                      '\u00D7${group.batches.length}',
                       style: const TextStyle(
                         color: AppColors.info,
                         fontSize: 11,
@@ -422,14 +437,15 @@ class _PantryGroupTile extends ConsumerWidget {
                 // Staple indicator
                 if (group.isStaple) ...[
                   const SizedBox(width: 6),
-                  const Icon(Icons.push_pin,
-                      size: 14, color: AppColors.textTertiary),
+                  Icon(Icons.push_pin,
+                      size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ],
               ],
             ),
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -447,7 +463,7 @@ class _PantryGroupTile extends ConsumerWidget {
         parts.add('expires in ${days}d');
       }
     }
-    return parts.join(' · ');
+    return parts.join(' \u00B7 ');
   }
 
   String _quantityLabel() {
@@ -468,14 +484,14 @@ class _PantryGroupTile extends ConsumerWidget {
     return '$qtyStr $unit';
   }
 
-  Color _expiryColor(String? status) {
+  Widget _expiryIcon(String? status) {
     switch (status) {
       case 'expired':
-        return AppColors.expired;
+        return const Icon(Icons.error, color: AppColors.expired, size: 16);
       case 'expiring':
-        return AppColors.expiringSoon;
+        return const Icon(Icons.warning_amber, color: AppColors.expiringSoon, size: 16);
       default:
-        return AppColors.fresh;
+        return const Icon(Icons.check_circle, color: AppColors.fresh, size: 16);
     }
   }
 
@@ -572,7 +588,7 @@ class _ExpiringItemsSheet extends ConsumerWidget {
               child: Container(
                 width: 40, height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.divider,
+                  color: Theme.of(context).colorScheme.outline,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -582,13 +598,16 @@ class _ExpiringItemsSheet extends ConsumerWidget {
               children: [
                 const Icon(Icons.schedule, color: AppColors.warning),
                 const SizedBox(width: 8),
-                Text(
-                  'Use Soon',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                Expanded(
+                  child: Text(
+                    'Use Soon',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
                 ),
-                const Spacer(),
                 TextButton.icon(
                   onPressed: () {
                     Navigator.pop(context);
@@ -621,22 +640,29 @@ class _ExpiringItemsSheet extends ConsumerWidget {
                           size: 20,
                         ),
                       ),
-                      title: Text(item.name),
+                      title: Text(
+                        item.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       subtitle: Text(
                         isExpired
                             ? 'Expired ${-days} day${-days == 1 ? "" : "s"} ago'
                             : 'Expires in $days day${days == 1 ? "" : "s"}',
-                        style: TextStyle(
-                          color: isExpired ? AppColors.expired : AppColors.warning,
-                          fontSize: 12,
-                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: isExpired ? AppColors.expired : AppColors.warning,
+                            ),
                       ),
                       trailing: Text(
                         _expiringQuantityLabel(item),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textSecondary,
-                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
                       ),
                     );
                   },
@@ -669,13 +695,13 @@ class _EmptyState extends StatelessWidget {
             Icon(
               hasFilter ? Icons.filter_list_off : Icons.kitchen_outlined,
               size: 64,
-              color: AppColors.textTertiary,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
             const SizedBox(height: 16),
             Text(
               hasFilter ? 'No items match your filter' : 'Your pantry is empty',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
             ),
             const SizedBox(height: 8),
@@ -683,10 +709,9 @@ class _EmptyState extends StatelessWidget {
               hasFilter
                   ? 'Try a different location or clear your search'
                   : 'Tap + to add items, or scan a barcode',
-              style: const TextStyle(
-                color: AppColors.textTertiary,
-                fontSize: 14,
-              ),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -711,6 +736,7 @@ class _PantrySearchDelegate extends SearchDelegate<String?> {
             _ref.read(pantrySearchQueryProvider.notifier).state = '';
           },
           icon: const Icon(Icons.clear),
+          tooltip: 'Clear search',
         ),
       ];
 
@@ -721,6 +747,7 @@ class _PantrySearchDelegate extends SearchDelegate<String?> {
           close(context, null);
         },
         icon: const Icon(Icons.arrow_back),
+        tooltip: 'Back',
       );
 
   @override

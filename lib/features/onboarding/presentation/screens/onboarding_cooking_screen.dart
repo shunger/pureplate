@@ -46,7 +46,7 @@ class _OnboardingCookingScreenState
     final notifier = ref.read(onboardingStateProvider.notifier);
 
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Cooking Style'),
       ),
@@ -59,13 +59,13 @@ class _OnboardingCookingScreenState
               'How do you like to cook?',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Pick your favorite cuisines, preferred cook time, and budget.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
             ),
             const SizedBox(height: 20),
 
@@ -75,12 +75,12 @@ class _OnboardingCookingScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Cuisine preferences
-                    const Text(
+                    Text(
                       'Favorite Cuisines',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -112,12 +112,12 @@ class _OnboardingCookingScreenState
                     const SizedBox(height: 24),
 
                     // Cook time
-                    const Text(
+                    Text(
                       'Preferred Cook Time',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -135,12 +135,12 @@ class _OnboardingCookingScreenState
                     const SizedBox(height: 20),
 
                     // Budget level
-                    const Text(
+                    Text(
                       'Budget Level',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 8),

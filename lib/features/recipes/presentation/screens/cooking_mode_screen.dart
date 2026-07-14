@@ -42,21 +42,21 @@ class _CookingModeScreenState extends ConsumerState<CookingModeScreen> {
 
     return recipeAsync.when(
       loading: () => Scaffold(
-        backgroundColor: AppColors.cream,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(title: const Text('Cooking')),
         body: const Center(
           child: CircularProgressIndicator(color: AppColors.coral),
         ),
       ),
       error: (e, _) => Scaffold(
-        backgroundColor: AppColors.cream,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(),
         body: Center(child: Text('Error: $e')),
       ),
       data: (recipe) {
         if (recipe == null) {
           return Scaffold(
-            backgroundColor: AppColors.cream,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             appBar: AppBar(),
             body: const Center(child: Text('Recipe not found')),
           );
@@ -65,7 +65,7 @@ class _CookingModeScreenState extends ConsumerState<CookingModeScreen> {
         final instructions = recipe.instructions;
         if (instructions.isEmpty) {
           return Scaffold(
-            backgroundColor: AppColors.cream,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             appBar: AppBar(title: Text(recipe.name)),
             body: const Center(child: Text('No instructions available')),
           );
@@ -76,7 +76,7 @@ class _CookingModeScreenState extends ConsumerState<CookingModeScreen> {
         final isLast = _currentStep == instructions.length - 1;
 
         return Scaffold(
-          backgroundColor: AppColors.cream,
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
             title: Text(recipe.name),
             actions: [
@@ -104,7 +104,7 @@ class _CookingModeScreenState extends ConsumerState<CookingModeScreen> {
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
                     value: (_currentStep + 1) / instructions.length,
-                    backgroundColor: AppColors.divider,
+                    backgroundColor: Theme.of(context).colorScheme.outline,
                     color: AppColors.coral,
                     minHeight: 4,
                   ),
@@ -131,10 +131,10 @@ class _CookingModeScreenState extends ConsumerState<CookingModeScreen> {
                       children: [
                         Text(
                           step.instruction,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w500,
-                            color: AppColors.textPrimary,
+                            color: Theme.of(context).colorScheme.onSurface,
                             height: 1.6,
                           ),
                         ),
@@ -239,7 +239,7 @@ class _CookingModeScreenState extends ConsumerState<CookingModeScreen> {
                 fontWeight: FontWeight.w700,
                 color: _timerRunning && _timerSeconds <= 10
                     ? AppColors.error
-                    : AppColors.textPrimary,
+                    : Theme.of(context).colorScheme.onSurface,
                 fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),

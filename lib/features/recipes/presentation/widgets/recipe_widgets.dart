@@ -30,6 +30,7 @@ class RecipeCard extends StatelessWidget {
                   ? Image.network(
                       recipe.imageUrl!,
                       fit: BoxFit.cover,
+                      semanticLabel: 'Photo of recipe',
                       errorBuilder: (_, __, ___) => _imagePlaceholder(),
                     )
                   : _imagePlaceholder(),
@@ -41,10 +42,10 @@ class RecipeCard extends StatelessWidget {
                 children: [
                   Text(
                     recipe.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -52,14 +53,14 @@ class RecipeCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const Icon(Icons.schedule,
-                          size: 14, color: AppColors.textTertiary),
+                      Icon(Icons.schedule,
+                          size: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       const SizedBox(width: 4),
                       Text(
                         recipe.totalTimeDisplay,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.textSecondary,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                       ),
                       if (recipe.cuisine != null &&
@@ -140,22 +141,22 @@ class IngredientTile extends StatelessWidget {
         ingredient.name,
         style: TextStyle(
           fontSize: 15,
-          color: AppColors.textPrimary,
+          color: Theme.of(context).colorScheme.onSurface,
           decoration: checked ? TextDecoration.lineThrough : null,
         ),
       ),
       trailing: quantity.isNotEmpty
           ? Text(
               quantity,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: AppColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             )
           : null,
       subtitle: ingredient.optional
-          ? const Text('Optional',
-              style: TextStyle(fontSize: 12, color: AppColors.textTertiary))
+          ? Text('Optional',
+              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant))
           : null,
     );
   }
@@ -182,11 +183,11 @@ class InstructionStepTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: isActive
             ? AppColors.coral.withValues(alpha: 0.05)
-            : AppColors.cardBackground,
+            : Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: isActive
             ? Border.all(color: AppColors.coral, width: 1.5)
-            : Border.all(color: AppColors.divider, width: 0.5),
+            : Border.all(color: Theme.of(context).colorScheme.outline, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -199,7 +200,7 @@ class InstructionStepTile extends StatelessWidget {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: isActive ? AppColors.coral : AppColors.textTertiary,
+                  color: isActive ? AppColors.coral : Theme.of(context).colorScheme.onSurfaceVariant,
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -217,9 +218,9 @@ class InstructionStepTile extends StatelessWidget {
               Expanded(
                 child: Text(
                   step.instruction,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 15,
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                     height: 1.5,
                   ),
                 ),

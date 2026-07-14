@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/database_providers.dart';
@@ -8,6 +9,25 @@ import '../../../../core/providers/database_providers.dart';
 
 /// App version info (static for now).
 final appVersionProvider = Provider<String>((ref) => '1.0.0');
+
+/// Derives [ThemeMode] from the stored theme preference string.
+final themeModeProvider = Provider<ThemeMode>((ref) {
+  final prefsAsync = ref.watch(userPreferencesProvider);
+  return prefsAsync.when(
+    data: (prefs) {
+      switch (prefs.theme) {
+        case 'light':
+          return ThemeMode.light;
+        case 'dark':
+          return ThemeMode.dark;
+        default:
+          return ThemeMode.system;
+      }
+    },
+    loading: () => ThemeMode.system,
+    error: (_, __) => ThemeMode.system,
+  );
+});
 
 /// Whether the user has completed onboarding.
 final onboardingCompletedProvider = Provider<AsyncValue<bool>>((ref) {

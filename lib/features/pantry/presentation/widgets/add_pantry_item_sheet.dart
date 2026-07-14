@@ -131,7 +131,7 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.divider,
+                  color: Theme.of(context).colorScheme.outline,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -152,8 +152,9 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                 IconButton(
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.close),
+                  tooltip: 'Close',
                   style: IconButton.styleFrom(
-                    foregroundColor: AppColors.textSecondary,
+                    foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -186,9 +187,10 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                             ? () => setState(() => _quantity -= 0.5)
                             : null,
                         icon: const Icon(Icons.remove, size: 18),
+                        tooltip: 'Decrease quantity',
                         style: IconButton.styleFrom(
-                          backgroundColor: AppColors.cream,
-                          foregroundColor: AppColors.textPrimary,
+                          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                          foregroundColor: Theme.of(context).colorScheme.onSurface,
                           minimumSize: const Size(36, 36),
                         ),
                       ),
@@ -208,6 +210,7 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                       IconButton.filled(
                         onPressed: () => setState(() => _quantity += 0.5),
                         icon: const Icon(Icons.add, size: 18),
+                        tooltip: 'Increase quantity',
                         style: IconButton.styleFrom(
                           backgroundColor: AppColors.coral,
                           foregroundColor: Colors.white,
@@ -244,7 +247,7 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                   _packTotalLabel(),
                   style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -254,7 +257,7 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
             // Location selector
             Text('Location',
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: AppColors.textSecondary,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     )),
             const SizedBox(height: 6),
             Row(
@@ -274,7 +277,7 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                               size: 16,
                               color: isSelected
                                   ? AppColors.coral
-                                  : AppColors.textTertiary),
+                                  : Theme.of(context).colorScheme.onSurfaceVariant),
                           const SizedBox(width: 4),
                           Text(loc.$3, style: const TextStyle(fontSize: 12)),
                         ],
@@ -306,7 +309,7 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
               contentPadding: EdgeInsets.zero,
               leading: Icon(
                 Icons.event,
-                color: _expiresAt != null ? AppColors.coral : AppColors.textTertiary,
+                color: _expiresAt != null ? AppColors.coral : Theme.of(context).colorScheme.onSurfaceVariant,
               ),
               title: Text(
                 _expiresAt != null
@@ -314,14 +317,15 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                     : 'Set expiry date',
                 style: TextStyle(
                   color: _expiresAt != null
-                      ? AppColors.textPrimary
-                      : AppColors.textTertiary,
+                      ? Theme.of(context).colorScheme.onSurface
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               trailing: _expiresAt != null
                   ? IconButton(
                       icon: const Icon(Icons.clear, size: 18),
                       onPressed: () => setState(() => _expiresAt = null),
+                      tooltip: 'Clear expiry date',
                     )
                   : null,
               onTap: _pickExpiryDate,
@@ -342,8 +346,8 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                     ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: _priceController.text.isNotEmpty
-                          ? AppColors.textPrimary
-                          : AppColors.textTertiary,
+                          ? Theme.of(context).colorScheme.onSurface
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -360,8 +364,8 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                     ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: _notesController.text.isNotEmpty
-                          ? AppColors.textPrimary
-                          : AppColors.textTertiary,
+                          ? Theme.of(context).colorScheme.onSurface
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -378,8 +382,8 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                     ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: _packSize != null
-                          ? AppColors.textPrimary
-                          : AppColors.textTertiary,
+                          ? Theme.of(context).colorScheme.onSurface
+                          : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -411,6 +415,7 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                             setState(() => _reorderThreshold--)
                         : null,
                     icon: const Icon(Icons.remove, size: 18),
+                    tooltip: 'Decrease reorder threshold',
                   ),
                   Text('$_reorderThreshold',
                       style: const TextStyle(
@@ -419,6 +424,7 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                     onPressed: () =>
                         setState(() => _reorderThreshold++),
                     icon: const Icon(Icons.add, size: 18),
+                    tooltip: 'Increase reorder threshold',
                   ),
                 ],
               ),
@@ -548,7 +554,7 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
             Text(
               'How many $_unitType per pack?',
               style: TextStyle(
-                color: AppColors.textSecondary,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 13,
               ),
             ),

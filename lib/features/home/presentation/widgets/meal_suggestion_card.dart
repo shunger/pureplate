@@ -64,6 +64,8 @@ class MealSuggestionCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: compact ? 13 : 14,

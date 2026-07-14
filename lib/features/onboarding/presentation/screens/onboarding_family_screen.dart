@@ -17,7 +17,7 @@ class OnboardingFamilyScreen extends ConsumerWidget {
     final notifier = ref.read(onboardingStateProvider.notifier);
 
     return Scaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Your Family'),
         leading: IconButton(
@@ -34,13 +34,13 @@ class OnboardingFamilyScreen extends ConsumerWidget {
               'Who are you cooking for?',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'This helps us size recipes and personalize suggestions.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
             ),
             const SizedBox(height: 32),
 
@@ -66,12 +66,12 @@ class OnboardingFamilyScreen extends ConsumerWidget {
             // Kid age ranges
             if (state.kids > 0) ...[
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 'Age ranges',
                 style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary),
+                    color: Theme.of(context).colorScheme.onSurface),
               ),
               const SizedBox(height: 12),
               Wrap(
@@ -137,14 +137,14 @@ class _StepperRow extends StatelessWidget {
     return Row(
       children: [
         Text(label,
-            style: const TextStyle(fontSize: 18, color: AppColors.textPrimary)),
+            style: TextStyle(fontSize: 18, color: Theme.of(context).colorScheme.onSurface)),
         const Spacer(),
         IconButton.filled(
           onPressed: onDecrement,
           icon: const Icon(Icons.remove, size: 20),
           style: IconButton.styleFrom(
-            backgroundColor: AppColors.cream,
-            foregroundColor: AppColors.textPrimary,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            foregroundColor: Theme.of(context).colorScheme.onSurface,
             minimumSize: const Size(40, 40),
           ),
         ),

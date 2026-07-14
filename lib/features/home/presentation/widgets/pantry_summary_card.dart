@@ -19,11 +19,14 @@ class PantrySummaryCard extends ConsumerWidget {
       error: (_, __) => const SizedBox.shrink(),
       data: (stats) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-        child: Card(
-          child: InkWell(
-            onTap: () => context.go(Routes.pantry),
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
+        child: Semantics(
+          button: true,
+          label: 'View pantry overview',
+          child: Card(
+            child: InkWell(
+              onTap: () => context.go(Routes.pantry),
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -32,16 +35,19 @@ class PantrySummaryCard extends ConsumerWidget {
                     children: [
                       const Icon(Icons.kitchen, color: AppColors.sage, size: 20),
                       const SizedBox(width: 8),
-                      Text(
-                        'Pantry Overview',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
+                      Expanded(
+                        child: Text(
+                          'Pantry Overview',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
                       ),
-                      const Spacer(),
-                      const Icon(
+                      Icon(
                         Icons.chevron_right,
-                        color: AppColors.textTertiary,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         size: 20,
                       ),
                     ],
@@ -74,6 +80,7 @@ class PantrySummaryCard extends ConsumerWidget {
           ),
         ),
       ),
+    ),
     );
   }
 }
@@ -102,12 +109,15 @@ class _StatChip extends StatelessWidget {
         children: [
           Icon(icon, size: 14, color: color),
           const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
           ),
         ],

@@ -22,11 +22,11 @@ class AppColors {
   // Text
   static const Color textPrimary = Color(0xFF2D2016);
   static const Color textSecondary = Color(0xFF6B5E54);
-  static const Color textTertiary = Color(0xFF9B8E84);
+  static const Color textTertiary = Color(0xFF7A6E64);
 
   // Semantic
   static const Color success = Color(0xFF4CAF50);
-  static const Color warning = Color(0xFFFF9800);
+  static const Color warning = Color(0xFFE68A00);
   static const Color error = Color(0xFFE53935);
   static const Color info = Color(0xFF42A5F5);
 
@@ -40,4 +40,25 @@ class AppColors {
   static const Color shimmer = Color(0xFFF5EDE5);
   static const Color bottomNavBackground = Color(0xFFFFFFFF);
   static const Color scrim = Color(0x66000000);
+}
+
+/// Dark-mode palette — warm dark tones that complement the light palette.
+class AppColorsDark {
+  AppColorsDark._();
+
+  // Backgrounds
+  static const Color surface = Color(0xFF1A1A1A);
+  static const Color surfaceContainer = Color(0xFF212121);
+  static const Color surfaceContainerHigh = Color(0xFF2A2A2A);
+
+  // Text
+  static const Color textPrimary = Color(0xFFF5F0EB);
+  static const Color textSecondary = Color(0xFFB0A89F);
+  static const Color textTertiary = Color(0xFF7A7068);
+
+  // Surfaces / Dividers
+  static const Color divider = Color(0xFF3A3430);
+  static const Color bottomNavBackground = Color(0xFF1A1A1A);
+  static const Color shimmer = Color(0xFF2A2520);
+  static const Color scrim = Color(0x99000000);
 }

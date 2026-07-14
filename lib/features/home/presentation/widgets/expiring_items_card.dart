@@ -47,13 +47,16 @@ class ExpiringItemsCard extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        'Use Soon',
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
+                      Expanded(
+                        child: Text(
+                          'Use Soon',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
                       ),
-                      const Spacer(),
                       TextButton(
                         onPressed: () =>
                             context.push(Routes.inventorySuggestions),
@@ -88,22 +91,24 @@ class ExpiringItemsCard extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(vertical: 4),
                       child: Row(
                         children: [
-                          Text(
-                            item.name,
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 14,
+                          Expanded(
+                            child: Text(
+                              item.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context).colorScheme.onSurface,
+                                  ),
                             ),
                           ),
-                          const Spacer(),
+                          const SizedBox(width: 8),
                           Text(
                             label,
-                            style: TextStyle(
-                              color:
-                                  isUrgent ? AppColors.error : AppColors.warning,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color:
+                                      isUrgent ? AppColors.error : AppColors.warning,
+                                  fontWeight: FontWeight.w600,
+                                ),
                           ),
                         ],
                       ),
