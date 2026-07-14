@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -67,11 +68,19 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 ],
                 flexibleSpace: recipe.imageUrl != null
                     ? FlexibleSpaceBar(
-                        background: Image.network(
-                          recipe.imageUrl!,
+                        background: CachedNetworkImage(
+                          imageUrl: recipe.imageUrl!,
                           fit: BoxFit.cover,
-                          semanticLabel: 'Photo of recipe',
-                          errorBuilder: (_, __, ___) => Container(
+                          width: double.infinity,
+                          height: 250,
+                          placeholder: (_, __) => Container(
+                            color: AppColors.coral.withValues(alpha: 0.1),
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                  color: AppColors.coralLight),
+                            ),
+                          ),
+                          errorWidget: (_, __, ___) => Container(
                             color: AppColors.coral.withValues(alpha: 0.1),
                             child: const Center(
                               child: Icon(Icons.restaurant,

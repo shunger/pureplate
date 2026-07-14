@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -27,11 +28,13 @@ class RecipeCard extends StatelessWidget {
               width: double.infinity,
               color: AppColors.coral.withValues(alpha: 0.1),
               child: recipe.imageUrl != null
-                  ? Image.network(
-                      recipe.imageUrl!,
+                  ? CachedNetworkImage(
+                      imageUrl: recipe.imageUrl!,
                       fit: BoxFit.cover,
-                      semanticLabel: 'Photo of recipe',
-                      errorBuilder: (_, __, ___) => _imagePlaceholder(),
+                      width: double.infinity,
+                      height: 120,
+                      placeholder: (_, __) => _imagePlaceholder(),
+                      errorWidget: (_, __, ___) => _imagePlaceholder(),
                     )
                   : _imagePlaceholder(),
             ),
