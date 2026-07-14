@@ -40,19 +40,28 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
   bool _isLoading = false;
   File? _selectedImage;
 
-  bool get _isDinnerMode => widget.mode == 'dinner';
+  bool get _isMealMode =>
+      widget.mode == 'dinner' ||
+      widget.mode == 'breakfast' ||
+      widget.mode == 'lunch' ||
+      widget.mode == 'dessert' ||
+      widget.mode == 'snack';
 
   @override
   void initState() {
     super.initState();
-    if (_isDinnerMode) {
-      _messages.add(const _ChatMessage(
-        text: "Let me check your pantry and find something great for dinner tonight!",
-        isUser: false,
-      ));
+    if (_isMealMode) {
+      final mealType = widget.mode!;
+      final isIdea = mealType == 'dessert' || mealType == 'snack';
+      final greeting = isIdea
+          ? "Let me check your pantry and find $mealType ideas!"
+          : "Let me check your pantry and find something great for $mealType!";
+      final prompt = isIdea
+          ? "What $mealType can I make using what's in my pantry?"
+          : "What can I make for $mealType using what's in my pantry?";
+      _messages.add(_ChatMessage(text: greeting, isUser: false));
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _controller.text =
-            "What can I make for dinner tonight using what's in my pantry?";
+        _controller.text = prompt;
         _sendMessage();
       });
     } else {
@@ -79,7 +88,7 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
     return Scaffold(
       backgroundColor: AppColors.cream,
       appBar: AppBar(
-        title: const Text('Chat Planner'),
+        title: Text(_isMealMode ? 'Chat Planner' : 'Chat'),
         actions: [
           TextButton(
             onPressed: () => context.push(Routes.planGeneration),

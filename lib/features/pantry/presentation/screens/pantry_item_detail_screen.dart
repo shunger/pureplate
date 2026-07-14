@@ -88,8 +88,7 @@ class PantryItemDetailScreen extends ConsumerWidget {
                       _DetailRow(
                         icon: Icons.inventory_2_outlined,
                         label: 'Quantity',
-                        value:
-                            '${item.quantity == item.quantity.toInt() ? item.quantity.toInt() : item.quantity} ${item.unitType}',
+                        value: _quantityDisplay(item),
                       ),
                       _DetailRow(
                         icon: Icons.category_outlined,
@@ -256,6 +255,23 @@ class PantryItemDetailScreen extends ConsumerWidget {
       await ref.read(pantrySyncOrchestratorProvider).deleteItem(item.id);
       if (context.mounted) Navigator.pop(context);
     }
+  }
+
+  String _quantityDisplay(PantryItem item) {
+    final qty = item.quantity;
+    final qtyStr =
+        qty == qty.toInt() ? qty.toInt().toString() : qty.toStringAsFixed(1);
+    final ps = item.packSize;
+    if (ps != null && ps > 0) {
+      final packs = qty / ps;
+      final packsStr = packs == packs.toInt()
+          ? packs.toInt().toString()
+          : packs.toStringAsFixed(1);
+      final psStr =
+          ps == ps.toInt() ? ps.toInt().toString() : ps.toStringAsFixed(1);
+      return '$qtyStr ${item.unitType} ($packsStr \u00D7 $psStr ${item.unitType} packs)';
+    }
+    return '$qtyStr ${item.unitType}';
   }
 
   String _capitalizeFirst(String s) {

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../widgets/pantry_summary_card.dart';
 import '../widgets/whats_for_dinner_button.dart';
+import '../widgets/meal_suggestion_card.dart';
 import '../widgets/expiring_items_card.dart';
 import '../widgets/todays_meal_card.dart';
 import '../widgets/quick_actions_row.dart';
@@ -56,8 +57,62 @@ class HomeScreen extends ConsumerWidget {
             // "What's for dinner?" hero button
             const SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: EdgeInsets.fromLTRB(20, 8, 20, 8),
                 child: WhatsForDinnerButton(),
+              ),
+            ),
+
+            // Breakfast + Lunch
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    MealSuggestionCard(
+                      mealType: 'breakfast',
+                      label: 'Breakfast',
+                      icon: Icons.wb_sunny_outlined,
+                      color: AppColors.sage,
+                      colorDark: AppColors.sageDark,
+                    ),
+                    const SizedBox(width: 8),
+                    MealSuggestionCard(
+                      mealType: 'lunch',
+                      label: 'Lunch',
+                      icon: Icons.lunch_dining_outlined,
+                      color: AppColors.info,
+                      colorDark: const Color(0xFF1E88E5),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Dessert + Snack quick buttons
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
+                child: Row(
+                  children: [
+                    MealSuggestionCard(
+                      mealType: 'dessert',
+                      label: 'Dessert',
+                      icon: Icons.cake_outlined,
+                      color: AppColors.coralLight,
+                      colorDark: AppColors.coral,
+                      compact: true,
+                    ),
+                    const SizedBox(width: 8),
+                    MealSuggestionCard(
+                      mealType: 'snack',
+                      label: 'Snacks',
+                      icon: Icons.cookie_outlined,
+                      color: AppColors.warning,
+                      colorDark: const Color(0xFFEF6C00),
+                      compact: true,
+                    ),
+                  ],
+                ),
               ),
             ),
 
@@ -79,7 +134,7 @@ class HomeScreen extends ConsumerWidget {
             // Quick actions
             const SliverToBoxAdapter(
               child: Padding(
-                padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
+                padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
                 child: QuickActionsRow(),
               ),
             ),

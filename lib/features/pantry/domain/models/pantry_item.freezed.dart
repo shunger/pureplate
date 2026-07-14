@@ -20,7 +20,9 @@ mixin _$PantryItem {
  double get quantity; String get unitType;/// Location in the home.
  PantryLocation get location;/// Dates.
  DateTime? get purchasedAt; DateTime? get expiresAt;/// Smart inventory flags.
- bool get isStaple; double get reorderThreshold; bool get isBulk; double? get purchasePrice;/// User notes.
+ bool get isStaple; double get reorderThreshold; bool get isBulk; double? get purchasePrice;/// Pack size — each pack contains this many of [unitType].
+/// When set, [quantity] stores the total in base units (packs × packSize).
+ double? get packSize;/// User notes.
  String? get notes; String? get imageUrl;/// Sharing / sync fields.
  String? get firestorePantryId; String? get firestoreItemId;/// Timestamps.
  DateTime get createdAt; DateTime? get updatedAt;
@@ -36,16 +38,16 @@ $PantryItemCopyWith<PantryItem> get copyWith => _$PantryItemCopyWithImpl<PantryI
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PantryItem&&(identical(other.id, id) || other.id == id)&&(identical(other.productId, productId) || other.productId == productId)&&(identical(other.name, name) || other.name == name)&&(identical(other.brand, brand) || other.brand == brand)&&(identical(other.category, category) || other.category == category)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unitType, unitType) || other.unitType == unitType)&&(identical(other.location, location) || other.location == location)&&(identical(other.purchasedAt, purchasedAt) || other.purchasedAt == purchasedAt)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt)&&(identical(other.isStaple, isStaple) || other.isStaple == isStaple)&&(identical(other.reorderThreshold, reorderThreshold) || other.reorderThreshold == reorderThreshold)&&(identical(other.isBulk, isBulk) || other.isBulk == isBulk)&&(identical(other.purchasePrice, purchasePrice) || other.purchasePrice == purchasePrice)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.firestorePantryId, firestorePantryId) || other.firestorePantryId == firestorePantryId)&&(identical(other.firestoreItemId, firestoreItemId) || other.firestoreItemId == firestoreItemId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PantryItem&&(identical(other.id, id) || other.id == id)&&(identical(other.productId, productId) || other.productId == productId)&&(identical(other.name, name) || other.name == name)&&(identical(other.brand, brand) || other.brand == brand)&&(identical(other.category, category) || other.category == category)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unitType, unitType) || other.unitType == unitType)&&(identical(other.location, location) || other.location == location)&&(identical(other.purchasedAt, purchasedAt) || other.purchasedAt == purchasedAt)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt)&&(identical(other.isStaple, isStaple) || other.isStaple == isStaple)&&(identical(other.reorderThreshold, reorderThreshold) || other.reorderThreshold == reorderThreshold)&&(identical(other.isBulk, isBulk) || other.isBulk == isBulk)&&(identical(other.purchasePrice, purchasePrice) || other.purchasePrice == purchasePrice)&&(identical(other.packSize, packSize) || other.packSize == packSize)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.firestorePantryId, firestorePantryId) || other.firestorePantryId == firestorePantryId)&&(identical(other.firestoreItemId, firestoreItemId) || other.firestoreItemId == firestoreItemId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,productId,name,brand,category,quantity,unitType,location,purchasedAt,expiresAt,isStaple,reorderThreshold,isBulk,purchasePrice,notes,imageUrl,firestorePantryId,firestoreItemId,createdAt,updatedAt]);
+int get hashCode => Object.hashAll([runtimeType,id,productId,name,brand,category,quantity,unitType,location,purchasedAt,expiresAt,isStaple,reorderThreshold,isBulk,purchasePrice,packSize,notes,imageUrl,firestorePantryId,firestoreItemId,createdAt,updatedAt]);
 
 @override
 String toString() {
-  return 'PantryItem(id: $id, productId: $productId, name: $name, brand: $brand, category: $category, quantity: $quantity, unitType: $unitType, location: $location, purchasedAt: $purchasedAt, expiresAt: $expiresAt, isStaple: $isStaple, reorderThreshold: $reorderThreshold, isBulk: $isBulk, purchasePrice: $purchasePrice, notes: $notes, imageUrl: $imageUrl, firestorePantryId: $firestorePantryId, firestoreItemId: $firestoreItemId, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'PantryItem(id: $id, productId: $productId, name: $name, brand: $brand, category: $category, quantity: $quantity, unitType: $unitType, location: $location, purchasedAt: $purchasedAt, expiresAt: $expiresAt, isStaple: $isStaple, reorderThreshold: $reorderThreshold, isBulk: $isBulk, purchasePrice: $purchasePrice, packSize: $packSize, notes: $notes, imageUrl: $imageUrl, firestorePantryId: $firestorePantryId, firestoreItemId: $firestoreItemId, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -56,7 +58,7 @@ abstract mixin class $PantryItemCopyWith<$Res>  {
   factory $PantryItemCopyWith(PantryItem value, $Res Function(PantryItem) _then) = _$PantryItemCopyWithImpl;
 @useResult
 $Res call({
- String id, String? productId, String name, String? brand, ProductCategory category, double quantity, String unitType, PantryLocation location, DateTime? purchasedAt, DateTime? expiresAt, bool isStaple, double reorderThreshold, bool isBulk, double? purchasePrice, String? notes, String? imageUrl, String? firestorePantryId, String? firestoreItemId, DateTime createdAt, DateTime? updatedAt
+ String id, String? productId, String name, String? brand, ProductCategory category, double quantity, String unitType, PantryLocation location, DateTime? purchasedAt, DateTime? expiresAt, bool isStaple, double reorderThreshold, bool isBulk, double? purchasePrice, double? packSize, String? notes, String? imageUrl, String? firestorePantryId, String? firestoreItemId, DateTime createdAt, DateTime? updatedAt
 });
 
 
@@ -73,7 +75,7 @@ class _$PantryItemCopyWithImpl<$Res>
 
 /// Create a copy of PantryItem
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? productId = freezed,Object? name = null,Object? brand = freezed,Object? category = null,Object? quantity = null,Object? unitType = null,Object? location = null,Object? purchasedAt = freezed,Object? expiresAt = freezed,Object? isStaple = null,Object? reorderThreshold = null,Object? isBulk = null,Object? purchasePrice = freezed,Object? notes = freezed,Object? imageUrl = freezed,Object? firestorePantryId = freezed,Object? firestoreItemId = freezed,Object? createdAt = null,Object? updatedAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? productId = freezed,Object? name = null,Object? brand = freezed,Object? category = null,Object? quantity = null,Object? unitType = null,Object? location = null,Object? purchasedAt = freezed,Object? expiresAt = freezed,Object? isStaple = null,Object? reorderThreshold = null,Object? isBulk = null,Object? purchasePrice = freezed,Object? packSize = freezed,Object? notes = freezed,Object? imageUrl = freezed,Object? firestorePantryId = freezed,Object? firestoreItemId = freezed,Object? createdAt = null,Object? updatedAt = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,productId: freezed == productId ? _self.productId : productId // ignore: cast_nullable_to_non_nullable
@@ -89,6 +91,7 @@ as DateTime?,isStaple: null == isStaple ? _self.isStaple : isStaple // ignore: c
 as bool,reorderThreshold: null == reorderThreshold ? _self.reorderThreshold : reorderThreshold // ignore: cast_nullable_to_non_nullable
 as double,isBulk: null == isBulk ? _self.isBulk : isBulk // ignore: cast_nullable_to_non_nullable
 as bool,purchasePrice: freezed == purchasePrice ? _self.purchasePrice : purchasePrice // ignore: cast_nullable_to_non_nullable
+as double?,packSize: freezed == packSize ? _self.packSize : packSize // ignore: cast_nullable_to_non_nullable
 as double?,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
 as String?,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
 as String?,firestorePantryId: freezed == firestorePantryId ? _self.firestorePantryId : firestorePantryId // ignore: cast_nullable_to_non_nullable
@@ -180,10 +183,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String? productId,  String name,  String? brand,  ProductCategory category,  double quantity,  String unitType,  PantryLocation location,  DateTime? purchasedAt,  DateTime? expiresAt,  bool isStaple,  double reorderThreshold,  bool isBulk,  double? purchasePrice,  String? notes,  String? imageUrl,  String? firestorePantryId,  String? firestoreItemId,  DateTime createdAt,  DateTime? updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String? productId,  String name,  String? brand,  ProductCategory category,  double quantity,  String unitType,  PantryLocation location,  DateTime? purchasedAt,  DateTime? expiresAt,  bool isStaple,  double reorderThreshold,  bool isBulk,  double? purchasePrice,  double? packSize,  String? notes,  String? imageUrl,  String? firestorePantryId,  String? firestoreItemId,  DateTime createdAt,  DateTime? updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PantryItem() when $default != null:
-return $default(_that.id,_that.productId,_that.name,_that.brand,_that.category,_that.quantity,_that.unitType,_that.location,_that.purchasedAt,_that.expiresAt,_that.isStaple,_that.reorderThreshold,_that.isBulk,_that.purchasePrice,_that.notes,_that.imageUrl,_that.firestorePantryId,_that.firestoreItemId,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.productId,_that.name,_that.brand,_that.category,_that.quantity,_that.unitType,_that.location,_that.purchasedAt,_that.expiresAt,_that.isStaple,_that.reorderThreshold,_that.isBulk,_that.purchasePrice,_that.packSize,_that.notes,_that.imageUrl,_that.firestorePantryId,_that.firestoreItemId,_that.createdAt,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -201,10 +204,10 @@ return $default(_that.id,_that.productId,_that.name,_that.brand,_that.category,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String? productId,  String name,  String? brand,  ProductCategory category,  double quantity,  String unitType,  PantryLocation location,  DateTime? purchasedAt,  DateTime? expiresAt,  bool isStaple,  double reorderThreshold,  bool isBulk,  double? purchasePrice,  String? notes,  String? imageUrl,  String? firestorePantryId,  String? firestoreItemId,  DateTime createdAt,  DateTime? updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String? productId,  String name,  String? brand,  ProductCategory category,  double quantity,  String unitType,  PantryLocation location,  DateTime? purchasedAt,  DateTime? expiresAt,  bool isStaple,  double reorderThreshold,  bool isBulk,  double? purchasePrice,  double? packSize,  String? notes,  String? imageUrl,  String? firestorePantryId,  String? firestoreItemId,  DateTime createdAt,  DateTime? updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _PantryItem():
-return $default(_that.id,_that.productId,_that.name,_that.brand,_that.category,_that.quantity,_that.unitType,_that.location,_that.purchasedAt,_that.expiresAt,_that.isStaple,_that.reorderThreshold,_that.isBulk,_that.purchasePrice,_that.notes,_that.imageUrl,_that.firestorePantryId,_that.firestoreItemId,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.productId,_that.name,_that.brand,_that.category,_that.quantity,_that.unitType,_that.location,_that.purchasedAt,_that.expiresAt,_that.isStaple,_that.reorderThreshold,_that.isBulk,_that.purchasePrice,_that.packSize,_that.notes,_that.imageUrl,_that.firestorePantryId,_that.firestoreItemId,_that.createdAt,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -221,10 +224,10 @@ return $default(_that.id,_that.productId,_that.name,_that.brand,_that.category,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String? productId,  String name,  String? brand,  ProductCategory category,  double quantity,  String unitType,  PantryLocation location,  DateTime? purchasedAt,  DateTime? expiresAt,  bool isStaple,  double reorderThreshold,  bool isBulk,  double? purchasePrice,  String? notes,  String? imageUrl,  String? firestorePantryId,  String? firestoreItemId,  DateTime createdAt,  DateTime? updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String? productId,  String name,  String? brand,  ProductCategory category,  double quantity,  String unitType,  PantryLocation location,  DateTime? purchasedAt,  DateTime? expiresAt,  bool isStaple,  double reorderThreshold,  bool isBulk,  double? purchasePrice,  double? packSize,  String? notes,  String? imageUrl,  String? firestorePantryId,  String? firestoreItemId,  DateTime createdAt,  DateTime? updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _PantryItem() when $default != null:
-return $default(_that.id,_that.productId,_that.name,_that.brand,_that.category,_that.quantity,_that.unitType,_that.location,_that.purchasedAt,_that.expiresAt,_that.isStaple,_that.reorderThreshold,_that.isBulk,_that.purchasePrice,_that.notes,_that.imageUrl,_that.firestorePantryId,_that.firestoreItemId,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.productId,_that.name,_that.brand,_that.category,_that.quantity,_that.unitType,_that.location,_that.purchasedAt,_that.expiresAt,_that.isStaple,_that.reorderThreshold,_that.isBulk,_that.purchasePrice,_that.packSize,_that.notes,_that.imageUrl,_that.firestorePantryId,_that.firestoreItemId,_that.createdAt,_that.updatedAt);case _:
   return null;
 
 }
@@ -236,7 +239,7 @@ return $default(_that.id,_that.productId,_that.name,_that.brand,_that.category,_
 @JsonSerializable()
 
 class _PantryItem extends PantryItem {
-  const _PantryItem({required this.id, this.productId, required this.name, this.brand, this.category = ProductCategory.other, this.quantity = 1, this.unitType = 'count', this.location = PantryLocation.pantry, this.purchasedAt, this.expiresAt, this.isStaple = false, this.reorderThreshold = 0, this.isBulk = false, this.purchasePrice, this.notes, this.imageUrl, this.firestorePantryId, this.firestoreItemId, required this.createdAt, this.updatedAt}): super._();
+  const _PantryItem({required this.id, this.productId, required this.name, this.brand, this.category = ProductCategory.other, this.quantity = 1, this.unitType = 'count', this.location = PantryLocation.pantry, this.purchasedAt, this.expiresAt, this.isStaple = false, this.reorderThreshold = 0, this.isBulk = false, this.purchasePrice, this.packSize, this.notes, this.imageUrl, this.firestorePantryId, this.firestoreItemId, required this.createdAt, this.updatedAt}): super._();
   factory _PantryItem.fromJson(Map<String, dynamic> json) => _$PantryItemFromJson(json);
 
 @override final  String id;
@@ -258,6 +261,9 @@ class _PantryItem extends PantryItem {
 @override@JsonKey() final  double reorderThreshold;
 @override@JsonKey() final  bool isBulk;
 @override final  double? purchasePrice;
+/// Pack size — each pack contains this many of [unitType].
+/// When set, [quantity] stores the total in base units (packs × packSize).
+@override final  double? packSize;
 /// User notes.
 @override final  String? notes;
 @override final  String? imageUrl;
@@ -281,16 +287,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PantryItem&&(identical(other.id, id) || other.id == id)&&(identical(other.productId, productId) || other.productId == productId)&&(identical(other.name, name) || other.name == name)&&(identical(other.brand, brand) || other.brand == brand)&&(identical(other.category, category) || other.category == category)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unitType, unitType) || other.unitType == unitType)&&(identical(other.location, location) || other.location == location)&&(identical(other.purchasedAt, purchasedAt) || other.purchasedAt == purchasedAt)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt)&&(identical(other.isStaple, isStaple) || other.isStaple == isStaple)&&(identical(other.reorderThreshold, reorderThreshold) || other.reorderThreshold == reorderThreshold)&&(identical(other.isBulk, isBulk) || other.isBulk == isBulk)&&(identical(other.purchasePrice, purchasePrice) || other.purchasePrice == purchasePrice)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.firestorePantryId, firestorePantryId) || other.firestorePantryId == firestorePantryId)&&(identical(other.firestoreItemId, firestoreItemId) || other.firestoreItemId == firestoreItemId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PantryItem&&(identical(other.id, id) || other.id == id)&&(identical(other.productId, productId) || other.productId == productId)&&(identical(other.name, name) || other.name == name)&&(identical(other.brand, brand) || other.brand == brand)&&(identical(other.category, category) || other.category == category)&&(identical(other.quantity, quantity) || other.quantity == quantity)&&(identical(other.unitType, unitType) || other.unitType == unitType)&&(identical(other.location, location) || other.location == location)&&(identical(other.purchasedAt, purchasedAt) || other.purchasedAt == purchasedAt)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt)&&(identical(other.isStaple, isStaple) || other.isStaple == isStaple)&&(identical(other.reorderThreshold, reorderThreshold) || other.reorderThreshold == reorderThreshold)&&(identical(other.isBulk, isBulk) || other.isBulk == isBulk)&&(identical(other.purchasePrice, purchasePrice) || other.purchasePrice == purchasePrice)&&(identical(other.packSize, packSize) || other.packSize == packSize)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.firestorePantryId, firestorePantryId) || other.firestorePantryId == firestorePantryId)&&(identical(other.firestoreItemId, firestoreItemId) || other.firestoreItemId == firestoreItemId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,productId,name,brand,category,quantity,unitType,location,purchasedAt,expiresAt,isStaple,reorderThreshold,isBulk,purchasePrice,notes,imageUrl,firestorePantryId,firestoreItemId,createdAt,updatedAt]);
+int get hashCode => Object.hashAll([runtimeType,id,productId,name,brand,category,quantity,unitType,location,purchasedAt,expiresAt,isStaple,reorderThreshold,isBulk,purchasePrice,packSize,notes,imageUrl,firestorePantryId,firestoreItemId,createdAt,updatedAt]);
 
 @override
 String toString() {
-  return 'PantryItem(id: $id, productId: $productId, name: $name, brand: $brand, category: $category, quantity: $quantity, unitType: $unitType, location: $location, purchasedAt: $purchasedAt, expiresAt: $expiresAt, isStaple: $isStaple, reorderThreshold: $reorderThreshold, isBulk: $isBulk, purchasePrice: $purchasePrice, notes: $notes, imageUrl: $imageUrl, firestorePantryId: $firestorePantryId, firestoreItemId: $firestoreItemId, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'PantryItem(id: $id, productId: $productId, name: $name, brand: $brand, category: $category, quantity: $quantity, unitType: $unitType, location: $location, purchasedAt: $purchasedAt, expiresAt: $expiresAt, isStaple: $isStaple, reorderThreshold: $reorderThreshold, isBulk: $isBulk, purchasePrice: $purchasePrice, packSize: $packSize, notes: $notes, imageUrl: $imageUrl, firestorePantryId: $firestorePantryId, firestoreItemId: $firestoreItemId, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -301,7 +307,7 @@ abstract mixin class _$PantryItemCopyWith<$Res> implements $PantryItemCopyWith<$
   factory _$PantryItemCopyWith(_PantryItem value, $Res Function(_PantryItem) _then) = __$PantryItemCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String? productId, String name, String? brand, ProductCategory category, double quantity, String unitType, PantryLocation location, DateTime? purchasedAt, DateTime? expiresAt, bool isStaple, double reorderThreshold, bool isBulk, double? purchasePrice, String? notes, String? imageUrl, String? firestorePantryId, String? firestoreItemId, DateTime createdAt, DateTime? updatedAt
+ String id, String? productId, String name, String? brand, ProductCategory category, double quantity, String unitType, PantryLocation location, DateTime? purchasedAt, DateTime? expiresAt, bool isStaple, double reorderThreshold, bool isBulk, double? purchasePrice, double? packSize, String? notes, String? imageUrl, String? firestorePantryId, String? firestoreItemId, DateTime createdAt, DateTime? updatedAt
 });
 
 
@@ -318,7 +324,7 @@ class __$PantryItemCopyWithImpl<$Res>
 
 /// Create a copy of PantryItem
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? productId = freezed,Object? name = null,Object? brand = freezed,Object? category = null,Object? quantity = null,Object? unitType = null,Object? location = null,Object? purchasedAt = freezed,Object? expiresAt = freezed,Object? isStaple = null,Object? reorderThreshold = null,Object? isBulk = null,Object? purchasePrice = freezed,Object? notes = freezed,Object? imageUrl = freezed,Object? firestorePantryId = freezed,Object? firestoreItemId = freezed,Object? createdAt = null,Object? updatedAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? productId = freezed,Object? name = null,Object? brand = freezed,Object? category = null,Object? quantity = null,Object? unitType = null,Object? location = null,Object? purchasedAt = freezed,Object? expiresAt = freezed,Object? isStaple = null,Object? reorderThreshold = null,Object? isBulk = null,Object? purchasePrice = freezed,Object? packSize = freezed,Object? notes = freezed,Object? imageUrl = freezed,Object? firestorePantryId = freezed,Object? firestoreItemId = freezed,Object? createdAt = null,Object? updatedAt = freezed,}) {
   return _then(_PantryItem(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,productId: freezed == productId ? _self.productId : productId // ignore: cast_nullable_to_non_nullable
@@ -334,6 +340,7 @@ as DateTime?,isStaple: null == isStaple ? _self.isStaple : isStaple // ignore: c
 as bool,reorderThreshold: null == reorderThreshold ? _self.reorderThreshold : reorderThreshold // ignore: cast_nullable_to_non_nullable
 as double,isBulk: null == isBulk ? _self.isBulk : isBulk // ignore: cast_nullable_to_non_nullable
 as bool,purchasePrice: freezed == purchasePrice ? _self.purchasePrice : purchasePrice // ignore: cast_nullable_to_non_nullable
+as double?,packSize: freezed == packSize ? _self.packSize : packSize // ignore: cast_nullable_to_non_nullable
 as double?,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
 as String?,imageUrl: freezed == imageUrl ? _self.imageUrl : imageUrl // ignore: cast_nullable_to_non_nullable
 as String?,firestorePantryId: freezed == firestorePantryId ? _self.firestorePantryId : firestorePantryId // ignore: cast_nullable_to_non_nullable

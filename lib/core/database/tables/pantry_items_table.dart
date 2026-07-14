@@ -25,6 +25,7 @@ class PantryItems extends Table {
   IntColumn get reorderThreshold => integer().withDefault(const Constant(0))();
   BoolColumn get isBulk => boolean().withDefault(const Constant(false))();
   RealColumn get purchasePrice => real().nullable()();
+  RealColumn get packSize => real().nullable()();
 
   // Sync status: newItem, notified, etc.
   TextColumn get status => text().withDefault(const Constant('newItem'))();

@@ -51,6 +51,7 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
   bool _isStaple = false;
   int _reorderThreshold = 0;
   bool _isBulk = false;
+  double? _packSize;
 
   bool get _isEditing => widget.existingItem != null;
 
@@ -74,7 +75,13 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
       _notesController.text = item.notes ?? '';
       _priceController.text =
           item.purchasePrice != null ? item.purchasePrice.toString() : '';
-      _quantity = item.quantity;
+      _packSize = item.packSize;
+      // When pack size is set, show pack count in stepper instead of total.
+      if (_packSize != null && _packSize! > 0) {
+        _quantity = item.quantity / _packSize!;
+      } else {
+        _quantity = item.quantity;
+      }
       _unitType = item.unitType;
       _location = item.location;
       _category = item.category;
@@ -229,6 +236,19 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                 ),
               ],
             ),
+            // Show total in base units when pack size is set.
+            if (_packSize != null && _packSize! > 0) ...[
+              const SizedBox(height: 4),
+              Center(
+                child: Text(
+                  _packTotalLabel(),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
 
             // Location selector
@@ -307,7 +327,7 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
               onTap: _pickExpiryDate,
             ),
 
-            // Price + Notes buttons (side by side)
+            // Price + Notes + Pack size buttons
             Row(
               children: [
                 Expanded(
@@ -340,6 +360,24 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                     ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: _notesController.text.isNotEmpty
+                          ? AppColors.textPrimary
+                          : AppColors.textTertiary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _showPackSizeDialog,
+                    icon: const Icon(Icons.inventory_2_outlined, size: 18),
+                    label: Text(
+                      _packSize != null
+                          ? 'Pack: ${_packSize == _packSize!.toInt() ? _packSize!.toInt().toString() : _packSize!.toStringAsFixed(1)}'
+                          : 'Pack size',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _packSize != null
                           ? AppColors.textPrimary
                           : AppColors.textTertiary,
                     ),
@@ -495,6 +533,74 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
     controller.dispose();
   }
 
+  Future<void> _showPackSizeDialog() async {
+    final controller = TextEditingController(
+      text: _packSize != null ? _packSize.toString() : '',
+    );
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Pack size'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'How many $_unitType per pack?',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: InputDecoration(
+                hintText: 'e.g., 2 for 2 $_unitType packs',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          if (_packSize != null)
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, ''),
+              child: const Text('Clear'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, controller.text),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    if (result != null) {
+      setState(() {
+        if (result.trim().isEmpty) {
+          _packSize = null;
+        } else {
+          _packSize = double.tryParse(result.trim());
+        }
+      });
+    }
+    controller.dispose();
+  }
+
+  String _packTotalLabel() {
+    final total = _quantity * (_packSize ?? 1);
+    final totalStr = total == total.toInt()
+        ? total.toInt().toString()
+        : total.toStringAsFixed(1);
+    return '= $totalStr $_unitType total';
+  }
+
   Future<void> _pickExpiryDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -514,16 +620,21 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
     final now = DateTime.now();
     final orchestrator = ref.read(pantrySyncOrchestratorProvider);
 
+    // When pack size is set, stored quantity = pack_count × packSize.
+    final storedQuantity =
+        (_packSize != null && _packSize! > 0) ? _quantity * _packSize! : _quantity;
+
     if (_isEditing) {
       await orchestrator.updateItem(PantryItemsCompanion(
         id: Value(widget.existingItem!.id),
         name: Value(name),
         category: Value(_category),
-        quantity: Value(_quantity),
+        quantity: Value(storedQuantity),
         unitType: Value(_unitType),
         location: Value(_location),
         expiresAt: Value(_expiresAt),
         purchasePrice: Value(price),
+        packSize: Value(_packSize),
         notes: Value(notes.isEmpty ? null : notes),
         isStaple: Value(_isStaple),
         reorderThreshold: Value(_reorderThreshold),
@@ -536,12 +647,13 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
         productId: Value(widget.initialProductId),
         name: Value(name),
         category: Value(_category),
-        quantity: Value(_quantity),
+        quantity: Value(storedQuantity),
         unitType: Value(_unitType),
         location: Value(_location),
         expiresAt: Value(_expiresAt),
         purchasedAt: Value(now),
         purchasePrice: Value(price),
+        packSize: Value(_packSize),
         notes: Value(notes.isEmpty ? null : notes),
         isStaple: Value(_isStaple),
         reorderThreshold: Value(_reorderThreshold),

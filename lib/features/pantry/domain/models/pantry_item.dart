@@ -55,6 +55,10 @@ abstract class PantryItem with _$PantryItem {
     @Default(false) bool isBulk,
     double? purchasePrice,
 
+    /// Pack size — each pack contains this many of [unitType].
+    /// When set, [quantity] stores the total in base units (packs × packSize).
+    double? packSize,
+
     /// User notes.
     String? notes,
     String? imageUrl,
@@ -96,6 +100,7 @@ abstract class PantryItem with _$PantryItem {
         'unit': unitType,
         'category': category.name,
         if (expiresAt != null) 'expires_in_days': daysUntilExpiry,
+        if (packSize != null) 'pack_size': packSize,
         if (isStaple) 'is_staple': true,
       };
 }

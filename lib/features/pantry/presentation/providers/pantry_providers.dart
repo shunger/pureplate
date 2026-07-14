@@ -172,6 +172,9 @@ class PantryGroup {
     return null;
   }
 
+  /// Pack size from the first batch (for display in list tiles).
+  double? get packSize => batches.first.packSize;
+
   String get location => batches.first.location;
   bool get isMultiBatch => batches.length > 1;
   bool get isStaple => batches.any((b) => b.isStaple);

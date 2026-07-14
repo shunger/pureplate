@@ -143,6 +143,7 @@ class PantrySyncOrchestrator {
       expiresAt: Value(_timestampToDate(data['expiresAt'])),
       purchasedAt: Value(_timestampToDate(data['purchasedAt'])),
       isStaple: Value(data['isStaple'] as bool? ?? false),
+      packSize: Value((data['packSize'] as num?)?.toDouble()),
       notes: Value(data['notes'] as String?),
       firestorePantryId: Value(pantryId),
       firestoreItemId: Value(firestoreItemId),
@@ -295,6 +296,7 @@ class PantrySyncOrchestrator {
         if (item.purchasedAt != null)
           'purchasedAt': Timestamp.fromDate(item.purchasedAt!),
         'isStaple': item.isStaple,
+        if (item.packSize != null) 'packSize': item.packSize,
         if (item.notes != null) 'notes': item.notes,
       };
 
@@ -306,6 +308,9 @@ class PantrySyncOrchestrator {
     if (c.unitType.present) data['unitType'] = c.unitType.value;
     if (c.location.present) data['location'] = c.location.value;
     if (c.isStaple.present) data['isStaple'] = c.isStaple.value;
+    if (c.packSize.present && c.packSize.value != null) {
+      data['packSize'] = c.packSize.value;
+    }
     if (c.notes.present) data['notes'] = c.notes.value;
     if (c.expiresAt.present && c.expiresAt.value != null) {
       data['expiresAt'] = Timestamp.fromDate(c.expiresAt.value!);

@@ -3068,6 +3068,17 @@ class $PantryItemsTable extends PantryItems
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _packSizeMeta = const VerificationMeta(
+    'packSize',
+  );
+  @override
+  late final GeneratedColumn<double> packSize = GeneratedColumn<double>(
+    'pack_size',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _statusMeta = const VerificationMeta('status');
   @override
   late final GeneratedColumn<String> status = GeneratedColumn<String>(
@@ -3139,6 +3150,7 @@ class $PantryItemsTable extends PantryItems
     reorderThreshold,
     isBulk,
     purchasePrice,
+    packSize,
     status,
     firestorePantryId,
     firestoreItemId,
@@ -3251,6 +3263,12 @@ class $PantryItemsTable extends PantryItems
         ),
       );
     }
+    if (data.containsKey('pack_size')) {
+      context.handle(
+        _packSizeMeta,
+        packSize.isAcceptableOrUnknown(data['pack_size']!, _packSizeMeta),
+      );
+    }
     if (data.containsKey('status')) {
       context.handle(
         _statusMeta,
@@ -3356,6 +3374,10 @@ class $PantryItemsTable extends PantryItems
         DriftSqlType.double,
         data['${effectivePrefix}purchase_price'],
       ),
+      packSize: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}pack_size'],
+      ),
       status: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}status'],
@@ -3400,6 +3422,7 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
   final int reorderThreshold;
   final bool isBulk;
   final double? purchasePrice;
+  final double? packSize;
   final String status;
   final String? firestorePantryId;
   final String? firestoreItemId;
@@ -3420,6 +3443,7 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
     required this.reorderThreshold,
     required this.isBulk,
     this.purchasePrice,
+    this.packSize,
     required this.status,
     this.firestorePantryId,
     this.firestoreItemId,
@@ -3452,6 +3476,9 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
     map['is_bulk'] = Variable<bool>(isBulk);
     if (!nullToAbsent || purchasePrice != null) {
       map['purchase_price'] = Variable<double>(purchasePrice);
+    }
+    if (!nullToAbsent || packSize != null) {
+      map['pack_size'] = Variable<double>(packSize);
     }
     map['status'] = Variable<String>(status);
     if (!nullToAbsent || firestorePantryId != null) {
@@ -3491,6 +3518,9 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
       purchasePrice: purchasePrice == null && nullToAbsent
           ? const Value.absent()
           : Value(purchasePrice),
+      packSize: packSize == null && nullToAbsent
+          ? const Value.absent()
+          : Value(packSize),
       status: Value(status),
       firestorePantryId: firestorePantryId == null && nullToAbsent
           ? const Value.absent()
@@ -3523,6 +3553,7 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
       reorderThreshold: serializer.fromJson<int>(json['reorderThreshold']),
       isBulk: serializer.fromJson<bool>(json['isBulk']),
       purchasePrice: serializer.fromJson<double?>(json['purchasePrice']),
+      packSize: serializer.fromJson<double?>(json['packSize']),
       status: serializer.fromJson<String>(json['status']),
       firestorePantryId: serializer.fromJson<String?>(
         json['firestorePantryId'],
@@ -3550,6 +3581,7 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
       'reorderThreshold': serializer.toJson<int>(reorderThreshold),
       'isBulk': serializer.toJson<bool>(isBulk),
       'purchasePrice': serializer.toJson<double?>(purchasePrice),
+      'packSize': serializer.toJson<double?>(packSize),
       'status': serializer.toJson<String>(status),
       'firestorePantryId': serializer.toJson<String?>(firestorePantryId),
       'firestoreItemId': serializer.toJson<String?>(firestoreItemId),
@@ -3573,6 +3605,7 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
     int? reorderThreshold,
     bool? isBulk,
     Value<double?> purchasePrice = const Value.absent(),
+    Value<double?> packSize = const Value.absent(),
     String? status,
     Value<String?> firestorePantryId = const Value.absent(),
     Value<String?> firestoreItemId = const Value.absent(),
@@ -3595,6 +3628,7 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
     purchasePrice: purchasePrice.present
         ? purchasePrice.value
         : this.purchasePrice,
+    packSize: packSize.present ? packSize.value : this.packSize,
     status: status ?? this.status,
     firestorePantryId: firestorePantryId.present
         ? firestorePantryId.value
@@ -3627,6 +3661,7 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
       purchasePrice: data.purchasePrice.present
           ? data.purchasePrice.value
           : this.purchasePrice,
+      packSize: data.packSize.present ? data.packSize.value : this.packSize,
       status: data.status.present ? data.status.value : this.status,
       firestorePantryId: data.firestorePantryId.present
           ? data.firestorePantryId.value
@@ -3656,6 +3691,7 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
           ..write('reorderThreshold: $reorderThreshold, ')
           ..write('isBulk: $isBulk, ')
           ..write('purchasePrice: $purchasePrice, ')
+          ..write('packSize: $packSize, ')
           ..write('status: $status, ')
           ..write('firestorePantryId: $firestorePantryId, ')
           ..write('firestoreItemId: $firestoreItemId, ')
@@ -3681,6 +3717,7 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
     reorderThreshold,
     isBulk,
     purchasePrice,
+    packSize,
     status,
     firestorePantryId,
     firestoreItemId,
@@ -3705,6 +3742,7 @@ class PantryItem extends DataClass implements Insertable<PantryItem> {
           other.reorderThreshold == this.reorderThreshold &&
           other.isBulk == this.isBulk &&
           other.purchasePrice == this.purchasePrice &&
+          other.packSize == this.packSize &&
           other.status == this.status &&
           other.firestorePantryId == this.firestorePantryId &&
           other.firestoreItemId == this.firestoreItemId &&
@@ -3727,6 +3765,7 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
   final Value<int> reorderThreshold;
   final Value<bool> isBulk;
   final Value<double?> purchasePrice;
+  final Value<double?> packSize;
   final Value<String> status;
   final Value<String?> firestorePantryId;
   final Value<String?> firestoreItemId;
@@ -3748,6 +3787,7 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
     this.reorderThreshold = const Value.absent(),
     this.isBulk = const Value.absent(),
     this.purchasePrice = const Value.absent(),
+    this.packSize = const Value.absent(),
     this.status = const Value.absent(),
     this.firestorePantryId = const Value.absent(),
     this.firestoreItemId = const Value.absent(),
@@ -3770,6 +3810,7 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
     this.reorderThreshold = const Value.absent(),
     this.isBulk = const Value.absent(),
     this.purchasePrice = const Value.absent(),
+    this.packSize = const Value.absent(),
     this.status = const Value.absent(),
     this.firestorePantryId = const Value.absent(),
     this.firestoreItemId = const Value.absent(),
@@ -3795,6 +3836,7 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
     Expression<int>? reorderThreshold,
     Expression<bool>? isBulk,
     Expression<double>? purchasePrice,
+    Expression<double>? packSize,
     Expression<String>? status,
     Expression<String>? firestorePantryId,
     Expression<String>? firestoreItemId,
@@ -3817,6 +3859,7 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
       if (reorderThreshold != null) 'reorder_threshold': reorderThreshold,
       if (isBulk != null) 'is_bulk': isBulk,
       if (purchasePrice != null) 'purchase_price': purchasePrice,
+      if (packSize != null) 'pack_size': packSize,
       if (status != null) 'status': status,
       if (firestorePantryId != null) 'firestore_pantry_id': firestorePantryId,
       if (firestoreItemId != null) 'firestore_item_id': firestoreItemId,
@@ -3841,6 +3884,7 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
     Value<int>? reorderThreshold,
     Value<bool>? isBulk,
     Value<double?>? purchasePrice,
+    Value<double?>? packSize,
     Value<String>? status,
     Value<String?>? firestorePantryId,
     Value<String?>? firestoreItemId,
@@ -3863,6 +3907,7 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
       reorderThreshold: reorderThreshold ?? this.reorderThreshold,
       isBulk: isBulk ?? this.isBulk,
       purchasePrice: purchasePrice ?? this.purchasePrice,
+      packSize: packSize ?? this.packSize,
       status: status ?? this.status,
       firestorePantryId: firestorePantryId ?? this.firestorePantryId,
       firestoreItemId: firestoreItemId ?? this.firestoreItemId,
@@ -3917,6 +3962,9 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
     if (purchasePrice.present) {
       map['purchase_price'] = Variable<double>(purchasePrice.value);
     }
+    if (packSize.present) {
+      map['pack_size'] = Variable<double>(packSize.value);
+    }
     if (status.present) {
       map['status'] = Variable<String>(status.value);
     }
@@ -3955,6 +4003,7 @@ class PantryItemsCompanion extends UpdateCompanion<PantryItem> {
           ..write('reorderThreshold: $reorderThreshold, ')
           ..write('isBulk: $isBulk, ')
           ..write('purchasePrice: $purchasePrice, ')
+          ..write('packSize: $packSize, ')
           ..write('status: $status, ')
           ..write('firestorePantryId: $firestorePantryId, ')
           ..write('firestoreItemId: $firestoreItemId, ')
@@ -15888,6 +15937,7 @@ typedef $$PantryItemsTableCreateCompanionBuilder =
       Value<int> reorderThreshold,
       Value<bool> isBulk,
       Value<double?> purchasePrice,
+      Value<double?> packSize,
       Value<String> status,
       Value<String?> firestorePantryId,
       Value<String?> firestoreItemId,
@@ -15911,6 +15961,7 @@ typedef $$PantryItemsTableUpdateCompanionBuilder =
       Value<int> reorderThreshold,
       Value<bool> isBulk,
       Value<double?> purchasePrice,
+      Value<double?> packSize,
       Value<String> status,
       Value<String?> firestorePantryId,
       Value<String?> firestoreItemId,
@@ -15995,6 +16046,11 @@ class $$PantryItemsTableFilterComposer
 
   ColumnFilters<double> get purchasePrice => $composableBuilder(
     column: $table.purchasePrice,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get packSize => $composableBuilder(
+    column: $table.packSize,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -16103,6 +16159,11 @@ class $$PantryItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get packSize => $composableBuilder(
+    column: $table.packSize,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get status => $composableBuilder(
     column: $table.status,
     builder: (column) => ColumnOrderings(column),
@@ -16186,6 +16247,9 @@ class $$PantryItemsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<double> get packSize =>
+      $composableBuilder(column: $table.packSize, builder: (column) => column);
+
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
 
@@ -16251,6 +16315,7 @@ class $$PantryItemsTableTableManager
                 Value<int> reorderThreshold = const Value.absent(),
                 Value<bool> isBulk = const Value.absent(),
                 Value<double?> purchasePrice = const Value.absent(),
+                Value<double?> packSize = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<String?> firestorePantryId = const Value.absent(),
                 Value<String?> firestoreItemId = const Value.absent(),
@@ -16272,6 +16337,7 @@ class $$PantryItemsTableTableManager
                 reorderThreshold: reorderThreshold,
                 isBulk: isBulk,
                 purchasePrice: purchasePrice,
+                packSize: packSize,
                 status: status,
                 firestorePantryId: firestorePantryId,
                 firestoreItemId: firestoreItemId,
@@ -16295,6 +16361,7 @@ class $$PantryItemsTableTableManager
                 Value<int> reorderThreshold = const Value.absent(),
                 Value<bool> isBulk = const Value.absent(),
                 Value<double?> purchasePrice = const Value.absent(),
+                Value<double?> packSize = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<String?> firestorePantryId = const Value.absent(),
                 Value<String?> firestoreItemId = const Value.absent(),
@@ -16316,6 +16383,7 @@ class $$PantryItemsTableTableManager
                 reorderThreshold: reorderThreshold,
                 isBulk: isBulk,
                 purchasePrice: purchasePrice,
+                packSize: packSize,
                 status: status,
                 firestorePantryId: firestorePantryId,
                 firestoreItemId: firestoreItemId,

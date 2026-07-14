@@ -18,7 +18,7 @@ class WhatsForDinnerButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [AppColors.coral, AppColors.coralDark],
@@ -29,54 +29,54 @@ class WhatsForDinnerButton extends StatelessWidget {
             boxShadow: [
               BoxShadow(
                 color: AppColors.coral.withValues(alpha: 0.3),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.auto_awesome,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                  ),
-                  const Spacer(),
-                  const Icon(
-                    Icons.arrow_forward_rounded,
-                    color: Colors.white70,
-                    size: 24,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                "What's for dinner?",
-                style: TextStyle(
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.auto_awesome,
                   color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.5,
+                  size: 22,
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                'Find recipes using what\'s in your pantry',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.85),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "What's for dinner?",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'AI recipes from your pantry',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.85),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+              const Icon(
+                Icons.arrow_forward_rounded,
+                color: Colors.white70,
+                size: 22,
               ),
             ],
           ),

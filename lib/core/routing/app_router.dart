@@ -99,6 +99,12 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
+            path: Routes.chatTab,
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: ChatPlanningScreen(),
+            ),
+          ),
+          GoRoute(
             path: Routes.lists,
             pageBuilder: (context, state) => const NoTransitionPage(
               child: ShoppingListsScreen(),

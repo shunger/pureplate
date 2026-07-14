@@ -455,6 +455,16 @@ class _PantryGroupTile extends ConsumerWidget {
     final unit = group.batches.first.unitType;
     final qtyStr =
         qty == qty.toInt() ? qty.toInt().toString() : qty.toStringAsFixed(1);
+    final ps = group.packSize;
+    if (ps != null && ps > 0) {
+      final packs = qty / ps;
+      final packsStr = packs == packs.toInt()
+          ? packs.toInt().toString()
+          : packs.toStringAsFixed(1);
+      final psStr =
+          ps == ps.toInt() ? ps.toInt().toString() : ps.toStringAsFixed(1);
+      return '$qtyStr $unit ($packsStr\u00D7$psStr)';
+    }
     return '$qtyStr $unit';
   }
 
@@ -526,6 +536,23 @@ class _PantryGroupTile extends ConsumerWidget {
 
 class _ExpiringItemsSheet extends ConsumerWidget {
   const _ExpiringItemsSheet();
+
+  String _expiringQuantityLabel(PantryItem item) {
+    final qty = item.quantity;
+    final qtyStr =
+        qty == qty.toInt() ? qty.toInt().toString() : qty.toStringAsFixed(1);
+    final ps = item.packSize;
+    if (ps != null && ps > 0) {
+      final packs = qty / ps;
+      final packsStr = packs == packs.toInt()
+          ? packs.toInt().toString()
+          : packs.toStringAsFixed(1);
+      final psStr =
+          ps == ps.toInt() ? ps.toInt().toString() : ps.toStringAsFixed(1);
+      return '$qtyStr ${item.unitType} ($packsStr\u00D7$psStr)';
+    }
+    return '$qtyStr ${item.unitType}';
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -605,7 +632,7 @@ class _ExpiringItemsSheet extends ConsumerWidget {
                         ),
                       ),
                       trailing: Text(
-                        '${item.quantity == item.quantity.toInt() ? item.quantity.toInt() : item.quantity} ${item.unitType}',
+                        _expiringQuantityLabel(item),
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           color: AppColors.textSecondary,

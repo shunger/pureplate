@@ -15,6 +15,7 @@ class Routes {
   static const home = '/home';
   static const pantry = '/pantry';
   static const planner = '/planner';
+  static const chatTab = '/chat';
   static const lists = '/lists';
 
   // Pantry sub-routes
