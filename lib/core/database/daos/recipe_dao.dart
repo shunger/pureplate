@@ -56,4 +56,8 @@ class RecipeDao extends DatabaseAccessor<AppDatabase> with _$RecipeDaoMixin {
   Future<void> toggleFavorite(String id, bool isFavorite) =>
       (update(recipes)..where((r) => r.id.equals(id))).write(RecipesCompanion(
           isFavorite: Value(isFavorite), updatedAt: Value(DateTime.now())));
+
+  Future<void> updateImageUrl(String id, String? imageUrl) =>
+      (update(recipes)..where((r) => r.id.equals(id))).write(RecipesCompanion(
+          imageUrl: Value(imageUrl), updatedAt: Value(DateTime.now())));
 }

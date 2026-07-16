@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
@@ -5,6 +7,70 @@ import '../../../../core/theme/app_colors.dart';
 import '../../domain/models/recipe.dart';
 import '../../domain/models/ingredient.dart';
 import '../../domain/models/instruction_step.dart';
+
+/// Displays a recipe image from either a local file path or a network URL.
+///
+/// If [imageUrl] starts with `/`, it is treated as a local file path.
+/// Otherwise, it is loaded via [CachedNetworkImage].
+class RecipeImage extends StatelessWidget {
+  final String imageUrl;
+  final double? width;
+  final double? height;
+  final BoxFit fit;
+  final Widget? placeholder;
+  final Widget? errorWidget;
+
+  const RecipeImage({
+    super.key,
+    required this.imageUrl,
+    this.width,
+    this.height,
+    this.fit = BoxFit.cover,
+    this.placeholder,
+    this.errorWidget,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final fallbackPlaceholder = placeholder ??
+        const Center(
+          child: Icon(Icons.restaurant, size: 36, color: AppColors.coralLight),
+        );
+    final fallbackError = errorWidget ?? fallbackPlaceholder;
+
+    if (imageUrl.startsWith('/')) {
+      final file = File(imageUrl);
+      return Image.file(
+        file,
+        width: width,
+        height: height,
+        fit: fit,
+        errorBuilder: (_, __, ___) => SizedBox(
+          width: width,
+          height: height,
+          child: fallbackError,
+        ),
+      );
+    }
+
+    return CachedNetworkImage(
+      imageUrl: imageUrl,
+      width: width,
+      height: height,
+      fit: fit,
+      placeholder: (_, __) => SizedBox(
+        width: width,
+        height: height,
+        child: fallbackPlaceholder,
+      ),
+      errorWidget: (_, __, ___) => SizedBox(
+        width: width,
+        height: height,
+        child: fallbackError,
+      ),
+    );
+  }
+}
 
 /// Card for recipe browser grid/list — shows image, name, time, cuisine badge.
 class RecipeCard extends StatelessWidget {
@@ -28,13 +94,13 @@ class RecipeCard extends StatelessWidget {
               width: double.infinity,
               color: AppColors.coral.withValues(alpha: 0.1),
               child: recipe.imageUrl != null
-                  ? CachedNetworkImage(
+                  ? RecipeImage(
                       imageUrl: recipe.imageUrl!,
                       fit: BoxFit.cover,
                       width: double.infinity,
                       height: 120,
-                      placeholder: (_, __) => _imagePlaceholder(),
-                      errorWidget: (_, __, ___) => _imagePlaceholder(),
+                      placeholder: _imagePlaceholder(),
+                      errorWidget: _imagePlaceholder(),
                     )
                   : _imagePlaceholder(),
             ),

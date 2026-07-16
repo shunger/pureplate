@@ -1,7 +1,11 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/database_providers.dart';
@@ -20,6 +24,53 @@ class RecipeDetailScreen extends ConsumerStatefulWidget {
 
 class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
   final _checkedIngredients = <int>{};
+  final _picker = ImagePicker();
+
+  Future<void> _showImageSourceSheet() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Camera'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Photo Library'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+    await _pickImage(source);
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    final xFile = await _picker.pickImage(
+      source: source,
+      maxWidth: 1200,
+      maxHeight: 1200,
+      imageQuality: 85,
+    );
+    if (xFile == null) return;
+
+    final docsDir = await getApplicationDocumentsDirectory();
+    final imgDir = Directory(p.join(docsDir.path, 'recipe_images'));
+    if (!imgDir.existsSync()) {
+      imgDir.createSync(recursive: true);
+    }
+
+    final destPath = p.join(imgDir.path, '${widget.recipeId}.jpg');
+    await File(xFile.path).copy(destPath);
+
+    ref.read(recipeDaoProvider).updateImageUrl(widget.recipeId, destPath);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,9 +104,14 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
             slivers: [
               // Hero app bar
               SliverAppBar(
-                expandedHeight: recipe.imageUrl != null ? 250 : 0,
+                expandedHeight: recipe.imageUrl != null ? 250 : 180,
                 pinned: true,
                 actions: [
+                  IconButton(
+                    icon: const Icon(Icons.camera_alt_outlined),
+                    tooltip: 'Add photo',
+                    onPressed: _showImageSourceSheet,
+                  ),
                   IconButton(
                     icon: const Icon(Icons.favorite_border),
                     tooltip: 'Favorite recipe',
@@ -66,30 +122,56 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     },
                   ),
                 ],
-                flexibleSpace: recipe.imageUrl != null
-                    ? FlexibleSpaceBar(
-                        background: CachedNetworkImage(
+                flexibleSpace: FlexibleSpaceBar(
+                  background: recipe.imageUrl != null
+                      ? RecipeImage(
                           imageUrl: recipe.imageUrl!,
                           fit: BoxFit.cover,
                           width: double.infinity,
                           height: 250,
-                          placeholder: (_, __) => Container(
+                          placeholder: Container(
                             color: AppColors.coral.withValues(alpha: 0.1),
                             child: const Center(
                               child: CircularProgressIndicator(
                                   color: AppColors.coralLight),
                             ),
                           ),
-                          errorWidget: (_, __, ___) => Container(
+                          errorWidget: Container(
                             color: AppColors.coral.withValues(alpha: 0.1),
                             child: const Center(
                               child: Icon(Icons.restaurant,
                                   size: 64, color: AppColors.coralLight),
                             ),
                           ),
+                        )
+                      : GestureDetector(
+                          onTap: _showImageSourceSheet,
+                          child: Container(
+                            color: AppColors.coral.withValues(alpha: 0.08),
+                            child: Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.camera_alt,
+                                      size: 40,
+                                      color: AppColors.coral
+                                          .withValues(alpha: 0.5)),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Add your photo',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: AppColors.coral
+                                          .withValues(alpha: 0.7),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
-                      )
-                    : null,
+                ),
               ),
 
               // Recipe header info
