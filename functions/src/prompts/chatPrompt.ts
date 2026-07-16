@@ -58,7 +58,7 @@ RULES:
 7. In "responseText", briefly describe the recipe you're suggesting. The full recipe details go in the "recipes" array.
 8. If the user sends an image, analyze it to identify the dish, ingredients, or food items visible. Use your analysis to suggest a matching recipe. Describe what you see in "responseText" before presenting the recipe.
 9. When the user asks what to make for dinner and the pantry has very few items, suggest recipes with the available items but also ask if they have any other ingredients around that aren't listed in their pantry. Be practical — suggest simple meals that work with limited ingredients.
-10. Do NOT suggest meals from the user's "Recent meals" list. Always suggest something different, even if the pantry inventory is similar. Variety is important.
+10. Do NOT suggest meals from the user's "Recent meals" list or the "Already suggested this session" list. Always suggest something different, even if the pantry inventory is similar. Variety is important — never repeat a recipe the user has already seen.
 11. You may ask the user up to 2 short clarifying questions (in "responseText") before suggesting a recipe — for example, asking about mood, cuisine preference, how much time they have, or whether they want something light or hearty. This helps you give a better suggestion. Still include recipes in your response if you have enough context; only hold off if the request is truly ambiguous.`;
 }
 
@@ -74,7 +74,8 @@ export function buildChatUserPrompt(request: ChatRequest): string {
 - Expiring soon: ${prefs.expiring_soon.map((i) => i.name).join(", ") || "Nothing"}
 - Loved ingredients: ${prefs.loved_ingredients.join(", ") || "None"}
 - Disliked ingredients: ${prefs.disliked_ingredients.join(", ") || "None"}
-- Recent meals (do NOT repeat these): ${prefs.recent_meals_14d.join(", ") || "None"}`;
+- Recent meals (do NOT repeat these): ${prefs.recent_meals_14d.join(", ") || "None"}
+- Already suggested this session (do NOT repeat): ${prefs.recent_suggestions?.join(", ") || "None"}`;
 
   if (activePlan) {
     context += `\n\nACTIVE MEAL PLAN:\n${activePlan}`;

@@ -15,9 +15,9 @@ import '../../data/repositories/ai_chat_repository.dart';
 import '../../data/datasources/preference_summary_builder.dart';
 import '../../domain/models/family_profile.dart';
 import '../../../pantry/domain/models/pantry_item.dart';
-import '../../../recipes/data/datasources/recipe_mapper.dart';
 import '../../../recipes/domain/models/recipe.dart';
 import '../../../../shared/models/product_category.dart';
+import '../../data/datasources/meal_plan_mapper.dart';
 
 /// Chat-style interface for conversational meal planning.
 ///
@@ -187,6 +187,8 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
                   child: TextField(
                     controller: _controller,
                     textCapitalization: TextCapitalization.sentences,
+                    minLines: 1,
+                    maxLines: 5,
                     decoration: InputDecoration(
                       hintText: 'What are you in the mood for?',
                       filled: true,
@@ -478,9 +480,24 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
               ))
           .toList();
 
+      // Fetch recent cooked meals from DB (same pattern as plan_generation_providers).
+      final mealPlanDao = ref.read(mealPlanDaoProvider);
+      final recentMealRows = await mealPlanDao.getRecentMeals();
+      final domainRecentMeals =
+          recentMealRows.map(MealPlanMapper.dayFromDb).toList();
+
+      // Collect recipe names already suggested in this session.
+      final sessionSuggestions = _messages
+          .expand((m) => m.recipes)
+          .map((r) => r.name)
+          .where((name) => name.isNotEmpty)
+          .toList();
+
       final summary = summaryBuilder.build(
         profile: profile,
         pantryItems: domainPantryItems,
+        recentMeals: domainRecentMeals,
+        recentSuggestions: sessionSuggestions,
       );
 
       // Use a default message when the user sends only an image.
@@ -497,14 +514,6 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
         imageBase64: imageBase64,
         imageMediaType: imageMediaType,
       );
-
-      // Save any recipes returned by the AI to the local database.
-      if (response.recipes.isNotEmpty) {
-        final recipeDao = ref.read(recipeDaoProvider);
-        final companions =
-            response.recipes.map(RecipeMapper.toCompanion).toList();
-        await recipeDao.insertRecipes(companions);
-      }
 
       if (!mounted) return;
       setState(() {

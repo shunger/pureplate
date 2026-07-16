@@ -28,6 +28,7 @@ class PreferenceSummaryBuilder {
     List<String> dislikedIngredients = const [],
     List<String> favoriteRecipeNames = const [],
     List<MealPlanDay> recentMeals = const [],
+    List<String> recentSuggestions = const [],
   }) {
     // Partition pantry into categories for the AI.
     final expiringItems = pantryItems
@@ -71,6 +72,7 @@ class PreferenceSummaryBuilder {
       'favorite_recipes': favoriteRecipeNames,
       'recent_meals_14d':
           recentMeals.map((m) => m.recipeName).toSet().toList(),
+      'recent_suggestions': recentSuggestions.toSet().toList(),
     };
   }
 }

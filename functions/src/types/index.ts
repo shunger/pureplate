@@ -27,6 +27,7 @@ export interface PreferenceSummary {
   disliked_ingredients: string[];
   favorite_recipes: string[];
   recent_meals_14d: string[];
+  recent_suggestions: string[];
 }
 
 // ─── generatePlan ───
