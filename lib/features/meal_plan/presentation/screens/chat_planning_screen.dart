@@ -486,6 +486,21 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
       final domainRecentMeals =
           recentMealRows.map(MealPlanMapper.dayFromDb).toList();
 
+      // Build feedback-cuisine pairs for auto-adjusting cuisine affinities.
+      final feedbackDao = ref.read(feedbackDaoProvider);
+      final recipeDao = ref.read(recipeDaoProvider);
+      final allFeedback = await feedbackDao.getAllFeedback();
+      final feedbackWithCuisine = <FeedbackCuisine>[];
+      for (final fb in allFeedback) {
+        final recipe = await recipeDao.getRecipeById(fb.recipeId);
+        if (recipe != null && recipe.cuisine.isNotEmpty) {
+          feedbackWithCuisine.add(FeedbackCuisine(
+            feedback: fb.feedback,
+            cuisine: recipe.cuisine,
+          ));
+        }
+      }
+
       // Collect recipe names already suggested in this session.
       final sessionSuggestions = _messages
           .expand((m) => m.recipes)
@@ -498,6 +513,7 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
         pantryItems: domainPantryItems,
         recentMeals: domainRecentMeals,
         recentSuggestions: sessionSuggestions,
+        feedbackWithCuisine: feedbackWithCuisine,
       );
 
       // Use a default message when the user sends only an image.

@@ -6,6 +6,9 @@ import 'package:pure_pantry/shared/models/dietary_restriction.dart';
 
 import '../../../../helpers/test_fixtures.dart';
 
+FeedbackCuisine _fb(String feedback, String cuisine) =>
+    FeedbackCuisine(feedback: feedback, cuisine: cuisine);
+
 void main() {
   late PreferenceSummaryBuilder builder;
 
@@ -148,7 +151,7 @@ void main() {
       expect(result['recent_meals_14d'], isEmpty);
     });
 
-    test('includes cuisine affinities', () {
+    test('includes explicit cuisine affinities when provided', () {
       final affinities = {'italian': 0.9, 'mexican': 0.7};
       final result = builder.build(
         profile: makeFamilyProfile(),
@@ -156,6 +159,43 @@ void main() {
         cuisineAffinities: affinities,
       );
       expect(result['cuisine_affinities'], affinities);
+    });
+
+    test('auto-computes cuisine affinities from feedback', () {
+      final result = builder.build(
+        profile: makeFamilyProfile(cuisinePreferences: ['Italian']),
+        pantryItems: [],
+        feedbackWithCuisine: [
+          _fb('loved', 'Italian'),
+          _fb('loved', 'Italian'),
+          _fb('loved', 'Italian'),
+          _fb('loved', 'Mexican'),
+          _fb('disliked', 'Thai'),
+        ],
+      );
+      final affinities =
+          result['cuisine_affinities'] as Map<String, double>;
+      // Italian: baseline 0.8 + positive boost
+      expect(affinities['italian'], greaterThan(0.8));
+      // Mexican: baseline 0.5 + positive boost
+      expect(affinities['mexican'], greaterThan(0.5));
+      // Thai: baseline 0.5 - negative shift
+      expect(affinities['thai'], lessThan(0.5));
+    });
+
+    test('explicit affinities override auto-computation', () {
+      final explicit = {'italian': 0.3};
+      final result = builder.build(
+        profile: makeFamilyProfile(),
+        pantryItems: [],
+        cuisineAffinities: explicit,
+        feedbackWithCuisine: [
+          _fb('loved', 'Italian'),
+          _fb('loved', 'Italian'),
+        ],
+      );
+      // Should use the explicit value, not auto-computed
+      expect(result['cuisine_affinities'], explicit);
     });
 
     test('includes loved ingredients', () {
@@ -174,6 +214,91 @@ void main() {
         favoriteRecipeNames: ['Spaghetti Bolognese'],
       );
       expect(result['favorite_recipes'], ['Spaghetti Bolognese']);
+    });
+  });
+
+  group('computeCuisineAffinities', () {
+    test('returns profile cuisines at 0.8 baseline with no feedback', () {
+      final result = PreferenceSummaryBuilder.computeCuisineAffinities(
+        profileCuisines: ['Italian', 'Mexican'],
+      );
+      expect(result['italian'], 0.8);
+      expect(result['mexican'], 0.8);
+    });
+
+    test('returns empty map with no profile and no feedback', () {
+      final result = PreferenceSummaryBuilder.computeCuisineAffinities();
+      expect(result, isEmpty);
+    });
+
+    test('boosts cuisine with positive feedback', () {
+      final result = PreferenceSummaryBuilder.computeCuisineAffinities(
+        feedbackRecords: [
+          _fb('loved', 'Italian'),
+          _fb('favorite', 'Italian'),
+          _fb('loved', 'Italian'),
+        ],
+      );
+      // Italian starts at 0.5 (not in profile) and gets boosted
+      expect(result['italian'], greaterThan(0.5));
+    });
+
+    test('reduces cuisine with negative feedback', () {
+      final result = PreferenceSummaryBuilder.computeCuisineAffinities(
+        profileCuisines: ['Thai'],
+        feedbackRecords: [
+          _fb('disliked', 'Thai'),
+          _fb('disliked', 'Thai'),
+          _fb('disliked', 'Thai'),
+        ],
+      );
+      expect(result['thai'], lessThan(0.8));
+    });
+
+    test('clamps scores to min 0.05', () {
+      final result = PreferenceSummaryBuilder.computeCuisineAffinities(
+        feedbackRecords: List.generate(
+          20,
+          (_) => _fb('disliked', 'Terrible'),
+        ),
+      );
+      expect(result['terrible'], greaterThanOrEqualTo(0.05));
+    });
+
+    test('clamps scores to max 1.0', () {
+      final result = PreferenceSummaryBuilder.computeCuisineAffinities(
+        profileCuisines: ['Loved'],
+        feedbackRecords: List.generate(
+          20,
+          (_) => _fb('favorite', 'Loved'),
+        ),
+      );
+      expect(result['loved'], lessThanOrEqualTo(1.0));
+    });
+
+    test('handles mixed positive and negative feedback', () {
+      final result = PreferenceSummaryBuilder.computeCuisineAffinities(
+        feedbackRecords: [
+          _fb('loved', 'Indian'),
+          _fb('disliked', 'Indian'),
+          _fb('loved', 'Indian'),
+          _fb('loved', 'Indian'),
+        ],
+      );
+      // Net positive (3 loved - 1 disliked), should be above baseline 0.5
+      expect(result['indian'], greaterThan(0.5));
+    });
+
+    test('is case-insensitive for cuisine names', () {
+      final result = PreferenceSummaryBuilder.computeCuisineAffinities(
+        profileCuisines: ['Italian'],
+        feedbackRecords: [
+          _fb('loved', 'ITALIAN'),
+          _fb('loved', 'italian'),
+        ],
+      );
+      expect(result, contains('italian'));
+      expect(result.length, 1);
     });
   });
 }

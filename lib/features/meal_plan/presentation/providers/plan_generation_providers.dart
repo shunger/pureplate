@@ -9,6 +9,7 @@ import '../../../../core/database/daos/meal_plan_dao.dart';
 import '../../../../core/database/daos/recipe_dao.dart';
 import '../../../../core/database/daos/shopping_list_dao.dart';
 import '../../../../core/database/daos/family_profile_dao.dart';
+import '../../../../core/database/daos/feedback_dao.dart';
 import '../../../../core/database/daos/pantry_dao.dart';
 import '../../../../core/providers/database_providers.dart';
 import '../../data/repositories/ai_plan_repository.dart';
@@ -57,6 +58,7 @@ class PlanGenerationNotifier extends StateNotifier<PlanGenerationState> {
   final ShoppingListDao _shoppingListDao;
   final FamilyProfileDao _familyProfileDao;
   final PantryDao _pantryDao;
+  final FeedbackDao _feedbackDao;
 
   PlanGenerationNotifier({
     required AiPlanRepository aiRepo,
@@ -66,6 +68,7 @@ class PlanGenerationNotifier extends StateNotifier<PlanGenerationState> {
     required ShoppingListDao shoppingListDao,
     required FamilyProfileDao familyProfileDao,
     required PantryDao pantryDao,
+    required FeedbackDao feedbackDao,
   })  : _aiRepo = aiRepo,
         _summaryBuilder = summaryBuilder,
         _mealPlanDao = mealPlanDao,
@@ -73,6 +76,7 @@ class PlanGenerationNotifier extends StateNotifier<PlanGenerationState> {
         _shoppingListDao = shoppingListDao,
         _familyProfileDao = familyProfileDao,
         _pantryDao = pantryDao,
+        _feedbackDao = feedbackDao,
         super(const PlanGenerationState());
 
   /// Generate a plan for [numDays] days.
@@ -112,10 +116,24 @@ class PlanGenerationNotifier extends StateNotifier<PlanGenerationState> {
           .map(MealPlanMapper.dayFromDb)
           .toList();
 
+      // Build feedback-cuisine pairs for auto-adjusting cuisine affinities.
+      final allFeedback = await _feedbackDao.getAllFeedback();
+      final feedbackWithCuisine = <FeedbackCuisine>[];
+      for (final fb in allFeedback) {
+        final recipe = await _recipeDao.getRecipeById(fb.recipeId);
+        if (recipe != null && recipe.cuisine.isNotEmpty) {
+          feedbackWithCuisine.add(FeedbackCuisine(
+            feedback: fb.feedback,
+            cuisine: recipe.cuisine,
+          ));
+        }
+      }
+
       final summary = _summaryBuilder.build(
         profile: profile,
         pantryItems: domainPantryItems,
         recentMeals: domainRecentMeals,
+        feedbackWithCuisine: feedbackWithCuisine,
       );
 
       // Step 2: Compute day labels starting from next Monday.
@@ -232,5 +250,6 @@ final planGenerationStateProvider =
     shoppingListDao: ref.watch(shoppingListDaoProvider),
     familyProfileDao: ref.watch(familyProfileDaoProvider),
     pantryDao: ref.watch(pantryDaoProvider),
+    feedbackDao: ref.watch(feedbackDaoProvider),
   );
 });
