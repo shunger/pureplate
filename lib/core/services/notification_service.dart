@@ -1,6 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 /// Handles FCM token registration and local notification channel setup.
 ///
@@ -15,6 +16,11 @@ class NotificationService {
   static const _expiryChannelId = 'expiry_alerts';
   static const _sharingChannelId = 'sharing_events';
   static const _reorderChannelId = 'reorder_alerts';
+  static const _thawChannelId = 'thaw_reminders';
+
+  /// Notification IDs for thaw reminders.
+  static const thawNightBeforeId = 104;
+  static const thawMorningOfId = 105;
 
   NotificationService({
     FirebaseMessaging? messaging,
@@ -91,6 +97,15 @@ class NotificationService {
         importance: Importance.defaultImportance,
       ),
     );
+
+    await androidPlugin.createNotificationChannel(
+      const AndroidNotificationChannel(
+        _thawChannelId,
+        'Thaw Reminders',
+        description: 'Reminders to thaw frozen ingredients for upcoming meals',
+        importance: Importance.high,
+      ),
+    );
   }
 
   void _handleForegroundMessage(RemoteMessage message) {
@@ -127,8 +142,46 @@ class NotificationService {
         return _sharingChannelId;
       case 'reorder':
         return _reorderChannelId;
+      case 'thaw':
+        return _thawChannelId;
       default:
         return _expiryChannelId;
     }
+  }
+
+  /// Schedule a one-shot local notification at a specific date/time.
+  Future<void> scheduleOnce({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime scheduledDate,
+  }) async {
+    final tzScheduled = tz.TZDateTime.from(scheduledDate, tz.local);
+
+    // Don't schedule if the time is in the past.
+    if (tzScheduled.isBefore(tz.TZDateTime.now(tz.local))) return;
+
+    await _localNotifications.zonedSchedule(
+      id: id,
+      title: title,
+      body: body,
+      scheduledDate: tzScheduled,
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _thawChannelId,
+          'Thaw Reminders',
+          icon: '@mipmap/ic_launcher',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+    );
+  }
+
+  /// Cancel a scheduled notification by its ID.
+  Future<void> cancelById(int id) async {
+    await _localNotifications.cancel(id: id);
   }
 }

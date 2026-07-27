@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/routing/route_names.dart';
 import '../../../../core/providers/database_providers.dart';
+import '../../../../core/services/thaw_reminder_service.dart';
 import '../providers/settings_providers.dart';
 
 /// Settings screen — Account, Preferences, Notifications, Data, About.
@@ -151,6 +153,7 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
+          _ThawReminderSettings(),
 
           const Divider(indent: 16, endIndent: 16),
 
@@ -235,6 +238,110 @@ class SettingsScreen extends ConsumerWidget {
             .toList(),
       ),
     );
+  }
+}
+
+class _ThawReminderSettings extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final thawPrefsAsync = ref.watch(thawReminderPrefsProvider);
+
+    return thawPrefsAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (thawPrefs) => Column(
+        children: [
+          SwitchListTile(
+            secondary: Icon(Icons.ac_unit,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
+            title: const Text('Thaw reminder (night before)'),
+            subtitle: Text(
+              'Remind at ${thawPrefs.nightBeforeTime.format(context)}',
+            ),
+            value: thawPrefs.nightBeforeEnabled,
+            onChanged: (v) async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool(
+                  ThawReminderService.keyNightBeforeEnabled, v);
+              ref.invalidate(thawReminderPrefsProvider);
+              ref.read(thawReminderServiceProvider).scheduleThawReminders();
+            },
+            activeColor: AppColors.coral,
+          ),
+          if (thawPrefs.nightBeforeEnabled)
+            ListTile(
+              contentPadding: const EdgeInsets.only(left: 72, right: 16),
+              title: const Text('Reminder time'),
+              trailing: Text(
+                thawPrefs.nightBeforeTime.format(context),
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+              onTap: () => _pickTime(
+                context,
+                ref,
+                thawPrefs.nightBeforeTime,
+                ThawReminderService.keyNightBeforeHour,
+                ThawReminderService.keyNightBeforeMinute,
+              ),
+            ),
+          SwitchListTile(
+            secondary: Icon(Icons.wb_sunny_outlined,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
+            title: const Text('Thaw reminder (morning of)'),
+            subtitle: Text(
+              'Remind at ${thawPrefs.morningOfTime.format(context)}',
+            ),
+            value: thawPrefs.morningOfEnabled,
+            onChanged: (v) async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool(
+                  ThawReminderService.keyMorningOfEnabled, v);
+              ref.invalidate(thawReminderPrefsProvider);
+              ref.read(thawReminderServiceProvider).scheduleThawReminders();
+            },
+            activeColor: AppColors.coral,
+          ),
+          if (thawPrefs.morningOfEnabled)
+            ListTile(
+              contentPadding: const EdgeInsets.only(left: 72, right: 16),
+              title: const Text('Reminder time'),
+              trailing: Text(
+                thawPrefs.morningOfTime.format(context),
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+              onTap: () => _pickTime(
+                context,
+                ref,
+                thawPrefs.morningOfTime,
+                ThawReminderService.keyMorningOfHour,
+                ThawReminderService.keyMorningOfMinute,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickTime(
+    BuildContext context,
+    WidgetRef ref,
+    TimeOfDay current,
+    String hourKey,
+    String minuteKey,
+  ) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: current,
+    );
+    if (picked == null) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(hourKey, picked.hour);
+    await prefs.setInt(minuteKey, picked.minute);
+    ref.invalidate(thawReminderPrefsProvider);
+    ref.read(thawReminderServiceProvider).scheduleThawReminders();
   }
 }
 

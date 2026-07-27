@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../database/app_database.dart';
+import '../services/notification_service.dart';
+import '../services/thaw_reminder_service.dart';
 
 // ── Database singleton ────────────────────────────────────
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
@@ -45,3 +47,22 @@ final allMealPlansProvider = StreamProvider((ref) =>
 
 final familyProfileProvider = StreamProvider((ref) =>
     ref.watch(familyProfileDaoProvider).watchProfile());
+
+// ── Services ─────────────────────────────────────────────
+final notificationServiceProvider = Provider((ref) => NotificationService());
+
+final thawReminderServiceProvider = Provider((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return ThawReminderService(
+    mealPlanDao: db.mealPlanDao,
+    pantryDao: db.pantryDao,
+    recipeDao: db.recipeDao,
+    notificationService: ref.watch(notificationServiceProvider),
+  );
+});
+
+/// Fire-and-forget: schedules thaw reminders on first read.
+final thawReminderInitProvider = FutureProvider((ref) async {
+  final service = ref.watch(thawReminderServiceProvider);
+  await service.scheduleThawReminders();
+});

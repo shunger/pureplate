@@ -41,3 +41,9 @@ final todaysMealProvider = FutureProvider((ref) async {
   final dao = ref.watch(mealPlanDaoProvider);
   return dao.getTodaysMeal();
 });
+
+/// All meals planned for today, ordered by sortOrder.
+final todaysMealsProvider = FutureProvider((ref) async {
+  final dao = ref.watch(mealPlanDaoProvider);
+  return dao.getTodaysMeals();
+});

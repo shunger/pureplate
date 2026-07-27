@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
 import 'firebase_options.dart';
 
 import 'app.dart';
@@ -35,6 +36,9 @@ Future<void> main() async {
   } catch (e) {
     debugPrint('Firebase init failed (app will run in offline mode): $e');
   }
+
+  // Initialize timezone data for scheduled notifications.
+  tz.initializeTimeZones();
 
   // Set up FCM + local notification channels.
   // Separate try/catch so an APNS error on simulator doesn't block Firebase.

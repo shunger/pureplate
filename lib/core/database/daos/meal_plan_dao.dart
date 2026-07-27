@@ -52,6 +52,33 @@ class MealPlanDao extends DatabaseAccessor<AppDatabase>
         .getSingleOrNull();
   }
 
+  /// Get all meals planned for today, ordered by sortOrder.
+  Future<List<MealPlanDay>> getTodaysMeals() {
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final todayEnd = todayStart.add(const Duration(days: 1));
+    return (select(mealPlanDays)
+          ..where((d) =>
+              d.date.isBiggerOrEqualValue(todayStart) &
+              d.date.isSmallerThanValue(todayEnd))
+          ..orderBy([(d) => OrderingTerm.asc(d.sortOrder)]))
+        .get();
+  }
+
+  /// Get all meals planned for tomorrow, ordered by sortOrder.
+  Future<List<MealPlanDay>> getTomorrowsMeals() {
+    final now = DateTime.now();
+    final tomorrowStart =
+        DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+    final tomorrowEnd = tomorrowStart.add(const Duration(days: 1));
+    return (select(mealPlanDays)
+          ..where((d) =>
+              d.date.isBiggerOrEqualValue(tomorrowStart) &
+              d.date.isSmallerThanValue(tomorrowEnd))
+          ..orderBy([(d) => OrderingTerm.asc(d.sortOrder)]))
+        .get();
+  }
+
   /// Get recent meal plan days for the last N days (for AI context).
   Future<List<MealPlanDay>> getRecentMeals({int withinDays = 14}) {
     final cutoff = DateTime.now().subtract(Duration(days: withinDays));
