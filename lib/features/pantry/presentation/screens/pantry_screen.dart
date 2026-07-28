@@ -244,6 +244,14 @@ class _LocationFilterBar extends StatelessWidget {
             isSelected: selectedLocation == 'freezer',
             onTap: () => onSelected('freezer'),
           ),
+          const SizedBox(width: 8),
+          _FilterChip(
+            label: 'Spices',
+            count: counts['spices'] ?? 0,
+            icon: Icons.spa,
+            isSelected: selectedLocation == 'spices',
+            onTap: () => onSelected('spices'),
+          ),
         ],
       ),
     );

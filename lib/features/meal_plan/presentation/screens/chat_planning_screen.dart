@@ -18,14 +18,16 @@ import '../../../pantry/domain/models/pantry_item.dart';
 import '../../../recipes/domain/models/recipe.dart';
 import '../../../../shared/models/product_category.dart';
 import '../../data/datasources/meal_plan_mapper.dart';
+import '../../../home/presentation/widgets/meal_preferences_sheet.dart';
 
 /// Chat-style interface for conversational meal planning.
 ///
 /// User sends text describing what they want, AI responds with a meal plan.
 class ChatPlanningScreen extends ConsumerStatefulWidget {
   final String? mode;
+  final String? prefsParam;
 
-  const ChatPlanningScreen({super.key, this.mode});
+  const ChatPlanningScreen({super.key, this.mode, this.prefsParam});
 
   @override
   ConsumerState<ChatPlanningScreen> createState() =>
@@ -53,12 +55,31 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
     if (_isMealMode) {
       final mealType = widget.mode!;
       final isIdea = mealType == 'dessert' || mealType == 'snack';
+
+      // Parse meal preferences from query param (if provided).
+      final prefs = widget.prefsParam != null
+          ? MealPreferences.fromQueryParam(widget.prefsParam!)
+          : const MealPreferences();
+      final prefFragment = prefs.toPromptFragment();
+
       final greeting = isIdea
           ? "Let me check your pantry and find $mealType ideas!"
-          : "Let me check your pantry and find something great for $mealType!";
-      final prompt = isIdea
-          ? "What $mealType can I make using what's in my pantry?"
-          : "What can I make for $mealType using what's in my pantry?";
+          : prefFragment.isNotEmpty
+              ? "Great choices! Let me find $mealType ideas that are $prefFragment."
+              : "Let me check your pantry and find something great for $mealType!";
+
+      // Build a prompt that incorporates the user's preferences.
+      String prompt;
+      if (prefFragment.isNotEmpty) {
+        prompt = isIdea
+            ? "What $mealType can I make using what's in my pantry? I'm in the mood for: $prefFragment."
+            : "What can I make for $mealType using what's in my pantry? I'm in the mood for: $prefFragment.";
+      } else {
+        prompt = isIdea
+            ? "What $mealType can I make using what's in my pantry?"
+            : "What can I make for $mealType using what's in my pantry?";
+      }
+
       _messages.add(_ChatMessage(text: greeting, isUser: false));
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _controller.text = prompt;

@@ -64,6 +64,7 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
     ('pantry', Icons.kitchen, 'Pantry'),
     ('fridge', Icons.thermostat, 'Fridge'),
     ('freezer', Icons.ac_unit, 'Freezer'),
+    ('spices', Icons.spa, 'Spices'),
   ];
 
   @override

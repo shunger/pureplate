@@ -3,9 +3,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/routing/route_names.dart';
+import 'meal_preferences_sheet.dart';
 
 /// Hero call-to-action button on the dashboard.
-/// Tapping opens the AI chat in dinner-suggestion mode.
+/// Tapping shows a quick preferences sheet, then opens the AI chat.
 class WhatsForDinnerButton extends StatelessWidget {
   const WhatsForDinnerButton({super.key});
 
@@ -17,7 +18,15 @@ class WhatsForDinnerButton extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => context.push('${Routes.chat}?mode=dinner'),
+          onTap: () async {
+            final prefs =
+                await showMealPreferencesSheet(context, 'dinner');
+            if (prefs == null || !context.mounted) return;
+            final query = prefs.isEmpty
+                ? 'mode=dinner'
+                : 'mode=dinner&prefs=${Uri.encodeComponent(prefs.toQueryParam())}';
+            context.push('${Routes.chat}?$query');
+          },
           borderRadius: BorderRadius.circular(20),
           child: Container(
           width: double.infinity,

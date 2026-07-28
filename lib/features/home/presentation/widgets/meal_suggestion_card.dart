@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/routing/route_names.dart';
+import 'meal_preferences_sheet.dart';
 
 /// Card that launches the AI chat in a specific meal mode.
 ///
@@ -33,7 +34,15 @@ class MealSuggestionCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => context.push('${Routes.chat}?mode=$mealType'),
+          onTap: () async {
+            final prefs =
+                await showMealPreferencesSheet(context, mealType);
+            if (prefs == null || !context.mounted) return;
+            final query = prefs.isEmpty
+                ? 'mode=$mealType'
+                : 'mode=$mealType&prefs=${Uri.encodeComponent(prefs.toQueryParam())}';
+            context.push('${Routes.chat}?$query');
+          },
           borderRadius: BorderRadius.circular(12),
           child: Container(
             padding: EdgeInsets.symmetric(

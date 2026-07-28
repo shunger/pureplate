@@ -8,7 +8,8 @@ part 'pantry_item.g.dart';
 enum PantryLocation {
   pantry('Pantry'),
   fridge('Fridge'),
-  freezer('Freezer');
+  freezer('Freezer'),
+  spices('Spices');
 
   final String displayName;
   const PantryLocation(this.displayName);

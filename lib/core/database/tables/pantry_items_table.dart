@@ -15,7 +15,7 @@ class PantryItems extends Table {
   DateTimeColumn get purchasedAt => dateTime().nullable()();
   DateTimeColumn get expiresAt => dateTime().nullable()();
 
-  // Location: pantry, fridge, freezer.
+  // Location: pantry, fridge, freezer, spices.
   TextColumn get location => text().withDefault(const Constant('pantry'))();
 
   TextColumn get notes => text().nullable()();

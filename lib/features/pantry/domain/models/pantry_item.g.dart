@@ -86,4 +86,5 @@ const _$PantryLocationEnumMap = {
   PantryLocation.pantry: 'pantry',
   PantryLocation.fridge: 'fridge',
   PantryLocation.freezer: 'freezer',
+  PantryLocation.spices: 'spices',
 };
