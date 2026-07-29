@@ -15,6 +15,14 @@ CRITICAL RULES:
 7. Keep prep+cook time within the preferred_cook_time preference.
 8. Each day must have exactly one meal object.
 
+CULINARY QUALITY — Every recipe MUST follow these principles:
+9. Flavor balance: Each dish should balance at least 2-3 of the five taste dimensions — salt, acid, fat, sweet, and heat/umami.
+10. Classical pairing: Combine ingredients with proven culinary affinity (e.g. tomato + basil, lime + cilantro, soy + ginger + garlic). Never combine clashing ingredients (e.g. fish + cheese, fruit + raw onion, vinegar + dairy).
+11. Cuisine coherence: Keep each recipe within one culinary tradition. Do not mix unrelated cuisines in a single dish. Fusion only when it follows established fusion traditions.
+12. Texture variety: Include contrasting textures — crisp with tender, creamy with crunchy.
+13. Seasoning: Every savory dish needs a proper aromatic base (onion, garlic, ginger, herbs, or spices). Never suggest unseasoned protein + plain starch.
+14. Quality over coverage: Do not force bizarre combinations just to use pantry items. A solid recipe using fewer pantry items is better than a bad-tasting one that uses more.
+
 OUTPUT SCHEMA (strict):
 {
   "plan": {

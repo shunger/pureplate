@@ -30,7 +30,14 @@ class MealPreferences {
   /// Build a natural-language description for the AI prompt.
   String toPromptFragment() {
     final parts = <String>[];
-    if (cuisine != null) parts.add(cuisine!);
+    if (cuisine != null) {
+      if (cuisine == 'Surprise me') {
+        parts.add(
+            'surprise me with an unexpected cuisine I wouldn\'t think to try');
+      } else {
+        parts.add(cuisine!);
+      }
+    }
     if (effort != null) parts.add(effort!);
     if (vibe != null) parts.add(vibe!);
     return parts.join(', ');

@@ -1,15 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/voice_input_button.dart';
 import '../../../../core/routing/route_names.dart';
+import '../../../../core/database/app_database.dart' as db;
 import '../../../../core/providers/database_providers.dart';
 import '../../data/repositories/ai_chat_repository.dart';
 import '../../data/datasources/preference_summary_builder.dart';
@@ -19,6 +22,7 @@ import '../../../recipes/domain/models/recipe.dart';
 import '../../../../shared/models/product_category.dart';
 import '../../data/datasources/meal_plan_mapper.dart';
 import '../../../home/presentation/widgets/meal_preferences_sheet.dart';
+import '../../../recipes/data/datasources/recipe_mapper.dart';
 
 /// Chat-style interface for conversational meal planning.
 ///
@@ -41,6 +45,8 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
   final _messages = <_ChatMessage>[];
   bool _isLoading = false;
   File? _selectedImage;
+  // Track feedback state per recipe: recipeId → 'loved' | 'disliked' | null.
+  final _feedbackState = <String, String>{};
 
   bool get _isMealMode =>
       widget.mode == 'dinner' ||
@@ -314,50 +320,107 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
   }
 
   Widget _buildRecipeCard(Recipe recipe) {
-    return GestureDetector(
-      onTap: () => context.push('/recipes/${recipe.id}'),
-      child: Container(
-        margin: const EdgeInsets.only(top: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.coral.withValues(alpha: 0.3)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    recipe.name,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
+    final feedback = _feedbackState[recipe.id];
+
+    return Container(
+      margin: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.coral.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        children: [
+          GestureDetector(
+            onTap: () => context.push('/recipes/${recipe.id}'),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        recipe.name,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${recipe.totalTimeDisplay} · ${recipe.servings} servings',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${recipe.totalTimeDisplay} · ${recipe.servings} servings',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ),
-                ],
+                ),
+                const Icon(
+                  Icons.chevron_right,
+                  color: AppColors.coral,
+                  size: 22,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _FeedbackButton(
+                icon: Icons.thumb_up_outlined,
+                activeIcon: Icons.thumb_up,
+                label: 'Looks good',
+                isActive: feedback == 'loved',
+                activeColor: AppColors.sage,
+                onTap: () => _submitFeedback(recipe, 'loved'),
               ),
-            ),
-            const Icon(
-              Icons.chevron_right,
-              color: AppColors.coral,
-              size: 22,
-            ),
-          ],
-        ),
+              const SizedBox(width: 8),
+              _FeedbackButton(
+                icon: Icons.thumb_down_outlined,
+                activeIcon: Icons.thumb_down,
+                label: 'Not for me',
+                isActive: feedback == 'disliked',
+                activeColor: AppColors.coral,
+                onTap: () => _submitFeedback(recipe, 'disliked'),
+              ),
+            ],
+          ),
+        ],
       ),
     );
+  }
+
+  void _submitFeedback(Recipe recipe, String feedbackType) {
+    final current = _feedbackState[recipe.id];
+    final isToggleOff = current == feedbackType;
+
+    setState(() {
+      if (isToggleOff) {
+        _feedbackState.remove(recipe.id);
+      } else {
+        _feedbackState[recipe.id] = feedbackType;
+      }
+    });
+
+    final feedbackDao = ref.read(feedbackDaoProvider);
+    if (isToggleOff) {
+      // Remove feedback — delete by recipe ID (use same ID convention).
+      feedbackDao.deleteFeedback('chat_${recipe.id}');
+    } else {
+      feedbackDao.insertFeedback(db.RecipeFeedbackCompanion(
+        id: Value('chat_${recipe.id}'),
+        recipeId: Value(recipe.id),
+        feedback: Value(feedbackType),
+        createdAt: Value(DateTime.now()),
+      ));
+    }
   }
 
   Widget _buildLoadingBubble() {
@@ -552,6 +615,14 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
         imageMediaType: imageMediaType,
       );
 
+      // Persist returned recipes to local DB so detail screen can find them.
+      if (response.recipes.isNotEmpty) {
+        final recipeDao = ref.read(recipeDaoProvider);
+        final companions =
+            response.recipes.map(RecipeMapper.toCompanion).toList();
+        await recipeDao.insertRecipes(companions);
+      }
+
       if (!mounted) return;
       setState(() {
         _isLoading = false;
@@ -593,6 +664,72 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
         );
       }
     });
+  }
+}
+
+class _FeedbackButton extends StatelessWidget {
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  final bool isActive;
+  final Color activeColor;
+  final VoidCallback onTap;
+
+  const _FeedbackButton({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.isActive,
+    required this.activeColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isActive
+              ? activeColor.withValues(alpha: 0.12)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isActive
+                ? activeColor.withValues(alpha: 0.4)
+                : Theme.of(context)
+                    .colorScheme
+                    .onSurfaceVariant
+                    .withValues(alpha: 0.2),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isActive ? activeIcon : icon,
+              size: 16,
+              color: isActive
+                  ? activeColor
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                color: isActive
+                    ? activeColor
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
