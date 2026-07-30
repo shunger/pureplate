@@ -1,16 +1,20 @@
 import 'dart:io';
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/database/app_database.dart' as db;
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/database_providers.dart';
 import '../../../../shared/models/product_category.dart';
+import '../../../meal_plan/presentation/providers/meal_plan_providers.dart';
 import '../../../pantry/domain/models/pantry_item.dart';
 import '../../../shopping_list/data/datasources/auto_list_generator.dart';
 import '../../../shopping_list/data/datasources/shopping_list_mapper.dart';
@@ -78,6 +82,19 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     await File(xFile.path).copy(destPath);
 
     ref.read(recipeDaoProvider).updateImageUrl(widget.recipeId, destPath);
+  }
+
+  void _showAssignToMealPlanSheet(Recipe recipe) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _AssignToMealPlanSheet(recipe: recipe),
+    );
   }
 
   Future<void> _showAddToListSheet(Recipe recipe) async {
@@ -157,6 +174,11 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 expandedHeight: recipe.imageUrl != null ? 250 : 180,
                 pinned: true,
                 actions: [
+                  IconButton(
+                    icon: const Icon(Icons.calendar_month_outlined),
+                    tooltip: 'Add to meal plan',
+                    onPressed: () => _showAssignToMealPlanSheet(recipe),
+                  ),
                   IconButton(
                     icon: const Icon(Icons.add_shopping_cart),
                     tooltip: 'Add to shopping list',
@@ -517,6 +539,265 @@ class _NutrientValue extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+// ── Assign to Meal Plan Bottom Sheet ──────────────────────
+
+const _kNewPlanId = '__new_plan__';
+
+class _AssignToMealPlanSheet extends ConsumerStatefulWidget {
+  final Recipe recipe;
+
+  const _AssignToMealPlanSheet({required this.recipe});
+
+  @override
+  ConsumerState<_AssignToMealPlanSheet> createState() =>
+      _AssignToMealPlanSheetState();
+}
+
+class _AssignToMealPlanSheetState
+    extends ConsumerState<_AssignToMealPlanSheet> {
+  DateTime _selectedDate = DateTime.now();
+  String _selectedMealType = 'dinner';
+  String _selectedPlanId = _kNewPlanId;
+  bool _isSaving = false;
+
+  static const _mealTypes = ['breakfast', 'lunch', 'dinner'];
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 30)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
+    }
+  }
+
+  Future<void> _save() async {
+    setState(() => _isSaving = true);
+
+    try {
+      final dao = ref.read(mealPlanDaoProvider);
+      final uuid = const Uuid();
+      final dateOnly = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+      );
+
+      String targetPlanId;
+
+      if (_selectedPlanId == _kNewPlanId) {
+        targetPlanId = uuid.v4();
+        final now = DateTime.now();
+        await dao.insertPlan(db.MealPlansCompanion(
+          id: Value(targetPlanId),
+          createdAt: Value(now),
+          startDate: Value(dateOnly),
+          endDate: Value(dateOnly),
+          planType: const Value('quick'),
+        ));
+      } else {
+        targetPlanId = _selectedPlanId;
+      }
+
+      await dao.insertPlanDays([
+        db.MealPlanDaysCompanion(
+          id: Value(uuid.v4()),
+          planId: Value(targetPlanId),
+          date: Value(dateOnly),
+          recipeId: Value(widget.recipe.id),
+          recipeName: Value(widget.recipe.name),
+          mealType: Value(_selectedMealType),
+        ),
+      ]);
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${widget.recipe.name} added to $_selectedMealType on '
+              '${DateFormat.MMMd().format(dateOnly)}',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final plansAsync = ref.watch(allMealPlansDomainProvider);
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Drag handle
+          Padding(
+            padding: const EdgeInsets.only(top: 12, bottom: 8),
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurfaceVariant
+                    .withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          // Title
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Add to Meal Plan',
+                style: theme.textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+          // Date picker
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: InkWell(
+              onTap: _pickDate,
+              borderRadius: BorderRadius.circular(12),
+              child: InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'Date',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  suffixIcon: const Icon(Icons.calendar_today, size: 20),
+                ),
+                child: Text(
+                  DateFormat.yMMMEd().format(_selectedDate),
+                  style: theme.textTheme.bodyLarge,
+                ),
+              ),
+            ),
+          ),
+          // Meal type selector
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: SegmentedButton<String>(
+              segments: _mealTypes
+                  .map((t) => ButtonSegment(
+                        value: t,
+                        label: Text(t[0].toUpperCase() + t.substring(1)),
+                        icon: Icon(_mealTypeIcon(t)),
+                      ))
+                  .toList(),
+              selected: {_selectedMealType},
+              onSelectionChanged: (v) =>
+                  setState(() => _selectedMealType = v.first),
+              style: ButtonStyle(
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+          ),
+          // Plan picker
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: plansAsync.when(
+              loading: () => const SizedBox.shrink(),
+              error: (_, _) => const SizedBox.shrink(),
+              data: (plans) {
+                final items = <DropdownMenuItem<String>>[
+                  const DropdownMenuItem(
+                    value: _kNewPlanId,
+                    child: Text('New plan'),
+                  ),
+                  ...plans.map((plan) => DropdownMenuItem(
+                        value: plan.id,
+                        child: Text(
+                          '${DateFormat.MMMd().format(plan.startDate)}'
+                          ' – ${DateFormat.MMMd().format(plan.endDate)}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      )),
+                ];
+
+                return DropdownButtonFormField<String>(
+                  initialValue: _selectedPlanId,
+                  decoration: InputDecoration(
+                    labelText: 'Meal plan',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                  items: items,
+                  onChanged: (v) =>
+                      setState(() => _selectedPlanId = v ?? _kNewPlanId),
+                );
+              },
+            ),
+          ),
+          // Save button
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _isSaving ? null : _save,
+                icon: _isSaving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.check),
+                label: Text(_isSaving ? 'Adding...' : 'Add to Plan'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.coral,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _mealTypeIcon(String type) {
+    switch (type) {
+      case 'breakfast':
+        return Icons.free_breakfast;
+      case 'lunch':
+        return Icons.lunch_dining;
+      default:
+        return Icons.dinner_dining;
+    }
   }
 }
 

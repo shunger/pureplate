@@ -30,6 +30,7 @@ class MealPlanMapper {
       recipeName: row.recipeName ?? '',
       isCooked: row.isCooked,
       sortOrder: row.sortOrder,
+      mealType: row.mealType,
     );
   }
 
@@ -54,6 +55,7 @@ class MealPlanMapper {
       recipeName: Value(day.recipeName),
       isCooked: Value(day.isCooked),
       sortOrder: Value(day.sortOrder),
+      mealType: Value(day.mealType),
     );
   }
 

@@ -14,6 +14,7 @@ _MealPlanDay _$MealPlanDayFromJson(Map<String, dynamic> json) => _MealPlanDay(
   recipeName: json['recipeName'] as String,
   isCooked: json['isCooked'] as bool? ?? false,
   sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+  mealType: json['mealType'] as String? ?? 'dinner',
 );
 
 Map<String, dynamic> _$MealPlanDayToJson(_MealPlanDay instance) =>
@@ -25,6 +26,7 @@ Map<String, dynamic> _$MealPlanDayToJson(_MealPlanDay instance) =>
       'recipeName': instance.recipeName,
       'isCooked': instance.isCooked,
       'sortOrder': instance.sortOrder,
+      'mealType': instance.mealType,
     };
 
 _MealPlan _$MealPlanFromJson(Map<String, dynamic> json) => _MealPlan(

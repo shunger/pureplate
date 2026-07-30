@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MealPlanDay {
 
- String get id; String get planId; DateTime get date; String get recipeId; String get recipeName; bool get isCooked; int get sortOrder;
+ String get id; String get planId; DateTime get date; String get recipeId; String get recipeName; bool get isCooked; int get sortOrder; String get mealType;
 /// Create a copy of MealPlanDay
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $MealPlanDayCopyWith<MealPlanDay> get copyWith => _$MealPlanDayCopyWithImpl<Meal
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MealPlanDay&&(identical(other.id, id) || other.id == id)&&(identical(other.planId, planId) || other.planId == planId)&&(identical(other.date, date) || other.date == date)&&(identical(other.recipeId, recipeId) || other.recipeId == recipeId)&&(identical(other.recipeName, recipeName) || other.recipeName == recipeName)&&(identical(other.isCooked, isCooked) || other.isCooked == isCooked)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MealPlanDay&&(identical(other.id, id) || other.id == id)&&(identical(other.planId, planId) || other.planId == planId)&&(identical(other.date, date) || other.date == date)&&(identical(other.recipeId, recipeId) || other.recipeId == recipeId)&&(identical(other.recipeName, recipeName) || other.recipeName == recipeName)&&(identical(other.isCooked, isCooked) || other.isCooked == isCooked)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder)&&(identical(other.mealType, mealType) || other.mealType == mealType));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,planId,date,recipeId,recipeName,isCooked,sortOrder);
+int get hashCode => Object.hash(runtimeType,id,planId,date,recipeId,recipeName,isCooked,sortOrder,mealType);
 
 @override
 String toString() {
-  return 'MealPlanDay(id: $id, planId: $planId, date: $date, recipeId: $recipeId, recipeName: $recipeName, isCooked: $isCooked, sortOrder: $sortOrder)';
+  return 'MealPlanDay(id: $id, planId: $planId, date: $date, recipeId: $recipeId, recipeName: $recipeName, isCooked: $isCooked, sortOrder: $sortOrder, mealType: $mealType)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $MealPlanDayCopyWith<$Res>  {
   factory $MealPlanDayCopyWith(MealPlanDay value, $Res Function(MealPlanDay) _then) = _$MealPlanDayCopyWithImpl;
 @useResult
 $Res call({
- String id, String planId, DateTime date, String recipeId, String recipeName, bool isCooked, int sortOrder
+ String id, String planId, DateTime date, String recipeId, String recipeName, bool isCooked, int sortOrder, String mealType
 });
 
 
@@ -65,7 +65,7 @@ class _$MealPlanDayCopyWithImpl<$Res>
 
 /// Create a copy of MealPlanDay
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? planId = null,Object? date = null,Object? recipeId = null,Object? recipeName = null,Object? isCooked = null,Object? sortOrder = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? planId = null,Object? date = null,Object? recipeId = null,Object? recipeName = null,Object? isCooked = null,Object? sortOrder = null,Object? mealType = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,planId: null == planId ? _self.planId : planId // ignore: cast_nullable_to_non_nullable
@@ -74,7 +74,8 @@ as DateTime,recipeId: null == recipeId ? _self.recipeId : recipeId // ignore: ca
 as String,recipeName: null == recipeName ? _self.recipeName : recipeName // ignore: cast_nullable_to_non_nullable
 as String,isCooked: null == isCooked ? _self.isCooked : isCooked // ignore: cast_nullable_to_non_nullable
 as bool,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
-as int,
+as int,mealType: null == mealType ? _self.mealType : mealType // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 
@@ -159,10 +160,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String planId,  DateTime date,  String recipeId,  String recipeName,  bool isCooked,  int sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String planId,  DateTime date,  String recipeId,  String recipeName,  bool isCooked,  int sortOrder,  String mealType)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MealPlanDay() when $default != null:
-return $default(_that.id,_that.planId,_that.date,_that.recipeId,_that.recipeName,_that.isCooked,_that.sortOrder);case _:
+return $default(_that.id,_that.planId,_that.date,_that.recipeId,_that.recipeName,_that.isCooked,_that.sortOrder,_that.mealType);case _:
   return orElse();
 
 }
@@ -180,10 +181,10 @@ return $default(_that.id,_that.planId,_that.date,_that.recipeId,_that.recipeName
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String planId,  DateTime date,  String recipeId,  String recipeName,  bool isCooked,  int sortOrder)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String planId,  DateTime date,  String recipeId,  String recipeName,  bool isCooked,  int sortOrder,  String mealType)  $default,) {final _that = this;
 switch (_that) {
 case _MealPlanDay():
-return $default(_that.id,_that.planId,_that.date,_that.recipeId,_that.recipeName,_that.isCooked,_that.sortOrder);case _:
+return $default(_that.id,_that.planId,_that.date,_that.recipeId,_that.recipeName,_that.isCooked,_that.sortOrder,_that.mealType);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -200,10 +201,10 @@ return $default(_that.id,_that.planId,_that.date,_that.recipeId,_that.recipeName
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String planId,  DateTime date,  String recipeId,  String recipeName,  bool isCooked,  int sortOrder)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String planId,  DateTime date,  String recipeId,  String recipeName,  bool isCooked,  int sortOrder,  String mealType)?  $default,) {final _that = this;
 switch (_that) {
 case _MealPlanDay() when $default != null:
-return $default(_that.id,_that.planId,_that.date,_that.recipeId,_that.recipeName,_that.isCooked,_that.sortOrder);case _:
+return $default(_that.id,_that.planId,_that.date,_that.recipeId,_that.recipeName,_that.isCooked,_that.sortOrder,_that.mealType);case _:
   return null;
 
 }
@@ -215,7 +216,7 @@ return $default(_that.id,_that.planId,_that.date,_that.recipeId,_that.recipeName
 @JsonSerializable()
 
 class _MealPlanDay implements MealPlanDay {
-  const _MealPlanDay({required this.id, required this.planId, required this.date, required this.recipeId, required this.recipeName, this.isCooked = false, this.sortOrder = 0});
+  const _MealPlanDay({required this.id, required this.planId, required this.date, required this.recipeId, required this.recipeName, this.isCooked = false, this.sortOrder = 0, this.mealType = 'dinner'});
   factory _MealPlanDay.fromJson(Map<String, dynamic> json) => _$MealPlanDayFromJson(json);
 
 @override final  String id;
@@ -225,6 +226,7 @@ class _MealPlanDay implements MealPlanDay {
 @override final  String recipeName;
 @override@JsonKey() final  bool isCooked;
 @override@JsonKey() final  int sortOrder;
+@override@JsonKey() final  String mealType;
 
 /// Create a copy of MealPlanDay
 /// with the given fields replaced by the non-null parameter values.
@@ -239,16 +241,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MealPlanDay&&(identical(other.id, id) || other.id == id)&&(identical(other.planId, planId) || other.planId == planId)&&(identical(other.date, date) || other.date == date)&&(identical(other.recipeId, recipeId) || other.recipeId == recipeId)&&(identical(other.recipeName, recipeName) || other.recipeName == recipeName)&&(identical(other.isCooked, isCooked) || other.isCooked == isCooked)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MealPlanDay&&(identical(other.id, id) || other.id == id)&&(identical(other.planId, planId) || other.planId == planId)&&(identical(other.date, date) || other.date == date)&&(identical(other.recipeId, recipeId) || other.recipeId == recipeId)&&(identical(other.recipeName, recipeName) || other.recipeName == recipeName)&&(identical(other.isCooked, isCooked) || other.isCooked == isCooked)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder)&&(identical(other.mealType, mealType) || other.mealType == mealType));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,planId,date,recipeId,recipeName,isCooked,sortOrder);
+int get hashCode => Object.hash(runtimeType,id,planId,date,recipeId,recipeName,isCooked,sortOrder,mealType);
 
 @override
 String toString() {
-  return 'MealPlanDay(id: $id, planId: $planId, date: $date, recipeId: $recipeId, recipeName: $recipeName, isCooked: $isCooked, sortOrder: $sortOrder)';
+  return 'MealPlanDay(id: $id, planId: $planId, date: $date, recipeId: $recipeId, recipeName: $recipeName, isCooked: $isCooked, sortOrder: $sortOrder, mealType: $mealType)';
 }
 
 
@@ -259,7 +261,7 @@ abstract mixin class _$MealPlanDayCopyWith<$Res> implements $MealPlanDayCopyWith
   factory _$MealPlanDayCopyWith(_MealPlanDay value, $Res Function(_MealPlanDay) _then) = __$MealPlanDayCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String planId, DateTime date, String recipeId, String recipeName, bool isCooked, int sortOrder
+ String id, String planId, DateTime date, String recipeId, String recipeName, bool isCooked, int sortOrder, String mealType
 });
 
 
@@ -276,7 +278,7 @@ class __$MealPlanDayCopyWithImpl<$Res>
 
 /// Create a copy of MealPlanDay
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? planId = null,Object? date = null,Object? recipeId = null,Object? recipeName = null,Object? isCooked = null,Object? sortOrder = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? planId = null,Object? date = null,Object? recipeId = null,Object? recipeName = null,Object? isCooked = null,Object? sortOrder = null,Object? mealType = null,}) {
   return _then(_MealPlanDay(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,planId: null == planId ? _self.planId : planId // ignore: cast_nullable_to_non_nullable
@@ -285,7 +287,8 @@ as DateTime,recipeId: null == recipeId ? _self.recipeId : recipeId // ignore: ca
 as String,recipeName: null == recipeName ? _self.recipeName : recipeName // ignore: cast_nullable_to_non_nullable
 as String,isCooked: null == isCooked ? _self.isCooked : isCooked // ignore: cast_nullable_to_non_nullable
 as bool,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
-as int,
+as int,mealType: null == mealType ? _self.mealType : mealType // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 

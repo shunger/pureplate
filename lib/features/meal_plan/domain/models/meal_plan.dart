@@ -15,6 +15,7 @@ abstract class MealPlanDay with _$MealPlanDay {
     required String recipeName,
     @Default(false) bool isCooked,
     @Default(0) int sortOrder,
+    @Default('dinner') String mealType,
   }) = _MealPlanDay;
 
   factory MealPlanDay.fromJson(Map<String, dynamic> json) =>

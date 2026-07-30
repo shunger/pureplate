@@ -10,12 +10,19 @@ class MealPreferences {
   final String? cuisine;
   final String? effort;
   final String? vibe;
+  final bool pantryOnly;
 
-  const MealPreferences({this.cuisine, this.effort, this.vibe});
+  const MealPreferences({
+    this.cuisine,
+    this.effort,
+    this.vibe,
+    this.pantryOnly = false,
+  });
 
-  /// Encode as query parameter string (e.g. "italian|quick|healthy").
+  /// Encode as query parameter string (e.g. "italian|quick|healthy|pantryOnly").
   String toQueryParam() =>
-      [cuisine ?? '', effort ?? '', vibe ?? ''].join('|');
+      [cuisine ?? '', effort ?? '', vibe ?? '', pantryOnly ? 'pantryOnly' : '']
+          .join('|');
 
   /// Decode from query parameter string.
   factory MealPreferences.fromQueryParam(String param) {
@@ -24,6 +31,7 @@ class MealPreferences {
       cuisine: parts.isNotEmpty && parts[0].isNotEmpty ? parts[0] : null,
       effort: parts.length > 1 && parts[1].isNotEmpty ? parts[1] : null,
       vibe: parts.length > 2 && parts[2].isNotEmpty ? parts[2] : null,
+      pantryOnly: parts.length > 3 && parts[3] == 'pantryOnly',
     );
   }
 
@@ -43,7 +51,8 @@ class MealPreferences {
     return parts.join(', ');
   }
 
-  bool get isEmpty => cuisine == null && effort == null && vibe == null;
+  bool get isEmpty =>
+      cuisine == null && effort == null && vibe == null && !pantryOnly;
 }
 
 /// Shows the meal preferences sheet and returns selections, or null if
@@ -73,6 +82,7 @@ class _MealPreferencesBodyState extends State<_MealPreferencesBody> {
   String? _cuisine;
   String? _effort;
   String? _vibe;
+  bool _pantryOnly = false;
 
   static const _cuisines = [
     ('Italian', Icons.local_pizza_outlined),
@@ -224,6 +234,32 @@ class _MealPreferencesBodyState extends State<_MealPreferencesBody> {
                 );
               }).toList(),
             ),
+            const SizedBox(height: 18),
+
+            // Pantry-only toggle
+            _QuestionLabel(label: 'Ingredients'),
+            const SizedBox(height: 8),
+            ChoiceChip(
+              label: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.kitchen_outlined,
+                      size: 16,
+                      color: _pantryOnly ? Colors.white : null),
+                  const SizedBox(width: 6),
+                  const Text('Use only pantry'),
+                ],
+              ),
+              selected: _pantryOnly,
+              onSelected: (_) =>
+                  setState(() => _pantryOnly = !_pantryOnly),
+              selectedColor: AppColors.coral,
+              labelStyle: TextStyle(
+                color: _pantryOnly ? Colors.white : null,
+                fontWeight: _pantryOnly ? FontWeight.w600 : null,
+              ),
+              showCheckmark: false,
+            ),
             const SizedBox(height: 24),
 
             // Action buttons
@@ -252,6 +288,7 @@ class _MealPreferencesBodyState extends State<_MealPreferencesBody> {
                         cuisine: _cuisine,
                         effort: _effort,
                         vibe: _vibe,
+                        pantryOnly: _pantryOnly,
                       ),
                     ),
                     icon: const Icon(Icons.auto_awesome, size: 18),

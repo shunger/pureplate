@@ -68,22 +68,30 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
           : const MealPreferences();
       final prefFragment = prefs.toPromptFragment();
 
+      final pantryConstraint = prefs.pantryOnly
+          ? ' using ONLY ingredients already in my pantry (no extra shopping)'
+          : " using what's in my pantry";
+
       final greeting = isIdea
           ? "Let me check your pantry and find $mealType ideas!"
-          : prefFragment.isNotEmpty
-              ? "Great choices! Let me find $mealType ideas that are $prefFragment."
-              : "Let me check your pantry and find something great for $mealType!";
+          : prefs.pantryOnly
+              ? prefFragment.isNotEmpty
+                  ? "Got it — only pantry ingredients! Let me find $mealType ideas that are $prefFragment."
+                  : "Got it — only pantry ingredients! Let me find something great for $mealType!"
+              : prefFragment.isNotEmpty
+                  ? "Great choices! Let me find $mealType ideas that are $prefFragment."
+                  : "Let me check your pantry and find something great for $mealType!";
 
       // Build a prompt that incorporates the user's preferences.
       String prompt;
       if (prefFragment.isNotEmpty) {
         prompt = isIdea
-            ? "What $mealType can I make using what's in my pantry? I'm in the mood for: $prefFragment."
-            : "What can I make for $mealType using what's in my pantry? I'm in the mood for: $prefFragment.";
+            ? "What $mealType can I make$pantryConstraint? I'm in the mood for: $prefFragment."
+            : "What can I make for $mealType$pantryConstraint? I'm in the mood for: $prefFragment.";
       } else {
         prompt = isIdea
-            ? "What $mealType can I make using what's in my pantry?"
-            : "What can I make for $mealType using what's in my pantry?";
+            ? "What $mealType can I make$pantryConstraint?"
+            : "What can I make for $mealType$pantryConstraint?";
       }
 
       _messages.add(_ChatMessage(text: greeting, isUser: false));
