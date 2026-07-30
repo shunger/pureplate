@@ -6,9 +6,17 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:uuid/uuid.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/database_providers.dart';
+import '../../../../shared/models/product_category.dart';
+import '../../../pantry/domain/models/pantry_item.dart';
+import '../../../shopping_list/data/datasources/auto_list_generator.dart';
+import '../../../shopping_list/data/datasources/shopping_list_mapper.dart';
+import '../../../shopping_list/domain/models/shopping_list.dart';
+import '../../../shopping_list/presentation/providers/shopping_list_providers.dart';
+import '../../domain/models/recipe.dart';
 import '../providers/recipe_providers.dart';
 import '../widgets/recipe_widgets.dart';
 
@@ -72,6 +80,48 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     ref.read(recipeDaoProvider).updateImageUrl(widget.recipeId, destPath);
   }
 
+  Future<void> _showAddToListSheet(Recipe recipe) async {
+    // Fetch pantry items and compute missing ingredients.
+    final pantryDao = ref.read(pantryDaoProvider);
+    final dbPantryItems = await pantryDao.getAllItems();
+    final domainPantryItems = dbPantryItems
+        .map((item) => PantryItem(
+              id: item.id,
+              name: item.name,
+              category: ProductCategory.values.firstWhere(
+                (c) => c.name == item.category,
+                orElse: () => ProductCategory.other,
+              ),
+              quantity: item.quantity,
+              unitType: item.unitType,
+              createdAt: item.createdAt,
+            ))
+        .toList();
+
+    final generator = ref.read(autoListGeneratorProvider);
+    final generatedList = generator.generate(
+      recipes: [recipe],
+      pantryItems: domainPantryItems,
+      mealPlanId: '', // Not from a meal plan.
+    );
+
+    if (!mounted) return;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => _AddToListSheet(
+        missingItems: generatedList.items,
+        recipeName: recipe.name,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final recipeAsync = ref.watch(recipeDetailProvider(widget.recipeId));
@@ -107,6 +157,11 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 expandedHeight: recipe.imageUrl != null ? 250 : 180,
                 pinned: true,
                 actions: [
+                  IconButton(
+                    icon: const Icon(Icons.add_shopping_cart),
+                    tooltip: 'Add to shopping list',
+                    onPressed: () => _showAddToListSheet(recipe),
+                  ),
                   IconButton(
                     icon: const Icon(Icons.camera_alt_outlined),
                     tooltip: 'Add photo',
@@ -461,6 +516,311 @@ class _NutrientValue extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── Add to Shopping List Bottom Sheet ──────────────────────
+
+/// Sentinel value for the "New list" option in the list picker.
+const _kNewListId = '__new_list__';
+
+class _AddToListSheet extends ConsumerStatefulWidget {
+  final List<ShoppingListItem> missingItems;
+  final String recipeName;
+
+  const _AddToListSheet({
+    required this.missingItems,
+    required this.recipeName,
+  });
+
+  @override
+  ConsumerState<_AddToListSheet> createState() => _AddToListSheetState();
+}
+
+class _AddToListSheetState extends ConsumerState<_AddToListSheet> {
+  late final Set<String> _checkedItemIds;
+  String? _selectedListId;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // All items checked by default.
+    _checkedItemIds = widget.missingItems.map((i) => i.id).toSet();
+  }
+
+  Future<void> _addItems() async {
+    final selectedItems = widget.missingItems
+        .where((i) => _checkedItemIds.contains(i.id))
+        .toList();
+    if (selectedItems.isEmpty) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      final dao = ref.read(shoppingListDaoProvider);
+      final uuid = const Uuid();
+      String targetListId;
+
+      if (_selectedListId == null || _selectedListId == _kNewListId) {
+        // Create a new list.
+        targetListId = uuid.v4();
+        final now = DateTime.now();
+        final newList = ShoppingList(
+          id: targetListId,
+          name: widget.recipeName,
+          source: ShoppingListSource.manual,
+          createdAt: now,
+        );
+        await dao.insertList(ShoppingListMapper.listToCompanion(newList));
+      } else {
+        targetListId = _selectedListId!;
+      }
+
+      // Re-map items to target list with new IDs.
+      final companions = selectedItems.map((item) {
+        final remapped = item.copyWith(
+          id: uuid.v4(),
+          listId: targetListId,
+        );
+        return ShoppingListMapper.itemToCompanion(remapped);
+      }).toList();
+
+      await dao.insertItems(companions);
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${selectedItems.length} item${selectedItems.length == 1 ? '' : 's'} added to list',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final listsAsync = ref.watch(activeShoppingListsDomainProvider);
+
+    // Nothing missing — everything is in pantry.
+    if (widget.missingItems.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.check_circle_outline,
+                size: 56, color: AppColors.sage),
+            const SizedBox(height: 16),
+            Text(
+              'You have everything!',
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'All ingredients for this recipe are already in your pantry.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 24),
+            FilledButton(
+              onPressed: () => Navigator.pop(context),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.coral,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Done'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.65,
+      minChildSize: 0.4,
+      maxChildSize: 0.9,
+      expand: false,
+      builder: (context, scrollController) => Column(
+        children: [
+          // Drag handle
+          Padding(
+            padding: const EdgeInsets.only(top: 12, bottom: 8),
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          // Title
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Add to Shopping List',
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      if (_checkedItemIds.length ==
+                          widget.missingItems.length) {
+                        _checkedItemIds.clear();
+                      } else {
+                        _checkedItemIds.addAll(
+                          widget.missingItems.map((i) => i.id),
+                        );
+                      }
+                    });
+                  },
+                  child: Text(
+                    _checkedItemIds.length == widget.missingItems.length
+                        ? 'Deselect all'
+                        : 'Select all',
+                    style: TextStyle(color: AppColors.coral),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Item list
+          Expanded(
+            child: ListView.builder(
+              controller: scrollController,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemCount: widget.missingItems.length,
+              itemBuilder: (context, index) {
+                final item = widget.missingItems[index];
+                final checked = _checkedItemIds.contains(item.id);
+                final qtyDisplay = item.quantityNeeded % 1 == 0
+                    ? item.quantityNeeded.toInt().toString()
+                    : item.quantityNeeded.toStringAsFixed(1);
+                final unitDisplay =
+                    item.unitType == 'count' ? '' : ' ${item.unitType}';
+
+                return CheckboxListTile(
+                  value: checked,
+                  activeColor: AppColors.coral,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: Text(item.name),
+                  subtitle: Text(
+                    '$qtyDisplay$unitDisplay',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  secondary: Text(
+                    item.category.emoji,
+                    style: const TextStyle(fontSize: 20),
+                  ),
+                  onChanged: (v) {
+                    setState(() {
+                      if (v == true) {
+                        _checkedItemIds.add(item.id);
+                      } else {
+                        _checkedItemIds.remove(item.id);
+                      }
+                    });
+                  },
+                );
+              },
+            ),
+          ),
+          // List picker + add button
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // List selector
+                listsAsync.when(
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, _) => const SizedBox.shrink(),
+                  data: (lists) {
+                    final items = <DropdownMenuItem<String>>[
+                      const DropdownMenuItem(
+                        value: _kNewListId,
+                        child: Text('New list'),
+                      ),
+                      ...lists.map((l) => DropdownMenuItem(
+                            value: l.id,
+                            child: Text(
+                              l.name,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          )),
+                    ];
+
+                    return DropdownButtonFormField<String>(
+                      initialValue: _selectedListId ?? _kNewListId,
+                      decoration: InputDecoration(
+                        labelText: 'Shopping list',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                      ),
+                      items: items,
+                      onChanged: (v) =>
+                          setState(() => _selectedListId = v),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: _checkedItemIds.isEmpty || _isSaving
+                      ? null
+                      : _addItems,
+                  icon: _isSaving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.add_shopping_cart),
+                  label: Text(
+                    _isSaving
+                        ? 'Adding...'
+                        : 'Add ${_checkedItemIds.length} item${_checkedItemIds.length == 1 ? '' : 's'}',
+                  ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.coral,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
