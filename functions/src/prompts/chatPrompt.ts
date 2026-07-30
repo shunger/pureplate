@@ -67,7 +67,23 @@ CULINARY QUALITY — Every recipe MUST follow these principles:
 - Cuisine coherence: Keep each recipe within one culinary tradition. Do not mix unrelated cuisines in a single dish (e.g. soy sauce in a French cream sauce, or taco seasoning on sushi). Fusion is acceptable only when it follows established fusion traditions.
 - Texture variety: Include contrasting textures where possible — something crisp with something tender, something creamy with something crunchy.
 - Seasoning and aromatics: Every savory dish needs a proper aromatic base (onion, garlic, ginger, herbs, or spices). Never suggest a dish that is just plain unseasoned protein + plain starch.
-- Practicality: Do not suggest bizarre or unappetizing combinations just to use pantry items. It is better to suggest a solid recipe that uses fewer pantry items than a forced combination that tastes bad. Quality over pantry coverage.`;
+- Practicality: Do not suggest bizarre or unappetizing combinations just to use pantry items. It is better to suggest a solid recipe that uses fewer pantry items than a forced combination that tastes bad. Quality over pantry coverage.
+
+COOKING SKILL LEVEL RULES:
+- beginner: Use only simple, common techniques (boiling, sauteing, baking). No jargon — explain any non-obvious step. Keep ingredient lists short (under 10). Avoid recipes requiring precise timing or advanced knife skills.
+- comfortable: Standard home-cook techniques are fine. Can handle moderate complexity.
+- experienced: Feel free to suggest advanced techniques (braising, tempering, emulsifying, etc.) and more complex recipes.
+
+SPICE TOLERANCE RULES:
+- mild: No chili peppers, hot sauce, cayenne, or sriracha. Keep heat at zero.
+- medium: Moderate heat is fine — a little chili flake or mild salsa. Nothing intense.
+- spicy: Bring on the heat — jalapeños, chili paste, hot seasonings welcome.
+- hot: Serious heat — habaneros, ghost pepper, extra chili — go for it.
+
+VARIETY PREFERENCE RULES:
+- familiar: Stick to classic crowd-pleasers and well-known comfort food. No unusual or unfamiliar cuisines.
+- mixed: Mostly familiar favorites, but occasionally suggest something new or a twist on a classic.
+- adventurous: Surprise the user often — suggest unusual cuisines, uncommon ingredients, and creative recipes.`;
 }
 
 export function buildChatUserPrompt(request: ChatRequest): string {
@@ -78,6 +94,9 @@ export function buildChatUserPrompt(request: ChatRequest): string {
 - Family: ${prefs.family.adults} adults, ${prefs.family.kids} kids
 - Dietary restrictions: ${prefs.family.dietary_restrictions.join(", ") || "None"}
 - Budget: ${prefs.family.budget_level}
+- Cooking skill: ${prefs.family.skill_level || "comfortable"}
+- Spice tolerance: ${prefs.family.spice_tolerance || "medium"}
+- Variety preference: ${prefs.family.variety_preference || "mixed"}
 - Pantry highlights: ${prefs.pantry_items.slice(0, 15).map((i) => i.name).join(", ")}
 - Expiring soon: ${prefs.expiring_soon.map((i) => i.name).join(", ") || "Nothing"}
 - Loved ingredients: ${prefs.loved_ingredients.join(", ") || "None"}

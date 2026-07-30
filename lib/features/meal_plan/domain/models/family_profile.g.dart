@@ -45,6 +45,21 @@ _FamilyProfile _$FamilyProfileFromJson(Map<String, dynamic> json) =>
               ?.map((e) => e as String)
               .toList() ??
           const [],
+      skillLevel:
+          $enumDecodeNullable(_$SkillLevelEnumMap, json['skillLevel']) ??
+          SkillLevel.comfortable,
+      spiceTolerance:
+          $enumDecodeNullable(
+            _$SpiceToleranceEnumMap,
+            json['spiceTolerance'],
+          ) ??
+          SpiceTolerance.medium,
+      varietyPreference:
+          $enumDecodeNullable(
+            _$VarietyPreferenceEnumMap,
+            json['varietyPreference'],
+          ) ??
+          VarietyPreference.mixed,
     );
 
 Map<String, dynamic> _$FamilyProfileToJson(
@@ -64,6 +79,9 @@ Map<String, dynamic> _$FamilyProfileToJson(
   'budgetLevel': _$BudgetLevelEnumMap[instance.budgetLevel]!,
   'pantryStaples': instance.pantryStaples,
   'dislikedIngredients': instance.dislikedIngredients,
+  'skillLevel': _$SkillLevelEnumMap[instance.skillLevel]!,
+  'spiceTolerance': _$SpiceToleranceEnumMap[instance.spiceTolerance]!,
+  'varietyPreference': _$VarietyPreferenceEnumMap[instance.varietyPreference]!,
 };
 
 const _$KidAgeRangeEnumMap = {
@@ -102,4 +120,23 @@ const _$BudgetLevelEnumMap = {
   BudgetLevel.budget: 'budget',
   BudgetLevel.moderate: 'moderate',
   BudgetLevel.premium: 'premium',
+};
+
+const _$SkillLevelEnumMap = {
+  SkillLevel.beginner: 'beginner',
+  SkillLevel.comfortable: 'comfortable',
+  SkillLevel.experienced: 'experienced',
+};
+
+const _$SpiceToleranceEnumMap = {
+  SpiceTolerance.mild: 'mild',
+  SpiceTolerance.medium: 'medium',
+  SpiceTolerance.spicy: 'spicy',
+  SpiceTolerance.hot: 'hot',
+};
+
+const _$VarietyPreferenceEnumMap = {
+  VarietyPreference.familiar: 'familiar',
+  VarietyPreference.mixed: 'mixed',
+  VarietyPreference.adventurous: 'adventurous',
 };

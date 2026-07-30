@@ -12,6 +12,10 @@ class OnboardingState {
   final List<String> cuisinePreferences;
   final PreferredCookTime preferredCookTime;
   final BudgetLevel budgetLevel;
+  final SkillLevel skillLevel;
+  final SpiceTolerance spiceTolerance;
+  final VarietyPreference varietyPreference;
+  final List<String> dislikedIngredients;
 
   const OnboardingState({
     this.adults = 2,
@@ -21,6 +25,10 @@ class OnboardingState {
     this.cuisinePreferences = const [],
     this.preferredCookTime = PreferredCookTime.under45,
     this.budgetLevel = BudgetLevel.moderate,
+    this.skillLevel = SkillLevel.comfortable,
+    this.spiceTolerance = SpiceTolerance.medium,
+    this.varietyPreference = VarietyPreference.mixed,
+    this.dislikedIngredients = const [],
   });
 
   OnboardingState copyWith({
@@ -31,6 +39,10 @@ class OnboardingState {
     List<String>? cuisinePreferences,
     PreferredCookTime? preferredCookTime,
     BudgetLevel? budgetLevel,
+    SkillLevel? skillLevel,
+    SpiceTolerance? spiceTolerance,
+    VarietyPreference? varietyPreference,
+    List<String>? dislikedIngredients,
   }) {
     return OnboardingState(
       adults: adults ?? this.adults,
@@ -40,6 +52,10 @@ class OnboardingState {
       cuisinePreferences: cuisinePreferences ?? this.cuisinePreferences,
       preferredCookTime: preferredCookTime ?? this.preferredCookTime,
       budgetLevel: budgetLevel ?? this.budgetLevel,
+      skillLevel: skillLevel ?? this.skillLevel,
+      spiceTolerance: spiceTolerance ?? this.spiceTolerance,
+      varietyPreference: varietyPreference ?? this.varietyPreference,
+      dislikedIngredients: dislikedIngredients ?? this.dislikedIngredients,
     );
   }
 }
@@ -59,6 +75,14 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       state = state.copyWith(preferredCookTime: value);
   void setBudgetLevel(BudgetLevel value) =>
       state = state.copyWith(budgetLevel: value);
+  void setSkillLevel(SkillLevel value) =>
+      state = state.copyWith(skillLevel: value);
+  void setSpiceTolerance(SpiceTolerance value) =>
+      state = state.copyWith(spiceTolerance: value);
+  void setVarietyPreference(VarietyPreference value) =>
+      state = state.copyWith(varietyPreference: value);
+  void setDislikedIngredients(List<String> value) =>
+      state = state.copyWith(dislikedIngredients: value);
 }
 
 final onboardingStateProvider =

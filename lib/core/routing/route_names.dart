@@ -9,6 +9,7 @@ class Routes {
   static const onboardingWelcome = '/onboarding/welcome';
   static const onboardingFamily = '/onboarding/family';
   static const onboardingDietary = '/onboarding/dietary';
+  static const onboardingStyle = '/onboarding/style';
   static const onboardingCooking = '/onboarding/cooking';
 
   // Bottom nav tabs

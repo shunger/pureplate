@@ -23,6 +23,22 @@ CULINARY QUALITY — Every recipe MUST follow these principles:
 13. Seasoning: Every savory dish needs a proper aromatic base (onion, garlic, ginger, herbs, or spices). Never suggest unseasoned protein + plain starch.
 14. Quality over coverage: Do not force bizarre combinations just to use pantry items. A solid recipe using fewer pantry items is better than a bad-tasting one that uses more.
 
+COOKING SKILL LEVEL RULES:
+- beginner: Use only simple, common techniques (boiling, sauteing, baking). No jargon — explain any non-obvious step. Keep ingredient lists short (under 10). Avoid recipes requiring precise timing or advanced knife skills.
+- comfortable: Standard home-cook techniques are fine. Can handle moderate complexity.
+- experienced: Feel free to suggest advanced techniques (braising, tempering, emulsifying, etc.) and more complex recipes.
+
+SPICE TOLERANCE RULES:
+- mild: No chili peppers, hot sauce, cayenne, or sriracha. Keep heat at zero.
+- medium: Moderate heat is fine — a little chili flake or mild salsa. Nothing intense.
+- spicy: Bring on the heat — jalapeños, chili paste, hot seasonings welcome.
+- hot: Serious heat — habaneros, ghost pepper, extra chili — go for it.
+
+VARIETY PREFERENCE RULES:
+- familiar: Stick to classic crowd-pleasers and well-known comfort food. No unusual or unfamiliar cuisines.
+- mixed: Mostly familiar favorites, but occasionally suggest something new or a twist on a classic.
+- adventurous: Surprise the user often — suggest unusual cuisines, uncommon ingredients, and creative recipes.
+
 OUTPUT SCHEMA (strict):
 {
   "plan": {
@@ -77,6 +93,9 @@ FAMILY PROFILE:
 - Dietary restrictions: ${prefs.family.dietary_restrictions.length > 0 ? prefs.family.dietary_restrictions.join(", ") : "None"}
 - Preferred cook time: ${prefs.family.preferred_cook_time}
 - Budget level: ${prefs.family.budget_level}
+- Cooking skill: ${prefs.family.skill_level || "comfortable"}
+- Spice tolerance: ${prefs.family.spice_tolerance || "medium"}
+- Variety preference: ${prefs.family.variety_preference || "mixed"}
 
 PANTRY (available ingredients):
 ${prefs.pantry_items.map((i) => `- ${i.name}${i.quantity ? ` (${i.quantity} ${i.unit || ""})` : ""}`).join("\n")}

@@ -19,6 +19,13 @@ class FamilyProfiles extends Table {
   TextColumn get budgetLevel => text().withDefault(const Constant('moderate'))();
 
   TextColumn get pantryStaplesJson => text().withDefault(const Constant('[]'))();
+  TextColumn get dislikedIngredientsJson => text().withDefault(const Constant('[]'))();
+
+  // Cooking style preferences.
+  TextColumn get skillLevel => text().withDefault(const Constant('comfortable'))();
+  TextColumn get spiceTolerance => text().withDefault(const Constant('medium'))();
+  TextColumn get varietyPreference => text().withDefault(const Constant('mixed'))();
+
   BoolColumn get onboardingCompleted => boolean().withDefault(const Constant(false))();
 
   // Timestamps.

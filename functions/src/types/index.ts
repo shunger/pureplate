@@ -7,6 +7,9 @@ export interface FamilyInfo {
   dietary_restrictions: string[];
   preferred_cook_time: string;
   budget_level: string;
+  skill_level?: string;
+  spice_tolerance?: string;
+  variety_preference?: string;
 }
 
 export interface PantryItem {

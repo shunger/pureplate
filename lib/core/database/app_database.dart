@@ -113,7 +113,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -127,6 +127,12 @@ class AppDatabase extends _$AppDatabase {
         onUpgrade: (Migrator m, int from, int to) async {
           if (from < 2) {
             await m.addColumn(pantryItems, pantryItems.packSize);
+          }
+          if (from < 3) {
+            await m.addColumn(familyProfiles, familyProfiles.dislikedIngredientsJson);
+            await m.addColumn(familyProfiles, familyProfiles.skillLevel);
+            await m.addColumn(familyProfiles, familyProfiles.spiceTolerance);
+            await m.addColumn(familyProfiles, familyProfiles.varietyPreference);
           }
         },
       );

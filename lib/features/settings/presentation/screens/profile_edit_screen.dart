@@ -28,6 +28,11 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   final _selectedCuisines = <String>{};
   PreferredCookTime _cookTime = PreferredCookTime.under45;
   BudgetLevel _budgetLevel = BudgetLevel.moderate;
+  SkillLevel _skillLevel = SkillLevel.comfortable;
+  SpiceTolerance _spiceTolerance = SpiceTolerance.medium;
+  VarietyPreference _varietyPreference = VarietyPreference.mixed;
+  final _dislikedIngredients = <String>[];
+  final _ingredientController = TextEditingController();
 
   bool _loaded = false;
 
@@ -67,6 +72,10 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
             // Parse cook time and budget from string fields
             _cookTime = _parseCookTime(profile.preferredCookTime);
             _budgetLevel = _parseBudgetLevel(profile.budgetLevel);
+            _skillLevel = _parseSkillLevel(profile.skillLevel);
+            _spiceTolerance = _parseSpiceTolerance(profile.spiceTolerance);
+            _varietyPreference = _parseVarietyPreference(profile.varietyPreference);
+            _parseDislikedIngredients(profile.dislikedIngredientsJson);
           });
         }
       });
@@ -250,6 +259,145 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                 dense: true,
               )),
 
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 16),
+
+          // ── Cooking Skill Level ──────────────────────────
+          Text('Cooking Skill',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: SkillLevel.values.map((level) {
+              final selected = _skillLevel == level;
+              return ChoiceChip(
+                label: Text(_skillLabel(level)),
+                selected: selected,
+                onSelected: (_) => setState(() => _skillLevel = level),
+                selectedColor: AppColors.sage.withValues(alpha: 0.2),
+              );
+            }).toList(),
+          ),
+
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 16),
+
+          // ── Spice Tolerance ──────────────────────────────
+          Text('Spice Tolerance',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: SpiceTolerance.values.map((level) {
+              final selected = _spiceTolerance == level;
+              return ChoiceChip(
+                label: Text(_spiceLabel(level)),
+                selected: selected,
+                onSelected: (_) =>
+                    setState(() => _spiceTolerance = level),
+                selectedColor: AppColors.coral.withValues(alpha: 0.15),
+              );
+            }).toList(),
+          ),
+
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 16),
+
+          // ── Variety Preference ───────────────────────────
+          Text('Meal Variety',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: VarietyPreference.values.map((pref) {
+              final selected = _varietyPreference == pref;
+              return ChoiceChip(
+                label: Text(_varietyLabel(pref)),
+                selected: selected,
+                onSelected: (_) =>
+                    setState(() => _varietyPreference = pref),
+                selectedColor: AppColors.sage.withValues(alpha: 0.2),
+              );
+            }).toList(),
+          ),
+
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 16),
+
+          // ── Disliked Ingredients ─────────────────────────
+          Text('Disliked Ingredients',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          Text(
+            'We\'ll avoid these in recipe suggestions.',
+            style: TextStyle(
+              fontSize: 13,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _ingredientController,
+            decoration: InputDecoration(
+              hintText: 'Type an ingredient and press enter',
+              hintStyle: TextStyle(
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurfaceVariant
+                    .withValues(alpha: 0.6),
+                fontSize: 14,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 12),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.add, size: 20),
+                onPressed: () => _addIngredient(_ingredientController.text),
+              ),
+            ),
+            textInputAction: TextInputAction.done,
+            onSubmitted: _addIngredient,
+          ),
+          if (_dislikedIngredients.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _dislikedIngredients.map((ingredient) {
+                return Chip(
+                  label: Text(ingredient),
+                  deleteIcon: const Icon(Icons.close, size: 16),
+                  onDeleted: () {
+                    setState(() {
+                      _dislikedIngredients.remove(ingredient);
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+          ],
+
           const SizedBox(height: 40),
         ],
       ),
@@ -279,6 +427,10 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
       cuisinePreferencesJson: Value(jsonEncode(cuisineMap)),
       preferredCookTime: Value(_cookTimeToString(_cookTime)),
       budgetLevel: Value(_budgetLevel.name),
+      skillLevel: Value(_skillLevel.name),
+      spiceTolerance: Value(_spiceTolerance.name),
+      varietyPreference: Value(_varietyPreference.name),
+      dislikedIngredientsJson: Value(jsonEncode(_dislikedIngredients)),
       createdAt: Value(existing != null ? existing.createdAt : now),
       updatedAt: Value(now),
     ));
@@ -379,6 +531,86 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
       case BudgetLevel.premium:
         return 'Premium ingredients';
     }
+  }
+
+  SkillLevel _parseSkillLevel(String value) {
+    return SkillLevel.values
+            .where((s) => s.name == value)
+            .firstOrNull ??
+        SkillLevel.comfortable;
+  }
+
+  SpiceTolerance _parseSpiceTolerance(String value) {
+    return SpiceTolerance.values
+            .where((s) => s.name == value)
+            .firstOrNull ??
+        SpiceTolerance.medium;
+  }
+
+  VarietyPreference _parseVarietyPreference(String value) {
+    return VarietyPreference.values
+            .where((v) => v.name == value)
+            .firstOrNull ??
+        VarietyPreference.mixed;
+  }
+
+  void _parseDislikedIngredients(String json) {
+    try {
+      final list = jsonDecode(json) as List<dynamic>;
+      _dislikedIngredients.addAll(list.map((e) => e.toString()));
+    } catch (_) {}
+  }
+
+  void _addIngredient(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return;
+    if (!_dislikedIngredients.contains(trimmed.toLowerCase())) {
+      setState(() {
+        _dislikedIngredients.add(trimmed.toLowerCase());
+      });
+    }
+    _ingredientController.clear();
+  }
+
+  String _skillLabel(SkillLevel level) {
+    switch (level) {
+      case SkillLevel.beginner:
+        return 'Beginner';
+      case SkillLevel.comfortable:
+        return 'Comfortable';
+      case SkillLevel.experienced:
+        return 'Experienced';
+    }
+  }
+
+  String _spiceLabel(SpiceTolerance level) {
+    switch (level) {
+      case SpiceTolerance.mild:
+        return 'Mild';
+      case SpiceTolerance.medium:
+        return 'Medium';
+      case SpiceTolerance.spicy:
+        return 'Spicy';
+      case SpiceTolerance.hot:
+        return 'Bring the heat';
+    }
+  }
+
+  String _varietyLabel(VarietyPreference pref) {
+    switch (pref) {
+      case VarietyPreference.familiar:
+        return 'Stick to favorites';
+      case VarietyPreference.mixed:
+        return 'Mix of both';
+      case VarietyPreference.adventurous:
+        return 'Always something new';
+    }
+  }
+
+  @override
+  void dispose() {
+    _ingredientController.dispose();
+    super.dispose();
   }
 }
 

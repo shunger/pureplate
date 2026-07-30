@@ -17,6 +17,9 @@ enum KidAgeRange {
 
 enum BudgetLevel { budget, moderate, premium }
 enum PreferredCookTime { under30, under45, under60, anyTime }
+enum SkillLevel { beginner, comfortable, experienced }
+enum SpiceTolerance { mild, medium, spicy, hot }
+enum VarietyPreference { familiar, mixed, adventurous }
 
 /// Family profile — drives AI personalization.
 @freezed
@@ -32,6 +35,9 @@ abstract class FamilyProfile with _$FamilyProfile {
     @Default(BudgetLevel.moderate) BudgetLevel budgetLevel,
     @Default([]) List<String> pantryStaples,
     @Default([]) List<String> dislikedIngredients,
+    @Default(SkillLevel.comfortable) SkillLevel skillLevel,
+    @Default(SpiceTolerance.medium) SpiceTolerance spiceTolerance,
+    @Default(VarietyPreference.mixed) VarietyPreference varietyPreference,
   }) = _FamilyProfile;
 
   factory FamilyProfile.fromJson(Map<String, dynamic> json) =>

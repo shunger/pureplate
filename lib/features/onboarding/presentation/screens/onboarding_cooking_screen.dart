@@ -219,6 +219,11 @@ class _OnboardingCookingScreenState
       cuisinePreferencesJson: Value(jsonEncode(cuisineMap)),
       preferredCookTime: Value(cookTimeStr),
       budgetLevel: Value(state.budgetLevel.name),
+      skillLevel: Value(state.skillLevel.name),
+      spiceTolerance: Value(state.spiceTolerance.name),
+      varietyPreference: Value(state.varietyPreference.name),
+      dislikedIngredientsJson:
+          Value(jsonEncode(state.dislikedIngredients)),
       onboardingCompleted: const Value(true),
       createdAt: Value(now),
       updatedAt: Value(now),

@@ -8530,6 +8530,55 @@ class $FamilyProfilesTable extends FamilyProfiles
         requiredDuringInsert: false,
         defaultValue: const Constant('[]'),
       );
+  static const VerificationMeta _dislikedIngredientsJsonMeta =
+      const VerificationMeta('dislikedIngredientsJson');
+  @override
+  late final GeneratedColumn<String> dislikedIngredientsJson =
+      GeneratedColumn<String>(
+        'disliked_ingredients_json',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('[]'),
+      );
+  static const VerificationMeta _skillLevelMeta = const VerificationMeta(
+    'skillLevel',
+  );
+  @override
+  late final GeneratedColumn<String> skillLevel = GeneratedColumn<String>(
+    'skill_level',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('comfortable'),
+  );
+  static const VerificationMeta _spiceToleranceMeta = const VerificationMeta(
+    'spiceTolerance',
+  );
+  @override
+  late final GeneratedColumn<String> spiceTolerance = GeneratedColumn<String>(
+    'spice_tolerance',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('medium'),
+  );
+  static const VerificationMeta _varietyPreferenceMeta = const VerificationMeta(
+    'varietyPreference',
+  );
+  @override
+  late final GeneratedColumn<String> varietyPreference =
+      GeneratedColumn<String>(
+        'variety_preference',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('mixed'),
+      );
   static const VerificationMeta _onboardingCompletedMeta =
       const VerificationMeta('onboardingCompleted');
   @override
@@ -8578,6 +8627,10 @@ class $FamilyProfilesTable extends FamilyProfiles
     preferredCookTime,
     budgetLevel,
     pantryStaplesJson,
+    dislikedIngredientsJson,
+    skillLevel,
+    spiceTolerance,
+    varietyPreference,
     onboardingCompleted,
     createdAt,
     updatedAt,
@@ -8674,6 +8727,39 @@ class $FamilyProfilesTable extends FamilyProfiles
         ),
       );
     }
+    if (data.containsKey('disliked_ingredients_json')) {
+      context.handle(
+        _dislikedIngredientsJsonMeta,
+        dislikedIngredientsJson.isAcceptableOrUnknown(
+          data['disliked_ingredients_json']!,
+          _dislikedIngredientsJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('skill_level')) {
+      context.handle(
+        _skillLevelMeta,
+        skillLevel.isAcceptableOrUnknown(data['skill_level']!, _skillLevelMeta),
+      );
+    }
+    if (data.containsKey('spice_tolerance')) {
+      context.handle(
+        _spiceToleranceMeta,
+        spiceTolerance.isAcceptableOrUnknown(
+          data['spice_tolerance']!,
+          _spiceToleranceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('variety_preference')) {
+      context.handle(
+        _varietyPreferenceMeta,
+        varietyPreference.isAcceptableOrUnknown(
+          data['variety_preference']!,
+          _varietyPreferenceMeta,
+        ),
+      );
+    }
     if (data.containsKey('onboarding_completed')) {
       context.handle(
         _onboardingCompletedMeta,
@@ -8748,6 +8834,22 @@ class $FamilyProfilesTable extends FamilyProfiles
         DriftSqlType.string,
         data['${effectivePrefix}pantry_staples_json'],
       )!,
+      dislikedIngredientsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}disliked_ingredients_json'],
+      )!,
+      skillLevel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}skill_level'],
+      )!,
+      spiceTolerance: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}spice_tolerance'],
+      )!,
+      varietyPreference: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}variety_preference'],
+      )!,
       onboardingCompleted: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}onboarding_completed'],
@@ -8780,6 +8882,10 @@ class FamilyProfile extends DataClass implements Insertable<FamilyProfile> {
   final String preferredCookTime;
   final String budgetLevel;
   final String pantryStaplesJson;
+  final String dislikedIngredientsJson;
+  final String skillLevel;
+  final String spiceTolerance;
+  final String varietyPreference;
   final bool onboardingCompleted;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -8794,6 +8900,10 @@ class FamilyProfile extends DataClass implements Insertable<FamilyProfile> {
     required this.preferredCookTime,
     required this.budgetLevel,
     required this.pantryStaplesJson,
+    required this.dislikedIngredientsJson,
+    required this.skillLevel,
+    required this.spiceTolerance,
+    required this.varietyPreference,
     required this.onboardingCompleted,
     required this.createdAt,
     required this.updatedAt,
@@ -8815,6 +8925,12 @@ class FamilyProfile extends DataClass implements Insertable<FamilyProfile> {
     map['preferred_cook_time'] = Variable<String>(preferredCookTime);
     map['budget_level'] = Variable<String>(budgetLevel);
     map['pantry_staples_json'] = Variable<String>(pantryStaplesJson);
+    map['disliked_ingredients_json'] = Variable<String>(
+      dislikedIngredientsJson,
+    );
+    map['skill_level'] = Variable<String>(skillLevel);
+    map['spice_tolerance'] = Variable<String>(spiceTolerance);
+    map['variety_preference'] = Variable<String>(varietyPreference);
     map['onboarding_completed'] = Variable<bool>(onboardingCompleted);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -8835,6 +8951,10 @@ class FamilyProfile extends DataClass implements Insertable<FamilyProfile> {
       preferredCookTime: Value(preferredCookTime),
       budgetLevel: Value(budgetLevel),
       pantryStaplesJson: Value(pantryStaplesJson),
+      dislikedIngredientsJson: Value(dislikedIngredientsJson),
+      skillLevel: Value(skillLevel),
+      spiceTolerance: Value(spiceTolerance),
+      varietyPreference: Value(varietyPreference),
       onboardingCompleted: Value(onboardingCompleted),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -8863,6 +8983,12 @@ class FamilyProfile extends DataClass implements Insertable<FamilyProfile> {
       preferredCookTime: serializer.fromJson<String>(json['preferredCookTime']),
       budgetLevel: serializer.fromJson<String>(json['budgetLevel']),
       pantryStaplesJson: serializer.fromJson<String>(json['pantryStaplesJson']),
+      dislikedIngredientsJson: serializer.fromJson<String>(
+        json['dislikedIngredientsJson'],
+      ),
+      skillLevel: serializer.fromJson<String>(json['skillLevel']),
+      spiceTolerance: serializer.fromJson<String>(json['spiceTolerance']),
+      varietyPreference: serializer.fromJson<String>(json['varietyPreference']),
       onboardingCompleted: serializer.fromJson<bool>(
         json['onboardingCompleted'],
       ),
@@ -8888,6 +9014,12 @@ class FamilyProfile extends DataClass implements Insertable<FamilyProfile> {
       'preferredCookTime': serializer.toJson<String>(preferredCookTime),
       'budgetLevel': serializer.toJson<String>(budgetLevel),
       'pantryStaplesJson': serializer.toJson<String>(pantryStaplesJson),
+      'dislikedIngredientsJson': serializer.toJson<String>(
+        dislikedIngredientsJson,
+      ),
+      'skillLevel': serializer.toJson<String>(skillLevel),
+      'spiceTolerance': serializer.toJson<String>(spiceTolerance),
+      'varietyPreference': serializer.toJson<String>(varietyPreference),
       'onboardingCompleted': serializer.toJson<bool>(onboardingCompleted),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -8905,6 +9037,10 @@ class FamilyProfile extends DataClass implements Insertable<FamilyProfile> {
     String? preferredCookTime,
     String? budgetLevel,
     String? pantryStaplesJson,
+    String? dislikedIngredientsJson,
+    String? skillLevel,
+    String? spiceTolerance,
+    String? varietyPreference,
     bool? onboardingCompleted,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -8923,6 +9059,11 @@ class FamilyProfile extends DataClass implements Insertable<FamilyProfile> {
     preferredCookTime: preferredCookTime ?? this.preferredCookTime,
     budgetLevel: budgetLevel ?? this.budgetLevel,
     pantryStaplesJson: pantryStaplesJson ?? this.pantryStaplesJson,
+    dislikedIngredientsJson:
+        dislikedIngredientsJson ?? this.dislikedIngredientsJson,
+    skillLevel: skillLevel ?? this.skillLevel,
+    spiceTolerance: spiceTolerance ?? this.spiceTolerance,
+    varietyPreference: varietyPreference ?? this.varietyPreference,
     onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -8953,6 +9094,18 @@ class FamilyProfile extends DataClass implements Insertable<FamilyProfile> {
       pantryStaplesJson: data.pantryStaplesJson.present
           ? data.pantryStaplesJson.value
           : this.pantryStaplesJson,
+      dislikedIngredientsJson: data.dislikedIngredientsJson.present
+          ? data.dislikedIngredientsJson.value
+          : this.dislikedIngredientsJson,
+      skillLevel: data.skillLevel.present
+          ? data.skillLevel.value
+          : this.skillLevel,
+      spiceTolerance: data.spiceTolerance.present
+          ? data.spiceTolerance.value
+          : this.spiceTolerance,
+      varietyPreference: data.varietyPreference.present
+          ? data.varietyPreference.value
+          : this.varietyPreference,
       onboardingCompleted: data.onboardingCompleted.present
           ? data.onboardingCompleted.value
           : this.onboardingCompleted,
@@ -8974,6 +9127,10 @@ class FamilyProfile extends DataClass implements Insertable<FamilyProfile> {
           ..write('preferredCookTime: $preferredCookTime, ')
           ..write('budgetLevel: $budgetLevel, ')
           ..write('pantryStaplesJson: $pantryStaplesJson, ')
+          ..write('dislikedIngredientsJson: $dislikedIngredientsJson, ')
+          ..write('skillLevel: $skillLevel, ')
+          ..write('spiceTolerance: $spiceTolerance, ')
+          ..write('varietyPreference: $varietyPreference, ')
           ..write('onboardingCompleted: $onboardingCompleted, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
@@ -8993,6 +9150,10 @@ class FamilyProfile extends DataClass implements Insertable<FamilyProfile> {
     preferredCookTime,
     budgetLevel,
     pantryStaplesJson,
+    dislikedIngredientsJson,
+    skillLevel,
+    spiceTolerance,
+    varietyPreference,
     onboardingCompleted,
     createdAt,
     updatedAt,
@@ -9011,6 +9172,10 @@ class FamilyProfile extends DataClass implements Insertable<FamilyProfile> {
           other.preferredCookTime == this.preferredCookTime &&
           other.budgetLevel == this.budgetLevel &&
           other.pantryStaplesJson == this.pantryStaplesJson &&
+          other.dislikedIngredientsJson == this.dislikedIngredientsJson &&
+          other.skillLevel == this.skillLevel &&
+          other.spiceTolerance == this.spiceTolerance &&
+          other.varietyPreference == this.varietyPreference &&
           other.onboardingCompleted == this.onboardingCompleted &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
@@ -9027,6 +9192,10 @@ class FamilyProfilesCompanion extends UpdateCompanion<FamilyProfile> {
   final Value<String> preferredCookTime;
   final Value<String> budgetLevel;
   final Value<String> pantryStaplesJson;
+  final Value<String> dislikedIngredientsJson;
+  final Value<String> skillLevel;
+  final Value<String> spiceTolerance;
+  final Value<String> varietyPreference;
   final Value<bool> onboardingCompleted;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -9042,6 +9211,10 @@ class FamilyProfilesCompanion extends UpdateCompanion<FamilyProfile> {
     this.preferredCookTime = const Value.absent(),
     this.budgetLevel = const Value.absent(),
     this.pantryStaplesJson = const Value.absent(),
+    this.dislikedIngredientsJson = const Value.absent(),
+    this.skillLevel = const Value.absent(),
+    this.spiceTolerance = const Value.absent(),
+    this.varietyPreference = const Value.absent(),
     this.onboardingCompleted = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -9058,6 +9231,10 @@ class FamilyProfilesCompanion extends UpdateCompanion<FamilyProfile> {
     this.preferredCookTime = const Value.absent(),
     this.budgetLevel = const Value.absent(),
     this.pantryStaplesJson = const Value.absent(),
+    this.dislikedIngredientsJson = const Value.absent(),
+    this.skillLevel = const Value.absent(),
+    this.spiceTolerance = const Value.absent(),
+    this.varietyPreference = const Value.absent(),
     this.onboardingCompleted = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -9076,6 +9253,10 @@ class FamilyProfilesCompanion extends UpdateCompanion<FamilyProfile> {
     Expression<String>? preferredCookTime,
     Expression<String>? budgetLevel,
     Expression<String>? pantryStaplesJson,
+    Expression<String>? dislikedIngredientsJson,
+    Expression<String>? skillLevel,
+    Expression<String>? spiceTolerance,
+    Expression<String>? varietyPreference,
     Expression<bool>? onboardingCompleted,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -9094,6 +9275,11 @@ class FamilyProfilesCompanion extends UpdateCompanion<FamilyProfile> {
       if (preferredCookTime != null) 'preferred_cook_time': preferredCookTime,
       if (budgetLevel != null) 'budget_level': budgetLevel,
       if (pantryStaplesJson != null) 'pantry_staples_json': pantryStaplesJson,
+      if (dislikedIngredientsJson != null)
+        'disliked_ingredients_json': dislikedIngredientsJson,
+      if (skillLevel != null) 'skill_level': skillLevel,
+      if (spiceTolerance != null) 'spice_tolerance': spiceTolerance,
+      if (varietyPreference != null) 'variety_preference': varietyPreference,
       if (onboardingCompleted != null)
         'onboarding_completed': onboardingCompleted,
       if (createdAt != null) 'created_at': createdAt,
@@ -9113,6 +9299,10 @@ class FamilyProfilesCompanion extends UpdateCompanion<FamilyProfile> {
     Value<String>? preferredCookTime,
     Value<String>? budgetLevel,
     Value<String>? pantryStaplesJson,
+    Value<String>? dislikedIngredientsJson,
+    Value<String>? skillLevel,
+    Value<String>? spiceTolerance,
+    Value<String>? varietyPreference,
     Value<bool>? onboardingCompleted,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -9131,6 +9321,11 @@ class FamilyProfilesCompanion extends UpdateCompanion<FamilyProfile> {
       preferredCookTime: preferredCookTime ?? this.preferredCookTime,
       budgetLevel: budgetLevel ?? this.budgetLevel,
       pantryStaplesJson: pantryStaplesJson ?? this.pantryStaplesJson,
+      dislikedIngredientsJson:
+          dislikedIngredientsJson ?? this.dislikedIngredientsJson,
+      skillLevel: skillLevel ?? this.skillLevel,
+      spiceTolerance: spiceTolerance ?? this.spiceTolerance,
+      varietyPreference: varietyPreference ?? this.varietyPreference,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -9175,6 +9370,20 @@ class FamilyProfilesCompanion extends UpdateCompanion<FamilyProfile> {
     if (pantryStaplesJson.present) {
       map['pantry_staples_json'] = Variable<String>(pantryStaplesJson.value);
     }
+    if (dislikedIngredientsJson.present) {
+      map['disliked_ingredients_json'] = Variable<String>(
+        dislikedIngredientsJson.value,
+      );
+    }
+    if (skillLevel.present) {
+      map['skill_level'] = Variable<String>(skillLevel.value);
+    }
+    if (spiceTolerance.present) {
+      map['spice_tolerance'] = Variable<String>(spiceTolerance.value);
+    }
+    if (varietyPreference.present) {
+      map['variety_preference'] = Variable<String>(varietyPreference.value);
+    }
     if (onboardingCompleted.present) {
       map['onboarding_completed'] = Variable<bool>(onboardingCompleted.value);
     }
@@ -9203,6 +9412,10 @@ class FamilyProfilesCompanion extends UpdateCompanion<FamilyProfile> {
           ..write('preferredCookTime: $preferredCookTime, ')
           ..write('budgetLevel: $budgetLevel, ')
           ..write('pantryStaplesJson: $pantryStaplesJson, ')
+          ..write('dislikedIngredientsJson: $dislikedIngredientsJson, ')
+          ..write('skillLevel: $skillLevel, ')
+          ..write('spiceTolerance: $spiceTolerance, ')
+          ..write('varietyPreference: $varietyPreference, ')
           ..write('onboardingCompleted: $onboardingCompleted, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -19472,6 +19685,10 @@ typedef $$FamilyProfilesTableCreateCompanionBuilder =
       Value<String> preferredCookTime,
       Value<String> budgetLevel,
       Value<String> pantryStaplesJson,
+      Value<String> dislikedIngredientsJson,
+      Value<String> skillLevel,
+      Value<String> spiceTolerance,
+      Value<String> varietyPreference,
       Value<bool> onboardingCompleted,
       required DateTime createdAt,
       required DateTime updatedAt,
@@ -19489,6 +19706,10 @@ typedef $$FamilyProfilesTableUpdateCompanionBuilder =
       Value<String> preferredCookTime,
       Value<String> budgetLevel,
       Value<String> pantryStaplesJson,
+      Value<String> dislikedIngredientsJson,
+      Value<String> skillLevel,
+      Value<String> spiceTolerance,
+      Value<String> varietyPreference,
       Value<bool> onboardingCompleted,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -19551,6 +19772,26 @@ class $$FamilyProfilesTableFilterComposer
 
   ColumnFilters<String> get pantryStaplesJson => $composableBuilder(
     column: $table.pantryStaplesJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dislikedIngredientsJson => $composableBuilder(
+    column: $table.dislikedIngredientsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get skillLevel => $composableBuilder(
+    column: $table.skillLevel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get spiceTolerance => $composableBuilder(
+    column: $table.spiceTolerance,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get varietyPreference => $composableBuilder(
+    column: $table.varietyPreference,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -19629,6 +19870,26 @@ class $$FamilyProfilesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get dislikedIngredientsJson => $composableBuilder(
+    column: $table.dislikedIngredientsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get skillLevel => $composableBuilder(
+    column: $table.skillLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get spiceTolerance => $composableBuilder(
+    column: $table.spiceTolerance,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get varietyPreference => $composableBuilder(
+    column: $table.varietyPreference,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get onboardingCompleted => $composableBuilder(
     column: $table.onboardingCompleted,
     builder: (column) => ColumnOrderings(column),
@@ -19698,6 +19959,26 @@ class $$FamilyProfilesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get dislikedIngredientsJson => $composableBuilder(
+    column: $table.dislikedIngredientsJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get skillLevel => $composableBuilder(
+    column: $table.skillLevel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get spiceTolerance => $composableBuilder(
+    column: $table.spiceTolerance,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get varietyPreference => $composableBuilder(
+    column: $table.varietyPreference,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get onboardingCompleted => $composableBuilder(
     column: $table.onboardingCompleted,
     builder: (column) => column,
@@ -19753,6 +20034,10 @@ class $$FamilyProfilesTableTableManager
                 Value<String> preferredCookTime = const Value.absent(),
                 Value<String> budgetLevel = const Value.absent(),
                 Value<String> pantryStaplesJson = const Value.absent(),
+                Value<String> dislikedIngredientsJson = const Value.absent(),
+                Value<String> skillLevel = const Value.absent(),
+                Value<String> spiceTolerance = const Value.absent(),
+                Value<String> varietyPreference = const Value.absent(),
                 Value<bool> onboardingCompleted = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -19768,6 +20053,10 @@ class $$FamilyProfilesTableTableManager
                 preferredCookTime: preferredCookTime,
                 budgetLevel: budgetLevel,
                 pantryStaplesJson: pantryStaplesJson,
+                dislikedIngredientsJson: dislikedIngredientsJson,
+                skillLevel: skillLevel,
+                spiceTolerance: spiceTolerance,
+                varietyPreference: varietyPreference,
                 onboardingCompleted: onboardingCompleted,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -19785,6 +20074,10 @@ class $$FamilyProfilesTableTableManager
                 Value<String> preferredCookTime = const Value.absent(),
                 Value<String> budgetLevel = const Value.absent(),
                 Value<String> pantryStaplesJson = const Value.absent(),
+                Value<String> dislikedIngredientsJson = const Value.absent(),
+                Value<String> skillLevel = const Value.absent(),
+                Value<String> spiceTolerance = const Value.absent(),
+                Value<String> varietyPreference = const Value.absent(),
                 Value<bool> onboardingCompleted = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
@@ -19800,6 +20093,10 @@ class $$FamilyProfilesTableTableManager
                 preferredCookTime: preferredCookTime,
                 budgetLevel: budgetLevel,
                 pantryStaplesJson: pantryStaplesJson,
+                dislikedIngredientsJson: dislikedIngredientsJson,
+                skillLevel: skillLevel,
+                spiceTolerance: spiceTolerance,
+                varietyPreference: varietyPreference,
                 onboardingCompleted: onboardingCompleted,
                 createdAt: createdAt,
                 updatedAt: updatedAt,

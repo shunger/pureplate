@@ -539,11 +539,7 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
 
       final dbProfile = await familyProfileDao.getProfile();
       final profile = dbProfile != null
-          ? FamilyProfile(
-              id: dbProfile.id,
-              adults: dbProfile.adults,
-              kids: dbProfile.kids,
-            )
+          ? _profileFromDb(dbProfile)
           : FamilyProfile(id: 'default');
 
       final pantryItems = await pantryDao.getAllItems();
@@ -664,6 +660,37 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
         );
       }
     });
+  }
+
+  FamilyProfile _profileFromDb(db.FamilyProfile row) {
+    return FamilyProfile(
+      id: row.id,
+      adults: row.adults,
+      kids: row.kids,
+      skillLevel: SkillLevel.values
+              .where((s) => s.name == row.skillLevel)
+              .firstOrNull ??
+          SkillLevel.comfortable,
+      spiceTolerance: SpiceTolerance.values
+              .where((s) => s.name == row.spiceTolerance)
+              .firstOrNull ??
+          SpiceTolerance.medium,
+      varietyPreference: VarietyPreference.values
+              .where((v) => v.name == row.varietyPreference)
+              .firstOrNull ??
+          VarietyPreference.mixed,
+      dislikedIngredients: _parseJsonList(row.dislikedIngredientsJson),
+    );
+  }
+
+  List<String> _parseJsonList(String json) {
+    try {
+      return (jsonDecode(json) as List<dynamic>)
+          .map((e) => e.toString())
+          .toList();
+    } catch (_) {
+      return [];
+    }
   }
 }
 

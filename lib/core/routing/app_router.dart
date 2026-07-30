@@ -27,6 +27,7 @@ import '../../features/premium/presentation/screens/premium_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_welcome_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_family_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_dietary_screen.dart';
+import '../../features/onboarding/presentation/screens/onboarding_style_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_cooking_screen.dart';
 import '../../features/sharing/presentation/screens/collaborators_screen.dart';
 import '../../features/sharing/presentation/screens/activity_feed_screen.dart';
@@ -54,6 +55,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.onboardingDietary,
         builder: (context, state) => const OnboardingDietaryScreen(),
+      ),
+      GoRoute(
+        path: Routes.onboardingStyle,
+        builder: (context, state) => const OnboardingStyleScreen(),
       ),
       GoRoute(
         path: Routes.onboardingCooking,
