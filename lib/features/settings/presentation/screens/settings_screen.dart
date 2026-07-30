@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/routing/route_names.dart';
+import '../../../../core/providers/auth_providers.dart';
 import '../../../../core/providers/database_providers.dart';
 import '../../../../core/services/thaw_reminder_service.dart';
 import '../providers/settings_providers.dart';
@@ -29,6 +30,7 @@ class SettingsScreen extends ConsumerWidget {
         children: [
           // ── Account Section ──────────────────────────────────
           _SectionHeader(title: 'Account'),
+          const _CloudBackupTile(),
           profileAsync.when(
             loading: () => const ListTile(
               leading: Icon(Icons.person_outline),
@@ -236,6 +238,157 @@ class SettingsScreen extends ConsumerWidget {
                   },
                 ))
             .toList(),
+      ),
+    );
+  }
+}
+
+class _CloudBackupTile extends ConsumerWidget {
+  const _CloudBackupTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isSignedIn = ref.watch(isCloudSignedInProvider);
+    final displayName = ref.watch(userDisplayNameProvider);
+    final email = ref.watch(userEmailProvider);
+
+    if (isSignedIn) {
+      return ListTile(
+        leading: CircleAvatar(
+          backgroundColor: AppColors.coral.withValues(alpha: 0.15),
+          child: const Icon(Icons.cloud_done, color: AppColors.coral),
+        ),
+        title: Text(displayName ?? 'Cloud Backup'),
+        subtitle: Text(email ?? 'Signed in'),
+        trailing: IconButton(
+          icon: Icon(Icons.logout,
+              color: Theme.of(context).colorScheme.onSurfaceVariant),
+          onPressed: () => _confirmSignOut(context, ref),
+        ),
+      );
+    }
+
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+        child: Icon(Icons.cloud_off,
+            color: Theme.of(context).colorScheme.onSurfaceVariant),
+      ),
+      title: const Text('Cloud Backup'),
+      subtitle: const Text('Sign in to back up your pantry'),
+      trailing: Icon(Icons.chevron_right,
+          color: Theme.of(context).colorScheme.onSurfaceVariant),
+      onTap: () => _showSignInSheet(context, ref),
+    );
+  }
+
+  void _showSignInSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Back up your pantry',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Sign in to save your pantry to the cloud. '
+                'Your data will be restored if you reinstall the app.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: () => _handleSignIn(
+                  ctx,
+                  ref,
+                  () => ref.read(authServiceProvider).signInWithGoogle(),
+                ),
+                icon: const Icon(Icons.g_mobiledata),
+                label: const Text('Continue with Google'),
+              ),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: () => _handleSignIn(
+                  ctx,
+                  ref,
+                  () => ref.read(authServiceProvider).signInWithApple(),
+                ),
+                icon: const Icon(Icons.apple),
+                label: const Text('Continue with Apple'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
+                  foregroundColor: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.black
+                      : Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleSignIn(
+    BuildContext context,
+    WidgetRef ref,
+    Future<void> Function() signInFn,
+  ) async {
+    Navigator.pop(context); // Close bottom sheet.
+    try {
+      await signInFn();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Cloud backup enabled')),
+        );
+      }
+    } on Exception catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Sign-in failed: $e')),
+        );
+      }
+    }
+  }
+
+  void _confirmSignOut(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sign out?'),
+        content: const Text(
+          'Your pantry data will stay on this device, but cloud '
+          'backup will stop until you sign in again.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await ref.read(authServiceProvider).signOut();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Signed out')),
+                );
+              }
+            },
+            child: const Text('Sign out'),
+          ),
+        ],
       ),
     );
   }
