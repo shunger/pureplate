@@ -83,21 +83,37 @@ SPICE TOLERANCE RULES:
 VARIETY PREFERENCE RULES:
 - familiar: Stick to classic crowd-pleasers and well-known comfort food. No unusual or unfamiliar cuisines.
 - mixed: Mostly familiar favorites, but occasionally suggest something new or a twist on a classic.
-- adventurous: Surprise the user often — suggest unusual cuisines, uncommon ingredients, and creative recipes.`;
+- adventurous: Surprise the user often — suggest unusual cuisines, uncommon ingredients, and creative recipes.
+
+PANTRY-ONLY MODE (when "Pantry-only mode: ON" appears in USER CONTEXT):
+When pantry-only mode is active, you MUST follow these rules strictly:
+1. DO NOT immediately suggest a recipe. First, assess whether the pantry has enough ingredients for a complete meal.
+2. If the pantry is empty or has very few items, tell the user honestly: "Your pantry doesn't have enough ingredients for a full meal right now." Suggest what they'd need to add, and ask if they'd like suggestions that require a few extra items instead.
+3. If you can make a partial meal but need to substitute or omit ingredients, explain exactly what's missing and what you're substituting BEFORE presenting the recipe. Ask the user if they're okay with the substitutions.
+4. If additional items beyond the pantry are required to make a complete, quality meal, list them clearly and ask the user if they'd like to proceed or if they want to add those items to their shopping list first.
+5. Only present a full recipe once the user has agreed to the approach. Do not just generate a recipe and hope for the best.
+6. Every ingredient in the recipe MUST come from the user's pantry list. Do not silently add ingredients that aren't in the pantry.`;
 }
 
 export function buildChatUserPrompt(request: ChatRequest): string {
   const {userMessage, chatHistory, preferenceSummary, activePlan} = request;
   const prefs = preferenceSummary;
 
+  const pantryOnlyFlag = prefs.pantry_only ? "ON" : "OFF";
+  const pantryItemNames = prefs.pantry_items.map((i) => i.name);
+  const pantryDisplay = pantryItemNames.length > 0
+    ? pantryItemNames.join(", ")
+    : "EMPTY — no items in pantry";
+
   let context = `USER CONTEXT:
+- Pantry-only mode: ${pantryOnlyFlag}
 - Family: ${prefs.family.adults} adults, ${prefs.family.kids} kids
 - Dietary restrictions: ${prefs.family.dietary_restrictions.join(", ") || "None"}
 - Budget: ${prefs.family.budget_level}
 - Cooking skill: ${prefs.family.skill_level || "comfortable"}
 - Spice tolerance: ${prefs.family.spice_tolerance || "medium"}
 - Variety preference: ${prefs.family.variety_preference || "mixed"}
-- Pantry highlights: ${prefs.pantry_items.slice(0, 15).map((i) => i.name).join(", ")}
+- Full pantry inventory: ${pantryDisplay}
 - Expiring soon: ${prefs.expiring_soon.map((i) => i.name).join(", ") || "Nothing"}
 - Loved ingredients: ${prefs.loved_ingredients.join(", ") || "None"}
 - Disliked ingredients: ${prefs.disliked_ingredients.join(", ") || "None"}

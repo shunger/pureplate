@@ -105,6 +105,7 @@ class PreferenceSummaryBuilder {
     List<String> favoriteRecipeNames = const [],
     List<MealPlanDay> recentMeals = const [],
     List<String> recentSuggestions = const [],
+    bool pantryOnly = false,
   }) {
     // Auto-compute cuisine affinities if not explicitly provided.
     final resolvedAffinities = cuisineAffinities.isNotEmpty
@@ -160,6 +161,7 @@ class PreferenceSummaryBuilder {
       'recent_meals_14d':
           recentMeals.map((m) => m.recipeName).toSet().toList(),
       'recent_suggestions': recentSuggestions.toSet().toList(),
+      'pantry_only': pantryOnly,
     };
   }
 }

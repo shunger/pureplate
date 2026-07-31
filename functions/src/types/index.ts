@@ -31,6 +31,7 @@ export interface PreferenceSummary {
   favorite_recipes: string[];
   recent_meals_14d: string[];
   recent_suggestions: string[];
+  pantry_only?: boolean;
 }
 
 // ─── generatePlan ───

@@ -146,123 +146,133 @@ class _MealPreferencesBodyState extends State<_MealPreferencesBody> {
             ),
             const SizedBox(height: 20),
 
-            // Q1: Cuisine style
-            _QuestionLabel(label: 'Cuisine style'),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _cuisines.map((c) {
-                final selected = _cuisine == c.$1;
-                return ChoiceChip(
-                  label: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(c.$2,
-                          size: 16,
-                          color: selected ? Colors.white : null),
-                      const SizedBox(width: 6),
-                      Text(c.$1),
-                    ],
-                  ),
-                  selected: selected,
-                  onSelected: (_) =>
-                      setState(() => _cuisine = selected ? null : c.$1),
-                  selectedColor: AppColors.coral,
-                  labelStyle: TextStyle(
-                    color: selected ? Colors.white : null,
-                    fontWeight: selected ? FontWeight.w600 : null,
-                  ),
-                  showCheckmark: false,
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 18),
+            // Scrollable question area
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Q1: Cuisine style
+                    _QuestionLabel(label: 'Cuisine style'),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _cuisines.map((c) {
+                        final selected = _cuisine == c.$1;
+                        return ChoiceChip(
+                          label: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(c.$2,
+                                  size: 16,
+                                  color: selected ? Colors.white : null),
+                              const SizedBox(width: 6),
+                              Text(c.$1),
+                            ],
+                          ),
+                          selected: selected,
+                          onSelected: (_) =>
+                              setState(() => _cuisine = selected ? null : c.$1),
+                          selectedColor: AppColors.coral,
+                          labelStyle: TextStyle(
+                            color: selected ? Colors.white : null,
+                            fontWeight: selected ? FontWeight.w600 : null,
+                          ),
+                          showCheckmark: false,
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 18),
 
-            // Q2: Effort
-            _QuestionLabel(label: 'Cooking effort'),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _efforts.map((e) {
-                final selected = _effort == e.$1;
-                return ChoiceChip(
-                  label: Text(e.$1),
-                  selected: selected,
-                  onSelected: (_) =>
-                      setState(() => _effort = selected ? null : e.$1),
-                  selectedColor: AppColors.coral,
-                  labelStyle: TextStyle(
-                    color: selected ? Colors.white : null,
-                    fontWeight: selected ? FontWeight.w600 : null,
-                  ),
-                  showCheckmark: false,
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 18),
+                    // Q2: Effort
+                    _QuestionLabel(label: 'Cooking effort'),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _efforts.map((e) {
+                        final selected = _effort == e.$1;
+                        return ChoiceChip(
+                          label: Text(e.$1),
+                          selected: selected,
+                          onSelected: (_) =>
+                              setState(() => _effort = selected ? null : e.$1),
+                          selectedColor: AppColors.coral,
+                          labelStyle: TextStyle(
+                            color: selected ? Colors.white : null,
+                            fontWeight: selected ? FontWeight.w600 : null,
+                          ),
+                          showCheckmark: false,
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 18),
 
-            // Q3: Vibe
-            _QuestionLabel(label: 'Mood'),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _vibes.map((v) {
-                final selected = _vibe == v.$1;
-                return ChoiceChip(
-                  label: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(v.$2,
-                          size: 16,
-                          color: selected ? Colors.white : null),
-                      const SizedBox(width: 6),
-                      Text(v.$1),
-                    ],
-                  ),
-                  selected: selected,
-                  onSelected: (_) =>
-                      setState(() => _vibe = selected ? null : v.$1),
-                  selectedColor: AppColors.coral,
-                  labelStyle: TextStyle(
-                    color: selected ? Colors.white : null,
-                    fontWeight: selected ? FontWeight.w600 : null,
-                  ),
-                  showCheckmark: false,
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 18),
+                    // Q3: Vibe
+                    _QuestionLabel(label: 'Mood'),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _vibes.map((v) {
+                        final selected = _vibe == v.$1;
+                        return ChoiceChip(
+                          label: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(v.$2,
+                                  size: 16,
+                                  color: selected ? Colors.white : null),
+                              const SizedBox(width: 6),
+                              Text(v.$1),
+                            ],
+                          ),
+                          selected: selected,
+                          onSelected: (_) =>
+                              setState(() => _vibe = selected ? null : v.$1),
+                          selectedColor: AppColors.coral,
+                          labelStyle: TextStyle(
+                            color: selected ? Colors.white : null,
+                            fontWeight: selected ? FontWeight.w600 : null,
+                          ),
+                          showCheckmark: false,
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 18),
 
-            // Pantry-only toggle
-            _QuestionLabel(label: 'Ingredients'),
-            const SizedBox(height: 8),
-            ChoiceChip(
-              label: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.kitchen_outlined,
-                      size: 16,
-                      color: _pantryOnly ? Colors.white : null),
-                  const SizedBox(width: 6),
-                  const Text('Use only pantry'),
-                ],
+                    // Pantry-only toggle
+                    _QuestionLabel(label: 'Ingredients'),
+                    const SizedBox(height: 8),
+                    ChoiceChip(
+                      label: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.kitchen_outlined,
+                              size: 16,
+                              color: _pantryOnly ? Colors.white : null),
+                          const SizedBox(width: 6),
+                          const Text('Use only pantry'),
+                        ],
+                      ),
+                      selected: _pantryOnly,
+                      onSelected: (_) =>
+                          setState(() => _pantryOnly = !_pantryOnly),
+                      selectedColor: AppColors.coral,
+                      labelStyle: TextStyle(
+                        color: _pantryOnly ? Colors.white : null,
+                        fontWeight: _pantryOnly ? FontWeight.w600 : null,
+                      ),
+                      showCheckmark: false,
+                    ),
+                  ],
+                ),
               ),
-              selected: _pantryOnly,
-              onSelected: (_) =>
-                  setState(() => _pantryOnly = !_pantryOnly),
-              selectedColor: AppColors.coral,
-              labelStyle: TextStyle(
-                color: _pantryOnly ? Colors.white : null,
-                fontWeight: _pantryOnly ? FontWeight.w600 : null,
-              ),
-              showCheckmark: false,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
-            // Action buttons
+            // Action buttons (pinned at bottom)
             Row(
               children: [
                 Expanded(

@@ -45,6 +45,7 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
   final _messages = <_ChatMessage>[];
   bool _isLoading = false;
   File? _selectedImage;
+  bool _pantryOnly = false;
   // Track feedback state per recipe: recipeId → 'loved' | 'disliked' | null.
   final _feedbackState = <String, String>{};
 
@@ -66,6 +67,7 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
       final prefs = widget.prefsParam != null
           ? MealPreferences.fromQueryParam(widget.prefsParam!)
           : const MealPreferences();
+      _pantryOnly = prefs.pantryOnly;
       final prefFragment = prefs.toPromptFragment();
 
       final pantryConstraint = prefs.pantryOnly
@@ -602,6 +604,7 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
         recentMeals: domainRecentMeals,
         recentSuggestions: sessionSuggestions,
         feedbackWithCuisine: feedbackWithCuisine,
+        pantryOnly: _pantryOnly,
       );
 
       // Use a default message when the user sends only an image.
