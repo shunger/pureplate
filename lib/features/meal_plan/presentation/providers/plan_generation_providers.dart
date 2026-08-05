@@ -221,6 +221,118 @@ class PlanGenerationNotifier extends StateNotifier<PlanGenerationState> {
     }
   }
 
+  /// Regenerate only specific days of an existing plan.
+  ///
+  /// [planId] — the existing plan to update.
+  /// [daysToReplace] — the MealPlanDay entries to regenerate.
+  /// [keptMealNames] — names of meals the user is keeping (so the AI avoids them).
+  Future<bool> regeneratePartial({
+    required String planId,
+    required List<db.MealPlanDay> daysToReplace,
+    required List<String> keptMealNames,
+  }) async {
+    if (daysToReplace.isEmpty) return true;
+
+    state = state.copyWith(isGenerating: true, errorMessage: null);
+
+    try {
+      final dbProfile = await _familyProfileDao.getProfile();
+      final profile = dbProfile != null
+          ? _profileFromDb(dbProfile)
+          : FamilyProfile(id: 'default');
+
+      final pantryItems = await _pantryDao.getAllItems();
+      final domainPantryItems = pantryItems
+          .map((item) => PantryItem(
+                id: item.id,
+                name: item.name,
+                category: _parsePantryCategory(item.category),
+                quantity: item.quantity,
+                unitType: item.unitType,
+                expiresAt: item.expiresAt,
+                isStaple: item.isStaple,
+                reorderThreshold: item.reorderThreshold.toDouble(),
+                createdAt: item.createdAt,
+              ))
+          .toList();
+
+      final recentMeals = await _mealPlanDao.getRecentMeals();
+      final domainRecentMeals = recentMeals
+          .map(MealPlanMapper.dayFromDb)
+          .toList();
+
+      final allFeedback = await _feedbackDao.getAllFeedback();
+      final feedbackWithCuisine = <FeedbackCuisine>[];
+      for (final fb in allFeedback) {
+        final recipe = await _recipeDao.getRecipeById(fb.recipeId);
+        if (recipe != null && recipe.cuisine.isNotEmpty) {
+          feedbackWithCuisine.add(FeedbackCuisine(
+            feedback: fb.feedback,
+            cuisine: recipe.cuisine,
+          ));
+        }
+      }
+
+      final summary = _summaryBuilder.build(
+        profile: profile,
+        pantryItems: domainPantryItems,
+        recentMeals: domainRecentMeals,
+        feedbackWithCuisine: feedbackWithCuisine,
+      );
+
+      // Add kept meals to recent_suggestions so the AI avoids them.
+      if (keptMealNames.isNotEmpty) {
+        final existing = summary['recent_suggestions'] as List? ?? [];
+        summary['recent_suggestions'] = [...existing, ...keptMealNames];
+      }
+
+      final numDays = daysToReplace.length;
+      final dayLabels = daysToReplace
+          .map((d) => DateFormat('EEEE').format(d.date))
+          .toList();
+
+      final result = await _aiRepo.generatePlan(
+        numDays: numDays,
+        dayLabels: dayLabels,
+        preferenceSummary: summary,
+      );
+
+      // Save new recipes.
+      final recipeCompanions = result.recipes
+          .map(RecipeMapper.toCompanion)
+          .toList();
+      await _recipeDao.insertRecipes(recipeCompanions);
+
+      // Update each replaced day with the new recipe.
+      for (var i = 0; i < daysToReplace.length && i < result.plan.days.length; i++) {
+        final oldDay = daysToReplace[i];
+        final newDay = result.plan.days[i];
+        await _mealPlanDao.updateDayRecipe(
+          oldDay.id,
+          newDay.recipeId,
+          newDay.recipeName,
+        );
+      }
+
+      state = state.copyWith(isGenerating: false, planId: planId);
+      return true;
+    } on AiPlanException catch (e) {
+      state = state.copyWith(
+        isGenerating: false,
+        errorMessage: e.message,
+      );
+      return false;
+    } catch (e, stackTrace) {
+      debugPrint('PlanGeneration partial error: $e');
+      debugPrint('PlanGeneration partial stack: $stackTrace');
+      state = state.copyWith(
+        isGenerating: false,
+        errorMessage: 'Something went wrong. Please try again.',
+      );
+      return false;
+    }
+  }
+
   DateTime _nextMonday(DateTime from) {
     final daysUntilMonday = (DateTime.monday - from.weekday + 7) % 7;
     if (daysUntilMonday == 0) return from;

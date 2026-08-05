@@ -38,6 +38,9 @@ abstract class Recipe with _$Recipe {
     @Default(false) bool isDairyFree,
     @Default(false) bool isNutFree,
 
+    /// Favorite.
+    @Default(false) bool isFavorite,
+
     /// Source tracking.
     @Default(RecipeSource.bundled) RecipeSource source,
     Map<String, dynamic>? aiMetadata,

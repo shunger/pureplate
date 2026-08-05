@@ -36,6 +36,7 @@ class RecipeMapper {
       isGlutenFree: _dietaryFlagContains(row.dietaryFlagsJson, 'gluten_free'),
       isDairyFree: _dietaryFlagContains(row.dietaryFlagsJson, 'dairy_free'),
       isNutFree: _dietaryFlagContains(row.dietaryFlagsJson, 'nut_free'),
+      isFavorite: row.isFavorite,
       source: _parseSource(row.source),
       aiMetadata: _parseJsonMap(row.aiMetadataJson),
       createdAt: row.createdAt,
@@ -72,6 +73,7 @@ class RecipeMapper {
           recipe.nutrition != null ? jsonEncode(recipe.nutrition!.toJson()) : null),
       tagsJson: Value('[]'),
       dietaryFlagsJson: Value(jsonEncode(dietaryFlags)),
+      isFavorite: Value(recipe.isFavorite),
       source: Value(_sourceToString(recipe.source)),
       aiMetadataJson: Value(
           recipe.aiMetadata != null ? jsonEncode(recipe.aiMetadata) : null),

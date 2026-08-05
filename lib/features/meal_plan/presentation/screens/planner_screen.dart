@@ -5,15 +5,26 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/routing/route_names.dart';
 import '../../../../core/providers/database_providers.dart';
+import '../../domain/models/meal_plan.dart';
 import '../providers/meal_plan_providers.dart';
+import '../providers/plan_generation_providers.dart';
 import '../widgets/meal_plan_widgets.dart';
 
 /// Main Planner tab — shows the latest/active meal plan as a week view.
-class PlannerScreen extends ConsumerWidget {
+class PlannerScreen extends ConsumerStatefulWidget {
   const PlannerScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PlannerScreen> createState() => _PlannerScreenState();
+}
+
+class _PlannerScreenState extends ConsumerState<PlannerScreen> {
+  /// Day IDs the user has approved (checked = keep this meal).
+  final _approvedDayIds = <String>{};
+  bool _isRegenerating = false;
+
+  @override
+  Widget build(BuildContext context) {
     final planAsync = ref.watch(latestMealPlanProvider);
 
     return Scaffold(
@@ -24,7 +35,10 @@ class PlannerScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.auto_awesome),
             tooltip: 'Generate new plan',
-            onPressed: () => context.push(Routes.planGeneration),
+            onPressed: () {
+              _approvedDayIds.clear();
+              context.push(Routes.planGeneration);
+            },
           ),
         ],
       ),
@@ -39,7 +53,7 @@ class PlannerScreen extends ConsumerWidget {
           if (plan == null) {
             return _buildEmptyState(context);
           }
-          return _buildPlanView(context, ref, plan);
+          return _buildPlanView(plan);
         },
       ),
     );
@@ -100,31 +114,152 @@ class PlannerScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPlanView(BuildContext context, WidgetRef ref, plan) {
+  Future<void> _changeStartDate(MealPlan plan) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: plan.startDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 30)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked == null) return;
+
+    final newStart = DateTime(picked.year, picked.month, picked.day);
+    if (newStart == plan.startDate) return;
+
+    await ref.read(mealPlanDaoProvider).shiftPlanStartDate(plan.id, newStart);
+  }
+
+  Future<void> _retryUnapproved(MealPlan plan) async {
     final sortedDays = List.of(plan.days)
       ..sort((a, b) => a.date.compareTo(b.date));
+
+    final daysToReplace = sortedDays
+        .where((d) => !_approvedDayIds.contains(d.id))
+        .toList();
+
+    if (daysToReplace.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Check the meals you want to keep first.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final keptNames = sortedDays
+        .where((d) => _approvedDayIds.contains(d.id))
+        .map((d) => d.recipeName)
+        .toList();
+
+    setState(() => _isRegenerating = true);
+
+    // Get the raw DB rows for the days to replace.
+    final dao = ref.read(mealPlanDaoProvider);
+    final allDbDays = await dao.getDaysForPlan(plan.id);
+    final dbDaysToReplace = allDbDays
+        .where((d) => daysToReplace.any((dom) => dom.id == d.id))
+        .toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    final success = await ref
+        .read(planGenerationStateProvider.notifier)
+        .regeneratePartial(
+          planId: plan.id,
+          daysToReplace: dbDaysToReplace,
+          keptMealNames: keptNames,
+        );
+
+    if (!mounted) return;
+    setState(() => _isRegenerating = false);
+
+    if (success) {
+      // Clear approvals for the regenerated days so user can review again.
+      // Keep the approved ones checked.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${daysToReplace.length} meal${daysToReplace.length == 1 ? '' : 's'} refreshed!',
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else {
+      final error = ref.read(planGenerationStateProvider).errorMessage;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error ?? 'Failed to regenerate meals.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _onReorderItem(
+      List<MealPlanDay> sortedDays, int oldIndex, int newIndex) async {
+    if (oldIndex == newIndex) return;
+
+    final dao = ref.read(mealPlanDaoProvider);
+    await dao.swapDayDates(sortedDays[oldIndex].id, sortedDays[newIndex].id);
+  }
+
+  Widget _buildPlanView(MealPlan plan) {
+    final sortedDays = List.of(plan.days)
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    final unapprovedCount =
+        sortedDays.where((d) => !_approvedDayIds.contains(d.id)).length;
 
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
-          child: PlanSummaryHeader(plan: plan),
-        ),
-        SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) {
-              final day = sortedDays[index];
-              return MealPlanDayCard(
-                day: day,
-                onTap: () => context.push('/recipes/${day.recipeId}'),
-                onCookedToggle: (cooked) {
-                  ref
-                      .read(mealPlanDaoProvider)
-                      .markCooked(day.id, cooked);
-                },
-              );
-            },
-            childCount: sortedDays.length,
+          child: PlanSummaryHeader(
+            plan: plan,
+            onDateTap: () => _changeStartDate(plan),
+            onRetry: _isRegenerating ? null : () => _retryUnapproved(plan),
+            retryLabel: _isRegenerating
+                ? 'Regenerating...'
+                : unapprovedCount == sortedDays.length
+                    ? 'Try again'
+                    : 'Refresh $unapprovedCount meal${unapprovedCount == 1 ? '' : 's'}',
           ),
+        ),
+        if (_isRegenerating)
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Center(
+                child: LinearProgressIndicator(color: AppColors.coral),
+              ),
+            ),
+          ),
+        SliverReorderableList(
+          itemCount: sortedDays.length,
+          onReorderItem: (oldIndex, newIndex) =>
+              _onReorderItem(sortedDays, oldIndex, newIndex),
+          itemBuilder: (context, index) {
+            final day = sortedDays[index];
+            final isApproved = _approvedDayIds.contains(day.id);
+            return ReorderableDragStartListener(
+              key: ValueKey(day.id),
+              index: index,
+              child: MealPlanDayCard(
+                day: day,
+                isApproved: isApproved,
+                onTap: () => context.push('/recipes/${day.recipeId}'),
+                onApprovalToggle: (approved) {
+                  setState(() {
+                    if (approved) {
+                      _approvedDayIds.add(day.id);
+                    } else {
+                      _approvedDayIds.remove(day.id);
+                    }
+                  });
+                },
+              ),
+            );
+          },
         ),
         const SliverToBoxAdapter(
           child: SizedBox(height: 100),

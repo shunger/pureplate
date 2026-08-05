@@ -190,12 +190,20 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     onPressed: _showImageSourceSheet,
                   ),
                   IconButton(
-                    icon: const Icon(Icons.favorite_border),
-                    tooltip: 'Favorite recipe',
+                    icon: Icon(
+                      recipe.isFavorite
+                          ? Icons.favorite
+                          : Icons.favorite_border,
+                      color: recipe.isFavorite ? AppColors.coral : null,
+                    ),
+                    tooltip: recipe.isFavorite
+                        ? 'Remove from favorites'
+                        : 'Add to favorites',
                     onPressed: () {
                       ref
                           .read(recipeDaoProvider)
-                          .toggleFavorite(recipe.id, true);
+                          .toggleFavorite(
+                              recipe.id, !recipe.isFavorite);
                     },
                   ),
                 ],
@@ -703,7 +711,6 @@ class _AssignToMealPlanSheetState
                   .map((t) => ButtonSegment(
                         value: t,
                         label: Text(t[0].toUpperCase() + t.substring(1)),
-                        icon: Icon(_mealTypeIcon(t)),
                       ))
                   .toList(),
               selected: {_selectedMealType},
@@ -789,16 +796,6 @@ class _AssignToMealPlanSheetState
     );
   }
 
-  IconData _mealTypeIcon(String type) {
-    switch (type) {
-      case 'breakfast':
-        return Icons.free_breakfast;
-      case 'lunch':
-        return Icons.lunch_dining;
-      default:
-        return Icons.dinner_dining;
-    }
-  }
 }
 
 // ── Add to Shopping List Bottom Sheet ──────────────────────

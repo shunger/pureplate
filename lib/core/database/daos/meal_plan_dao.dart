@@ -113,6 +113,32 @@ class MealPlanDao extends DatabaseAccessor<AppDatabase>
           MealPlanDaysCompanion(
               recipeId: Value(recipeId), recipeName: Value(recipeName)));
 
+  /// Shift an entire plan to a new start date, updating the plan's
+  /// start/end dates and each day's date by the same offset.
+  Future<void> shiftPlanStartDate(String planId, DateTime newStart) =>
+      transaction(() async {
+        final plan = await (select(mealPlans)
+              ..where((p) => p.id.equals(planId)))
+            .getSingle();
+        final offset = newStart.difference(plan.startDate);
+        final newEnd = plan.endDate.add(offset);
+
+        await (update(mealPlans)..where((p) => p.id.equals(planId))).write(
+          MealPlansCompanion(
+            startDate: Value(newStart),
+            endDate: Value(newEnd),
+          ),
+        );
+
+        final days = await (select(mealPlanDays)
+              ..where((d) => d.planId.equals(planId)))
+            .get();
+        for (final day in days) {
+          await (update(mealPlanDays)..where((d) => d.id.equals(day.id)))
+              .write(MealPlanDaysCompanion(date: Value(day.date.add(offset))));
+        }
+      });
+
   /// Swap dates of two plan days (for drag-and-drop reorder).
   Future<void> swapDayDates(String dayId1, String dayId2) =>
       transaction(() async {

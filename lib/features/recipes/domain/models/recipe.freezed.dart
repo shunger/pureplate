@@ -18,7 +18,8 @@ mixin _$Recipe {
  String get id; String get name; String? get description; String? get cuisine; String? get imageUrl;/// Timing.
  int get prepTimeMinutes; int get cookTimeMinutes; int get servings; String? get difficulty;/// Structured data.
  List<Ingredient> get ingredients; List<InstructionStep> get instructions; NutritionInfo? get nutrition;/// Dietary flags (derived from ingredients or set by AI).
- bool get isVegetarian; bool get isVegan; bool get isGlutenFree; bool get isDairyFree; bool get isNutFree;/// Source tracking.
+ bool get isVegetarian; bool get isVegan; bool get isGlutenFree; bool get isDairyFree; bool get isNutFree;/// Favorite.
+ bool get isFavorite;/// Source tracking.
  RecipeSource get source; Map<String, dynamic>? get aiMetadata;/// Timestamps.
  DateTime get createdAt; DateTime? get updatedAt;
 /// Create a copy of Recipe
@@ -33,16 +34,16 @@ $RecipeCopyWith<Recipe> get copyWith => _$RecipeCopyWithImpl<Recipe>(this as Rec
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Recipe&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.cuisine, cuisine) || other.cuisine == cuisine)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.prepTimeMinutes, prepTimeMinutes) || other.prepTimeMinutes == prepTimeMinutes)&&(identical(other.cookTimeMinutes, cookTimeMinutes) || other.cookTimeMinutes == cookTimeMinutes)&&(identical(other.servings, servings) || other.servings == servings)&&(identical(other.difficulty, difficulty) || other.difficulty == difficulty)&&const DeepCollectionEquality().equals(other.ingredients, ingredients)&&const DeepCollectionEquality().equals(other.instructions, instructions)&&(identical(other.nutrition, nutrition) || other.nutrition == nutrition)&&(identical(other.isVegetarian, isVegetarian) || other.isVegetarian == isVegetarian)&&(identical(other.isVegan, isVegan) || other.isVegan == isVegan)&&(identical(other.isGlutenFree, isGlutenFree) || other.isGlutenFree == isGlutenFree)&&(identical(other.isDairyFree, isDairyFree) || other.isDairyFree == isDairyFree)&&(identical(other.isNutFree, isNutFree) || other.isNutFree == isNutFree)&&(identical(other.source, source) || other.source == source)&&const DeepCollectionEquality().equals(other.aiMetadata, aiMetadata)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Recipe&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.cuisine, cuisine) || other.cuisine == cuisine)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.prepTimeMinutes, prepTimeMinutes) || other.prepTimeMinutes == prepTimeMinutes)&&(identical(other.cookTimeMinutes, cookTimeMinutes) || other.cookTimeMinutes == cookTimeMinutes)&&(identical(other.servings, servings) || other.servings == servings)&&(identical(other.difficulty, difficulty) || other.difficulty == difficulty)&&const DeepCollectionEquality().equals(other.ingredients, ingredients)&&const DeepCollectionEquality().equals(other.instructions, instructions)&&(identical(other.nutrition, nutrition) || other.nutrition == nutrition)&&(identical(other.isVegetarian, isVegetarian) || other.isVegetarian == isVegetarian)&&(identical(other.isVegan, isVegan) || other.isVegan == isVegan)&&(identical(other.isGlutenFree, isGlutenFree) || other.isGlutenFree == isGlutenFree)&&(identical(other.isDairyFree, isDairyFree) || other.isDairyFree == isDairyFree)&&(identical(other.isNutFree, isNutFree) || other.isNutFree == isNutFree)&&(identical(other.isFavorite, isFavorite) || other.isFavorite == isFavorite)&&(identical(other.source, source) || other.source == source)&&const DeepCollectionEquality().equals(other.aiMetadata, aiMetadata)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,name,description,cuisine,imageUrl,prepTimeMinutes,cookTimeMinutes,servings,difficulty,const DeepCollectionEquality().hash(ingredients),const DeepCollectionEquality().hash(instructions),nutrition,isVegetarian,isVegan,isGlutenFree,isDairyFree,isNutFree,source,const DeepCollectionEquality().hash(aiMetadata),createdAt,updatedAt]);
+int get hashCode => Object.hashAll([runtimeType,id,name,description,cuisine,imageUrl,prepTimeMinutes,cookTimeMinutes,servings,difficulty,const DeepCollectionEquality().hash(ingredients),const DeepCollectionEquality().hash(instructions),nutrition,isVegetarian,isVegan,isGlutenFree,isDairyFree,isNutFree,isFavorite,source,const DeepCollectionEquality().hash(aiMetadata),createdAt,updatedAt]);
 
 @override
 String toString() {
-  return 'Recipe(id: $id, name: $name, description: $description, cuisine: $cuisine, imageUrl: $imageUrl, prepTimeMinutes: $prepTimeMinutes, cookTimeMinutes: $cookTimeMinutes, servings: $servings, difficulty: $difficulty, ingredients: $ingredients, instructions: $instructions, nutrition: $nutrition, isVegetarian: $isVegetarian, isVegan: $isVegan, isGlutenFree: $isGlutenFree, isDairyFree: $isDairyFree, isNutFree: $isNutFree, source: $source, aiMetadata: $aiMetadata, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'Recipe(id: $id, name: $name, description: $description, cuisine: $cuisine, imageUrl: $imageUrl, prepTimeMinutes: $prepTimeMinutes, cookTimeMinutes: $cookTimeMinutes, servings: $servings, difficulty: $difficulty, ingredients: $ingredients, instructions: $instructions, nutrition: $nutrition, isVegetarian: $isVegetarian, isVegan: $isVegan, isGlutenFree: $isGlutenFree, isDairyFree: $isDairyFree, isNutFree: $isNutFree, isFavorite: $isFavorite, source: $source, aiMetadata: $aiMetadata, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -53,7 +54,7 @@ abstract mixin class $RecipeCopyWith<$Res>  {
   factory $RecipeCopyWith(Recipe value, $Res Function(Recipe) _then) = _$RecipeCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String? description, String? cuisine, String? imageUrl, int prepTimeMinutes, int cookTimeMinutes, int servings, String? difficulty, List<Ingredient> ingredients, List<InstructionStep> instructions, NutritionInfo? nutrition, bool isVegetarian, bool isVegan, bool isGlutenFree, bool isDairyFree, bool isNutFree, RecipeSource source, Map<String, dynamic>? aiMetadata, DateTime createdAt, DateTime? updatedAt
+ String id, String name, String? description, String? cuisine, String? imageUrl, int prepTimeMinutes, int cookTimeMinutes, int servings, String? difficulty, List<Ingredient> ingredients, List<InstructionStep> instructions, NutritionInfo? nutrition, bool isVegetarian, bool isVegan, bool isGlutenFree, bool isDairyFree, bool isNutFree, bool isFavorite, RecipeSource source, Map<String, dynamic>? aiMetadata, DateTime createdAt, DateTime? updatedAt
 });
 
 
@@ -70,7 +71,7 @@ class _$RecipeCopyWithImpl<$Res>
 
 /// Create a copy of Recipe
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? description = freezed,Object? cuisine = freezed,Object? imageUrl = freezed,Object? prepTimeMinutes = null,Object? cookTimeMinutes = null,Object? servings = null,Object? difficulty = freezed,Object? ingredients = null,Object? instructions = null,Object? nutrition = freezed,Object? isVegetarian = null,Object? isVegan = null,Object? isGlutenFree = null,Object? isDairyFree = null,Object? isNutFree = null,Object? source = null,Object? aiMetadata = freezed,Object? createdAt = null,Object? updatedAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? description = freezed,Object? cuisine = freezed,Object? imageUrl = freezed,Object? prepTimeMinutes = null,Object? cookTimeMinutes = null,Object? servings = null,Object? difficulty = freezed,Object? ingredients = null,Object? instructions = null,Object? nutrition = freezed,Object? isVegetarian = null,Object? isVegan = null,Object? isGlutenFree = null,Object? isDairyFree = null,Object? isNutFree = null,Object? isFavorite = null,Object? source = null,Object? aiMetadata = freezed,Object? createdAt = null,Object? updatedAt = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -89,6 +90,7 @@ as bool,isVegan: null == isVegan ? _self.isVegan : isVegan // ignore: cast_nulla
 as bool,isGlutenFree: null == isGlutenFree ? _self.isGlutenFree : isGlutenFree // ignore: cast_nullable_to_non_nullable
 as bool,isDairyFree: null == isDairyFree ? _self.isDairyFree : isDairyFree // ignore: cast_nullable_to_non_nullable
 as bool,isNutFree: null == isNutFree ? _self.isNutFree : isNutFree // ignore: cast_nullable_to_non_nullable
+as bool,isFavorite: null == isFavorite ? _self.isFavorite : isFavorite // ignore: cast_nullable_to_non_nullable
 as bool,source: null == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
 as RecipeSource,aiMetadata: freezed == aiMetadata ? _self.aiMetadata : aiMetadata // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
@@ -190,10 +192,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String? description,  String? cuisine,  String? imageUrl,  int prepTimeMinutes,  int cookTimeMinutes,  int servings,  String? difficulty,  List<Ingredient> ingredients,  List<InstructionStep> instructions,  NutritionInfo? nutrition,  bool isVegetarian,  bool isVegan,  bool isGlutenFree,  bool isDairyFree,  bool isNutFree,  RecipeSource source,  Map<String, dynamic>? aiMetadata,  DateTime createdAt,  DateTime? updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String? description,  String? cuisine,  String? imageUrl,  int prepTimeMinutes,  int cookTimeMinutes,  int servings,  String? difficulty,  List<Ingredient> ingredients,  List<InstructionStep> instructions,  NutritionInfo? nutrition,  bool isVegetarian,  bool isVegan,  bool isGlutenFree,  bool isDairyFree,  bool isNutFree,  bool isFavorite,  RecipeSource source,  Map<String, dynamic>? aiMetadata,  DateTime createdAt,  DateTime? updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Recipe() when $default != null:
-return $default(_that.id,_that.name,_that.description,_that.cuisine,_that.imageUrl,_that.prepTimeMinutes,_that.cookTimeMinutes,_that.servings,_that.difficulty,_that.ingredients,_that.instructions,_that.nutrition,_that.isVegetarian,_that.isVegan,_that.isGlutenFree,_that.isDairyFree,_that.isNutFree,_that.source,_that.aiMetadata,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.name,_that.description,_that.cuisine,_that.imageUrl,_that.prepTimeMinutes,_that.cookTimeMinutes,_that.servings,_that.difficulty,_that.ingredients,_that.instructions,_that.nutrition,_that.isVegetarian,_that.isVegan,_that.isGlutenFree,_that.isDairyFree,_that.isNutFree,_that.isFavorite,_that.source,_that.aiMetadata,_that.createdAt,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -211,10 +213,10 @@ return $default(_that.id,_that.name,_that.description,_that.cuisine,_that.imageU
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String? description,  String? cuisine,  String? imageUrl,  int prepTimeMinutes,  int cookTimeMinutes,  int servings,  String? difficulty,  List<Ingredient> ingredients,  List<InstructionStep> instructions,  NutritionInfo? nutrition,  bool isVegetarian,  bool isVegan,  bool isGlutenFree,  bool isDairyFree,  bool isNutFree,  RecipeSource source,  Map<String, dynamic>? aiMetadata,  DateTime createdAt,  DateTime? updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String? description,  String? cuisine,  String? imageUrl,  int prepTimeMinutes,  int cookTimeMinutes,  int servings,  String? difficulty,  List<Ingredient> ingredients,  List<InstructionStep> instructions,  NutritionInfo? nutrition,  bool isVegetarian,  bool isVegan,  bool isGlutenFree,  bool isDairyFree,  bool isNutFree,  bool isFavorite,  RecipeSource source,  Map<String, dynamic>? aiMetadata,  DateTime createdAt,  DateTime? updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _Recipe():
-return $default(_that.id,_that.name,_that.description,_that.cuisine,_that.imageUrl,_that.prepTimeMinutes,_that.cookTimeMinutes,_that.servings,_that.difficulty,_that.ingredients,_that.instructions,_that.nutrition,_that.isVegetarian,_that.isVegan,_that.isGlutenFree,_that.isDairyFree,_that.isNutFree,_that.source,_that.aiMetadata,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.name,_that.description,_that.cuisine,_that.imageUrl,_that.prepTimeMinutes,_that.cookTimeMinutes,_that.servings,_that.difficulty,_that.ingredients,_that.instructions,_that.nutrition,_that.isVegetarian,_that.isVegan,_that.isGlutenFree,_that.isDairyFree,_that.isNutFree,_that.isFavorite,_that.source,_that.aiMetadata,_that.createdAt,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -231,10 +233,10 @@ return $default(_that.id,_that.name,_that.description,_that.cuisine,_that.imageU
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String? description,  String? cuisine,  String? imageUrl,  int prepTimeMinutes,  int cookTimeMinutes,  int servings,  String? difficulty,  List<Ingredient> ingredients,  List<InstructionStep> instructions,  NutritionInfo? nutrition,  bool isVegetarian,  bool isVegan,  bool isGlutenFree,  bool isDairyFree,  bool isNutFree,  RecipeSource source,  Map<String, dynamic>? aiMetadata,  DateTime createdAt,  DateTime? updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String? description,  String? cuisine,  String? imageUrl,  int prepTimeMinutes,  int cookTimeMinutes,  int servings,  String? difficulty,  List<Ingredient> ingredients,  List<InstructionStep> instructions,  NutritionInfo? nutrition,  bool isVegetarian,  bool isVegan,  bool isGlutenFree,  bool isDairyFree,  bool isNutFree,  bool isFavorite,  RecipeSource source,  Map<String, dynamic>? aiMetadata,  DateTime createdAt,  DateTime? updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _Recipe() when $default != null:
-return $default(_that.id,_that.name,_that.description,_that.cuisine,_that.imageUrl,_that.prepTimeMinutes,_that.cookTimeMinutes,_that.servings,_that.difficulty,_that.ingredients,_that.instructions,_that.nutrition,_that.isVegetarian,_that.isVegan,_that.isGlutenFree,_that.isDairyFree,_that.isNutFree,_that.source,_that.aiMetadata,_that.createdAt,_that.updatedAt);case _:
+return $default(_that.id,_that.name,_that.description,_that.cuisine,_that.imageUrl,_that.prepTimeMinutes,_that.cookTimeMinutes,_that.servings,_that.difficulty,_that.ingredients,_that.instructions,_that.nutrition,_that.isVegetarian,_that.isVegan,_that.isGlutenFree,_that.isDairyFree,_that.isNutFree,_that.isFavorite,_that.source,_that.aiMetadata,_that.createdAt,_that.updatedAt);case _:
   return null;
 
 }
@@ -246,7 +248,7 @@ return $default(_that.id,_that.name,_that.description,_that.cuisine,_that.imageU
 @JsonSerializable()
 
 class _Recipe extends Recipe {
-  const _Recipe({required this.id, required this.name, this.description, this.cuisine, this.imageUrl, this.prepTimeMinutes = 0, this.cookTimeMinutes = 0, this.servings = 4, this.difficulty, final  List<Ingredient> ingredients = const [], final  List<InstructionStep> instructions = const [], this.nutrition, this.isVegetarian = false, this.isVegan = false, this.isGlutenFree = false, this.isDairyFree = false, this.isNutFree = false, this.source = RecipeSource.bundled, final  Map<String, dynamic>? aiMetadata, required this.createdAt, this.updatedAt}): _ingredients = ingredients,_instructions = instructions,_aiMetadata = aiMetadata,super._();
+  const _Recipe({required this.id, required this.name, this.description, this.cuisine, this.imageUrl, this.prepTimeMinutes = 0, this.cookTimeMinutes = 0, this.servings = 4, this.difficulty, final  List<Ingredient> ingredients = const [], final  List<InstructionStep> instructions = const [], this.nutrition, this.isVegetarian = false, this.isVegan = false, this.isGlutenFree = false, this.isDairyFree = false, this.isNutFree = false, this.isFavorite = false, this.source = RecipeSource.bundled, final  Map<String, dynamic>? aiMetadata, required this.createdAt, this.updatedAt}): _ingredients = ingredients,_instructions = instructions,_aiMetadata = aiMetadata,super._();
   factory _Recipe.fromJson(Map<String, dynamic> json) => _$RecipeFromJson(json);
 
 @override final  String id;
@@ -282,6 +284,8 @@ class _Recipe extends Recipe {
 @override@JsonKey() final  bool isGlutenFree;
 @override@JsonKey() final  bool isDairyFree;
 @override@JsonKey() final  bool isNutFree;
+/// Favorite.
+@override@JsonKey() final  bool isFavorite;
 /// Source tracking.
 @override@JsonKey() final  RecipeSource source;
  final  Map<String, dynamic>? _aiMetadata;
@@ -310,16 +314,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Recipe&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.cuisine, cuisine) || other.cuisine == cuisine)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.prepTimeMinutes, prepTimeMinutes) || other.prepTimeMinutes == prepTimeMinutes)&&(identical(other.cookTimeMinutes, cookTimeMinutes) || other.cookTimeMinutes == cookTimeMinutes)&&(identical(other.servings, servings) || other.servings == servings)&&(identical(other.difficulty, difficulty) || other.difficulty == difficulty)&&const DeepCollectionEquality().equals(other._ingredients, _ingredients)&&const DeepCollectionEquality().equals(other._instructions, _instructions)&&(identical(other.nutrition, nutrition) || other.nutrition == nutrition)&&(identical(other.isVegetarian, isVegetarian) || other.isVegetarian == isVegetarian)&&(identical(other.isVegan, isVegan) || other.isVegan == isVegan)&&(identical(other.isGlutenFree, isGlutenFree) || other.isGlutenFree == isGlutenFree)&&(identical(other.isDairyFree, isDairyFree) || other.isDairyFree == isDairyFree)&&(identical(other.isNutFree, isNutFree) || other.isNutFree == isNutFree)&&(identical(other.source, source) || other.source == source)&&const DeepCollectionEquality().equals(other._aiMetadata, _aiMetadata)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Recipe&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.description, description) || other.description == description)&&(identical(other.cuisine, cuisine) || other.cuisine == cuisine)&&(identical(other.imageUrl, imageUrl) || other.imageUrl == imageUrl)&&(identical(other.prepTimeMinutes, prepTimeMinutes) || other.prepTimeMinutes == prepTimeMinutes)&&(identical(other.cookTimeMinutes, cookTimeMinutes) || other.cookTimeMinutes == cookTimeMinutes)&&(identical(other.servings, servings) || other.servings == servings)&&(identical(other.difficulty, difficulty) || other.difficulty == difficulty)&&const DeepCollectionEquality().equals(other._ingredients, _ingredients)&&const DeepCollectionEquality().equals(other._instructions, _instructions)&&(identical(other.nutrition, nutrition) || other.nutrition == nutrition)&&(identical(other.isVegetarian, isVegetarian) || other.isVegetarian == isVegetarian)&&(identical(other.isVegan, isVegan) || other.isVegan == isVegan)&&(identical(other.isGlutenFree, isGlutenFree) || other.isGlutenFree == isGlutenFree)&&(identical(other.isDairyFree, isDairyFree) || other.isDairyFree == isDairyFree)&&(identical(other.isNutFree, isNutFree) || other.isNutFree == isNutFree)&&(identical(other.isFavorite, isFavorite) || other.isFavorite == isFavorite)&&(identical(other.source, source) || other.source == source)&&const DeepCollectionEquality().equals(other._aiMetadata, _aiMetadata)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hashAll([runtimeType,id,name,description,cuisine,imageUrl,prepTimeMinutes,cookTimeMinutes,servings,difficulty,const DeepCollectionEquality().hash(_ingredients),const DeepCollectionEquality().hash(_instructions),nutrition,isVegetarian,isVegan,isGlutenFree,isDairyFree,isNutFree,source,const DeepCollectionEquality().hash(_aiMetadata),createdAt,updatedAt]);
+int get hashCode => Object.hashAll([runtimeType,id,name,description,cuisine,imageUrl,prepTimeMinutes,cookTimeMinutes,servings,difficulty,const DeepCollectionEquality().hash(_ingredients),const DeepCollectionEquality().hash(_instructions),nutrition,isVegetarian,isVegan,isGlutenFree,isDairyFree,isNutFree,isFavorite,source,const DeepCollectionEquality().hash(_aiMetadata),createdAt,updatedAt]);
 
 @override
 String toString() {
-  return 'Recipe(id: $id, name: $name, description: $description, cuisine: $cuisine, imageUrl: $imageUrl, prepTimeMinutes: $prepTimeMinutes, cookTimeMinutes: $cookTimeMinutes, servings: $servings, difficulty: $difficulty, ingredients: $ingredients, instructions: $instructions, nutrition: $nutrition, isVegetarian: $isVegetarian, isVegan: $isVegan, isGlutenFree: $isGlutenFree, isDairyFree: $isDairyFree, isNutFree: $isNutFree, source: $source, aiMetadata: $aiMetadata, createdAt: $createdAt, updatedAt: $updatedAt)';
+  return 'Recipe(id: $id, name: $name, description: $description, cuisine: $cuisine, imageUrl: $imageUrl, prepTimeMinutes: $prepTimeMinutes, cookTimeMinutes: $cookTimeMinutes, servings: $servings, difficulty: $difficulty, ingredients: $ingredients, instructions: $instructions, nutrition: $nutrition, isVegetarian: $isVegetarian, isVegan: $isVegan, isGlutenFree: $isGlutenFree, isDairyFree: $isDairyFree, isNutFree: $isNutFree, isFavorite: $isFavorite, source: $source, aiMetadata: $aiMetadata, createdAt: $createdAt, updatedAt: $updatedAt)';
 }
 
 
@@ -330,7 +334,7 @@ abstract mixin class _$RecipeCopyWith<$Res> implements $RecipeCopyWith<$Res> {
   factory _$RecipeCopyWith(_Recipe value, $Res Function(_Recipe) _then) = __$RecipeCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String? description, String? cuisine, String? imageUrl, int prepTimeMinutes, int cookTimeMinutes, int servings, String? difficulty, List<Ingredient> ingredients, List<InstructionStep> instructions, NutritionInfo? nutrition, bool isVegetarian, bool isVegan, bool isGlutenFree, bool isDairyFree, bool isNutFree, RecipeSource source, Map<String, dynamic>? aiMetadata, DateTime createdAt, DateTime? updatedAt
+ String id, String name, String? description, String? cuisine, String? imageUrl, int prepTimeMinutes, int cookTimeMinutes, int servings, String? difficulty, List<Ingredient> ingredients, List<InstructionStep> instructions, NutritionInfo? nutrition, bool isVegetarian, bool isVegan, bool isGlutenFree, bool isDairyFree, bool isNutFree, bool isFavorite, RecipeSource source, Map<String, dynamic>? aiMetadata, DateTime createdAt, DateTime? updatedAt
 });
 
 
@@ -347,7 +351,7 @@ class __$RecipeCopyWithImpl<$Res>
 
 /// Create a copy of Recipe
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? description = freezed,Object? cuisine = freezed,Object? imageUrl = freezed,Object? prepTimeMinutes = null,Object? cookTimeMinutes = null,Object? servings = null,Object? difficulty = freezed,Object? ingredients = null,Object? instructions = null,Object? nutrition = freezed,Object? isVegetarian = null,Object? isVegan = null,Object? isGlutenFree = null,Object? isDairyFree = null,Object? isNutFree = null,Object? source = null,Object? aiMetadata = freezed,Object? createdAt = null,Object? updatedAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? description = freezed,Object? cuisine = freezed,Object? imageUrl = freezed,Object? prepTimeMinutes = null,Object? cookTimeMinutes = null,Object? servings = null,Object? difficulty = freezed,Object? ingredients = null,Object? instructions = null,Object? nutrition = freezed,Object? isVegetarian = null,Object? isVegan = null,Object? isGlutenFree = null,Object? isDairyFree = null,Object? isNutFree = null,Object? isFavorite = null,Object? source = null,Object? aiMetadata = freezed,Object? createdAt = null,Object? updatedAt = freezed,}) {
   return _then(_Recipe(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -366,6 +370,7 @@ as bool,isVegan: null == isVegan ? _self.isVegan : isVegan // ignore: cast_nulla
 as bool,isGlutenFree: null == isGlutenFree ? _self.isGlutenFree : isGlutenFree // ignore: cast_nullable_to_non_nullable
 as bool,isDairyFree: null == isDairyFree ? _self.isDairyFree : isDairyFree // ignore: cast_nullable_to_non_nullable
 as bool,isNutFree: null == isNutFree ? _self.isNutFree : isNutFree // ignore: cast_nullable_to_non_nullable
+as bool,isFavorite: null == isFavorite ? _self.isFavorite : isFavorite // ignore: cast_nullable_to_non_nullable
 as bool,source: null == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
 as RecipeSource,aiMetadata: freezed == aiMetadata ? _self._aiMetadata : aiMetadata // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
