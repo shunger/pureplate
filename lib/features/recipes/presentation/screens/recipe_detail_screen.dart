@@ -448,24 +448,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               const SliverToBoxAdapter(child: SizedBox(height: 20)),
             ],
           ),
-          bottomNavigationBar: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: FilledButton.icon(
-                onPressed: () =>
-                    context.push('/cooking/${widget.recipeId}'),
-                icon: const Icon(Icons.restaurant),
-                label: const Text('Start Cooking'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.coral,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                ),
-              ),
-            ),
+          bottomNavigationBar: _BottomCookingBar(
+            recipeId: widget.recipeId,
           ),
         );
       },
@@ -546,6 +530,132 @@ class _NutrientValue extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ── Bottom Cooking Bar ────────────────────────────────────
+
+class _BottomCookingBar extends ConsumerWidget {
+  final String recipeId;
+
+  const _BottomCookingBar({required this.recipeId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final daysAsync = ref.watch(mealPlanDaysForRecipeProvider(recipeId));
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: daysAsync.when(
+          loading: () => _startCookingButton(context),
+          error: (_, _) => _startCookingButton(context),
+          data: (days) {
+            final uncookedDays =
+                days.where((d) => !d.isCooked).toList();
+            final allCooked =
+                days.isNotEmpty && uncookedDays.isEmpty;
+
+            // Not in any plan — just "Start Cooking"
+            if (days.isEmpty) {
+              return _startCookingButton(context);
+            }
+
+            // All matching days already cooked
+            if (allCooked) {
+              return Row(
+                children: [
+                  Expanded(child: _startCookingButton(context)),
+                  const SizedBox(width: 12),
+                  const Icon(Icons.check_circle,
+                      color: AppColors.sage, size: 28),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Cooked',
+                    style: TextStyle(
+                      color: AppColors.sage,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            // Has uncooked days — show both buttons
+            return Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () =>
+                        context.push('/cooking/$recipeId'),
+                    icon: const Icon(Icons.restaurant),
+                    label: const Text('Start Cooking'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.coral,
+                      side: const BorderSide(color: AppColors.coral),
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () async {
+                      final day = uncookedDays.first;
+                      await ref
+                          .read(mealPlanDaoProvider)
+                          .markCooked(day.id, true);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              '${day.recipeName} marked as cooked',
+                            ),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: const Text('Mark Cooked'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.sage,
+                      foregroundColor: Colors.white,
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _startCookingButton(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: () => context.push('/cooking/$recipeId'),
+      icon: const Icon(Icons.restaurant),
+      label: const Text('Start Cooking'),
+      style: FilledButton.styleFrom(
+        backgroundColor: AppColors.coral,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+        ),
+      ),
     );
   }
 }

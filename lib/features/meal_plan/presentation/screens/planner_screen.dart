@@ -244,19 +244,66 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
             return ReorderableDragStartListener(
               key: ValueKey(day.id),
               index: index,
-              child: MealPlanDayCard(
-                day: day,
-                isApproved: isApproved,
-                onTap: () => context.push('/recipes/${day.recipeId}'),
-                onApprovalToggle: (approved) {
-                  setState(() {
-                    if (approved) {
-                      _approvedDayIds.add(day.id);
-                    } else {
-                      _approvedDayIds.remove(day.id);
-                    }
-                  });
+              child: Dismissible(
+                key: ValueKey('dismiss_${day.id}'),
+                direction: day.isCooked
+                    ? DismissDirection.none
+                    : DismissDirection.startToEnd,
+                confirmDismiss: (_) async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  await ref
+                      .read(mealPlanDaoProvider)
+                      .markCooked(day.id, true);
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text('${day.recipeName} marked as cooked'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                  return false; // Snap back; stream update renders cooked state
                 },
+                background: Container(
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.sage,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.only(left: 24),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.white, size: 24),
+                      SizedBox(width: 8),
+                      Text(
+                        'Mark Cooked',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                child: MealPlanDayCard(
+                  day: day,
+                  isApproved: isApproved,
+                  isCooked: day.isCooked,
+                  onTap: () => context.push('/recipes/${day.recipeId}'),
+                  onApprovalToggle: day.isCooked
+                      ? null
+                      : (approved) {
+                          setState(() {
+                            if (approved) {
+                              _approvedDayIds.add(day.id);
+                            } else {
+                              _approvedDayIds.remove(day.id);
+                            }
+                          });
+                        },
+                ),
               ),
             );
           },

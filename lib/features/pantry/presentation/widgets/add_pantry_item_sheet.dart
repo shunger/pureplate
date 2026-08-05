@@ -261,32 +261,27 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     )),
             const SizedBox(height: 6),
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: _locations.map((loc) {
                 final isSelected = _location == loc.$1;
-                return Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      right: loc.$1 == 'freezer' ? 0 : 8,
-                    ),
-                    child: ChoiceChip(
-                      showCheckmark: false,
-                      label: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(loc.$2,
-                              size: 16,
-                              color: isSelected
-                                  ? AppColors.coral
-                                  : Theme.of(context).colorScheme.onSurfaceVariant),
-                          const SizedBox(width: 4),
-                          Text(loc.$3, style: const TextStyle(fontSize: 12)),
-                        ],
-                      ),
-                      selected: isSelected,
-                      onSelected: (_) => setState(() => _location = loc.$1),
-                    ),
+                return ChoiceChip(
+                  showCheckmark: false,
+                  label: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(loc.$2,
+                          size: 16,
+                          color: isSelected
+                              ? AppColors.coral
+                              : Theme.of(context).colorScheme.onSurfaceVariant),
+                      const SizedBox(width: 4),
+                      Text(loc.$3, style: const TextStyle(fontSize: 12)),
+                    ],
                   ),
+                  selected: isSelected,
+                  onSelected: (_) => setState(() => _location = loc.$1),
                 );
               }).toList(),
             ),
@@ -336,55 +331,76 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
             Row(
               children: [
                 Expanded(
-                  child: OutlinedButton.icon(
+                  child: OutlinedButton(
                     onPressed: _showPriceDialog,
-                    icon: const Icon(Icons.attach_money, size: 18),
-                    label: Text(
-                      _priceController.text.isNotEmpty
-                          ? '\$${_priceController.text}'
-                          : 'Price',
-                      overflow: TextOverflow.ellipsis,
-                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: _priceController.text.isNotEmpty
                           ? Theme.of(context).colorScheme.onSurface
                           : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.attach_money, size: 18),
+                        const SizedBox(height: 2),
+                        Text(
+                          _priceController.text.isNotEmpty
+                              ? '\$${_priceController.text}'
+                              : 'Price',
+                          style: const TextStyle(fontSize: 11),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: OutlinedButton.icon(
+                  child: OutlinedButton(
                     onPressed: _showNotesDialog,
-                    icon: const Icon(Icons.note_outlined, size: 18),
-                    label: Text(
-                      _notesController.text.isNotEmpty
-                          ? _notesController.text
-                          : 'Notes',
-                      overflow: TextOverflow.ellipsis,
-                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: _notesController.text.isNotEmpty
                           ? Theme.of(context).colorScheme.onSurface
                           : Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.note_outlined, size: 18),
+                        const SizedBox(height: 2),
+                        Text(
+                          _notesController.text.isNotEmpty
+                              ? _notesController.text
+                              : 'Notes',
+                          style: const TextStyle(fontSize: 11),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: OutlinedButton.icon(
+                  child: OutlinedButton(
                     onPressed: _showPackSizeDialog,
-                    icon: const Icon(Icons.inventory_2_outlined, size: 18),
-                    label: Text(
-                      _packSize != null
-                          ? 'Pack: ${_packSize == _packSize!.toInt() ? _packSize!.toInt().toString() : _packSize!.toStringAsFixed(1)}'
-                          : 'Pack size',
-                      overflow: TextOverflow.ellipsis,
-                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: _packSize != null
                           ? Theme.of(context).colorScheme.onSurface
                           : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.inventory_2_outlined, size: 18),
+                        const SizedBox(height: 2),
+                        Text(
+                          _packSize != null
+                              ? 'Pack: ${_packSize == _packSize!.toInt() ? _packSize!.toInt().toString() : _packSize!.toStringAsFixed(1)}'
+                              : 'Pack size',
+                          style: const TextStyle(fontSize: 11),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
                   ),
                 ),

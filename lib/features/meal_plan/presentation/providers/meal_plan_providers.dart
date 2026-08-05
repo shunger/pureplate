@@ -40,6 +40,15 @@ final mealPlanDetailProvider =
   });
 });
 
+/// All meal plan days for a given recipe ID (for "Mark Cooked" on detail screen).
+final mealPlanDaysForRecipeProvider =
+    StreamProvider.family<List<MealPlanDay>, String>((ref, recipeId) {
+  final mealPlanDao = ref.watch(mealPlanDaoProvider);
+  return mealPlanDao
+      .watchDaysForRecipe(recipeId)
+      .map((days) => days.map(MealPlanMapper.dayFromDb).toList());
+});
+
 /// Days for a specific plan.
 final planDaysProvider =
     StreamProvider.family<List<MealPlanDay>, String>((ref, planId) {

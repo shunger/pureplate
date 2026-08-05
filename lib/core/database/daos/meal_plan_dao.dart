@@ -79,6 +79,13 @@ class MealPlanDao extends DatabaseAccessor<AppDatabase>
         .get();
   }
 
+  /// Watch all meal plan days for a given recipe, ordered by date desc.
+  Stream<List<MealPlanDay>> watchDaysForRecipe(String recipeId) =>
+      (select(mealPlanDays)
+            ..where((d) => d.recipeId.equals(recipeId))
+            ..orderBy([(d) => OrderingTerm.desc(d.date)]))
+          .watch();
+
   /// Get recent meal plan days for the last N days (for AI context).
   Future<List<MealPlanDay>> getRecentMeals({int withinDays = 14}) {
     final cutoff = DateTime.now().subtract(Duration(days: withinDays));

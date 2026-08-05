@@ -332,77 +332,79 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
   Widget _buildRecipeCard(Recipe recipe) {
     final feedback = _feedbackState[recipe.id];
 
-    return Container(
+    return Card(
       margin: const EdgeInsets.only(top: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.coral.withValues(alpha: 0.3)),
+        side: BorderSide(color: AppColors.coral.withValues(alpha: 0.3)),
       ),
-      child: Column(
-        children: [
-          GestureDetector(
-            onTap: () => context.push('/recipes/${recipe.id}'),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        recipe.name,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${recipe.totalTimeDisplay} · ${recipe.servings} servings',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withValues(alpha: 0.6),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(
-                  Icons.chevron_right,
-                  color: AppColors.coral,
-                  size: 22,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
+      child: InkWell(
+        onTap: () => context.push('/recipes/${recipe.id}'),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Column(
             children: [
-              _FeedbackButton(
-                icon: Icons.thumb_up_outlined,
-                activeIcon: Icons.thumb_up,
-                label: 'Looks good',
-                isActive: feedback == 'loved',
-                activeColor: AppColors.sage,
-                onTap: () => _submitFeedback(recipe, 'loved'),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          recipe.name,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${recipe.totalTimeDisplay} · ${recipe.servings} servings',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right,
+                    color: AppColors.coral,
+                    size: 22,
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              _FeedbackButton(
-                icon: Icons.thumb_down_outlined,
-                activeIcon: Icons.thumb_down,
-                label: 'Not for me',
-                isActive: feedback == 'disliked',
-                activeColor: AppColors.coral,
-                onTap: () => _submitFeedback(recipe, 'disliked'),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  _FeedbackButton(
+                    icon: Icons.thumb_up_outlined,
+                    activeIcon: Icons.thumb_up,
+                    label: 'Looks good',
+                    isActive: feedback == 'loved',
+                    activeColor: AppColors.sage,
+                    onTap: () => _submitFeedback(recipe, 'loved'),
+                  ),
+                  const SizedBox(width: 8),
+                  _FeedbackButton(
+                    icon: Icons.thumb_down_outlined,
+                    activeIcon: Icons.thumb_down,
+                    label: 'Not for me',
+                    isActive: feedback == 'disliked',
+                    activeColor: AppColors.coral,
+                    onTap: () => _submitFeedback(recipe, 'disliked'),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }

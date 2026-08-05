@@ -123,6 +123,7 @@ class MealPlanDayCard extends StatelessWidget {
   final VoidCallback? onTap;
   final ValueChanged<bool>? onApprovalToggle;
   final bool isApproved;
+  final bool isCooked;
 
   const MealPlanDayCard({
     super.key,
@@ -130,6 +131,7 @@ class MealPlanDayCard extends StatelessWidget {
     this.onTap,
     this.onApprovalToggle,
     this.isApproved = false,
+    this.isCooked = false,
   });
 
   @override
@@ -140,18 +142,22 @@ class MealPlanDayCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       child: Card(
-        color: isApproved
-            ? AppColors.sage.withValues(alpha: 0.08)
-            : isToday
-                ? AppColors.coral.withValues(alpha: 0.05)
-                : null,
+        color: isCooked
+            ? AppColors.sage.withValues(alpha: 0.12)
+            : isApproved
+                ? AppColors.sage.withValues(alpha: 0.08)
+                : isToday
+                    ? AppColors.coral.withValues(alpha: 0.05)
+                    : null,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: isApproved
+          side: isCooked
               ? const BorderSide(color: AppColors.sage, width: 1.5)
-              : isToday
-                  ? const BorderSide(color: AppColors.coral, width: 1.5)
-                  : BorderSide.none,
+              : isApproved
+                  ? const BorderSide(color: AppColors.sage, width: 1.5)
+                  : isToday
+                      ? const BorderSide(color: AppColors.coral, width: 1.5)
+                      : BorderSide.none,
         ),
         child: InkWell(
           onTap: onTap,
@@ -169,12 +175,19 @@ class MealPlanDayCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: isToday
-                            ? AppColors.coral
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
+                        color: isCooked
+                            ? Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant
+                                .withValues(alpha: 0.5)
+                            : isToday
+                                ? AppColors.coral
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                       ),
                     ),
-                    if (isToday)
+                    if (isToday && !isCooked)
                       const Text(
                         'Today',
                         style: TextStyle(
@@ -193,21 +206,38 @@ class MealPlanDayCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.onSurface,
+                      color: isCooked
+                          ? Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.45)
+                          : Theme.of(context).colorScheme.onSurface,
+                      decoration:
+                          isCooked ? TextDecoration.lineThrough : null,
+                      decorationColor: isCooked
+                          ? Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.3)
+                          : null,
                     ),
                   ),
                 ),
-                // Approval checkbox — check = keep this meal
-                Checkbox(
-                  value: isApproved,
-                  onChanged: onApprovalToggle != null
-                      ? (v) => onApprovalToggle!(v ?? false)
-                      : null,
-                  activeColor: AppColors.sage,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4),
+                // Cooked check or approval checkbox
+                if (isCooked)
+                  const Icon(Icons.check_circle,
+                      color: AppColors.sage, size: 28)
+                else
+                  Checkbox(
+                    value: isApproved,
+                    onChanged: onApprovalToggle != null
+                        ? (v) => onApprovalToggle!(v ?? false)
+                        : null,
+                    activeColor: AppColors.sage,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                   ),
-                ),
                 // Navigate chevron
                 Icon(Icons.chevron_right,
                     size: 20,
