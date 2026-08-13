@@ -1,6 +1,6 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {initializeApp, getApps} from "firebase-admin/app";
-import {callBedrock, bedrockSecrets} from "../services/bedrockService";
+import {callBedrock, bedrockSecrets, HAIKU_MODEL_ID} from "../services/bedrockService";
 import {checkKillSwitch} from "../middleware/killSwitch";
 import {checkRateLimit} from "../middleware/rateLimiter";
 import {buildPlanSystemPrompt, buildPlanUserPrompt} from "../prompts/planPrompt";
@@ -58,6 +58,7 @@ export const generatePlan = onCall(
         const raw = await callBedrock(systemPrompt, userPrompt, {
           temperature,
           maxTokens: 4096,
+          modelId: HAIKU_MODEL_ID,
         });
         console.log("generatePlan: Bedrock returned", raw.length, "chars");
 

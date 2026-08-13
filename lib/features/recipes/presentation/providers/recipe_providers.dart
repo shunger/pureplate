@@ -26,6 +26,7 @@ final favoriteRecipesProvider = StreamProvider<List<Recipe>>((ref) {
 /// Search/filter state for the recipe browser.
 final recipeSearchQueryProvider = StateProvider<String>((ref) => '');
 final recipeCuisineFilterProvider = StateProvider<String?>((ref) => null);
+final recipeFavoritesOnlyProvider = StateProvider<bool>((ref) => false);
 
 /// Filtered recipes based on search query and cuisine filter.
 final filteredRecipesProvider = Provider<AsyncValue<List<Recipe>>>((ref) {
@@ -33,8 +34,14 @@ final filteredRecipesProvider = Provider<AsyncValue<List<Recipe>>>((ref) {
   final query = ref.watch(recipeSearchQueryProvider).toLowerCase();
   final cuisine = ref.watch(recipeCuisineFilterProvider);
 
+  final favoritesOnly = ref.watch(recipeFavoritesOnlyProvider);
+
   return recipesAsync.whenData((recipes) {
     var filtered = recipes;
+
+    if (favoritesOnly) {
+      filtered = filtered.where((r) => r.isFavorite).toList();
+    }
 
     if (query.isNotEmpty) {
       filtered = filtered

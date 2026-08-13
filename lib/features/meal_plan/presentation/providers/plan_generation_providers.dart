@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../core/database/app_database.dart' as db;
 import '../../../../core/database/daos/meal_plan_dao.dart';
+import '../../../../core/database/daos/preferences_dao.dart';
 import '../../../../core/database/daos/recipe_dao.dart';
 import '../../../../core/database/daos/shopping_list_dao.dart';
 import '../../../../core/database/daos/family_profile_dao.dart';
@@ -56,6 +57,7 @@ class PlanGenerationNotifier extends StateNotifier<PlanGenerationState> {
   final AiPlanRepository _aiRepo;
   final PreferenceSummaryBuilder _summaryBuilder;
   final MealPlanDao _mealPlanDao;
+  final PreferencesDao _preferencesDao;
   final RecipeDao _recipeDao;
   final ShoppingListDao _shoppingListDao;
   final FamilyProfileDao _familyProfileDao;
@@ -66,6 +68,7 @@ class PlanGenerationNotifier extends StateNotifier<PlanGenerationState> {
     required AiPlanRepository aiRepo,
     required PreferenceSummaryBuilder summaryBuilder,
     required MealPlanDao mealPlanDao,
+    required PreferencesDao preferencesDao,
     required RecipeDao recipeDao,
     required ShoppingListDao shoppingListDao,
     required FamilyProfileDao familyProfileDao,
@@ -74,6 +77,7 @@ class PlanGenerationNotifier extends StateNotifier<PlanGenerationState> {
   })  : _aiRepo = aiRepo,
         _summaryBuilder = summaryBuilder,
         _mealPlanDao = mealPlanDao,
+        _preferencesDao = preferencesDao,
         _recipeDao = recipeDao,
         _shoppingListDao = shoppingListDao,
         _familyProfileDao = familyProfileDao,
@@ -142,10 +146,14 @@ class PlanGenerationNotifier extends StateNotifier<PlanGenerationState> {
       );
 
       // Step 3: Call AI backend.
+      final userPrefs = await _preferencesDao.getPreferences();
+      final mealType = userPrefs.mealType;
+
       final result = await _aiRepo.generatePlan(
         numDays: numDays,
         dayLabels: dayLabels,
         preferenceSummary: summary,
+        mealType: mealType,
       );
 
       // Step 4: Persist plan, recipes, and generate shopping list.
@@ -291,10 +299,13 @@ class PlanGenerationNotifier extends StateNotifier<PlanGenerationState> {
           .map((d) => DateFormat('EEEE').format(d.date))
           .toList();
 
+      final userPrefsPartial = await _preferencesDao.getPreferences();
+
       final result = await _aiRepo.generatePlan(
         numDays: numDays,
         dayLabels: dayLabels,
         preferenceSummary: summary,
+        mealType: userPrefsPartial.mealType,
       );
 
       // Save new recipes.
@@ -387,6 +398,7 @@ final planGenerationStateProvider =
     aiRepo: ref.watch(aiPlanRepositoryProvider),
     summaryBuilder: ref.watch(preferenceSummaryBuilderProvider),
     mealPlanDao: ref.watch(mealPlanDaoProvider),
+    preferencesDao: ref.watch(preferencesDaoProvider),
     recipeDao: ref.watch(recipeDaoProvider),
     shoppingListDao: ref.watch(shoppingListDaoProvider),
     familyProfileDao: ref.watch(familyProfileDaoProvider),

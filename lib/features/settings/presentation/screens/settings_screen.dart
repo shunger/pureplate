@@ -8,6 +8,8 @@ import '../../../../core/routing/route_names.dart';
 import '../../../../core/providers/auth_providers.dart';
 import '../../../../core/providers/database_providers.dart';
 import '../../../../core/services/thaw_reminder_service.dart';
+import '../../../../shared/widgets/sign_in_bottom_sheet.dart';
+import '../../../sharing/presentation/providers/sharing_providers.dart';
 import '../providers/settings_providers.dart';
 
 /// Settings screen — Account, Preferences, Notifications, Data, About.
@@ -53,6 +55,12 @@ class SettingsScreen extends ConsumerWidget {
               onTap: () => context.push(Routes.profileEdit),
             ),
           ),
+
+          const Divider(indent: 16, endIndent: 16),
+
+          // ── Sharing Section ───────────────────────────────────
+          _SectionHeader(title: 'Sharing'),
+          const _SharingTile(),
 
           const Divider(indent: 16, endIndent: 16),
 
@@ -278,88 +286,8 @@ class _CloudBackupTile extends ConsumerWidget {
       subtitle: const Text('Sign in to back up your pantry'),
       trailing: Icon(Icons.chevron_right,
           color: Theme.of(context).colorScheme.onSurfaceVariant),
-      onTap: () => _showSignInSheet(context, ref),
+      onTap: () => showSignInBottomSheet(context, ref),
     );
-  }
-
-  void _showSignInSheet(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Back up your pantry',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Sign in to save your pantry to the cloud. '
-                'Your data will be restored if you reinstall the app.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-              ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: () => _handleSignIn(
-                  ctx,
-                  ref,
-                  () => ref.read(authServiceProvider).signInWithGoogle(),
-                ),
-                icon: const Icon(Icons.g_mobiledata),
-                label: const Text('Continue with Google'),
-              ),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: () => _handleSignIn(
-                  ctx,
-                  ref,
-                  () => ref.read(authServiceProvider).signInWithApple(),
-                ),
-                icon: const Icon(Icons.apple),
-                label: const Text('Continue with Apple'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : Colors.black,
-                  foregroundColor: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.black
-                      : Colors.white,
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _handleSignIn(
-    BuildContext context,
-    WidgetRef ref,
-    Future<void> Function() signInFn,
-  ) async {
-    Navigator.pop(context); // Close bottom sheet.
-    try {
-      await signInFn();
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cloud backup enabled')),
-        );
-      }
-    } on Exception catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sign-in failed: $e')),
-        );
-      }
-    }
   }
 
   void _confirmSignOut(BuildContext context, WidgetRef ref) {
@@ -495,6 +423,123 @@ class _ThawReminderSettings extends ConsumerWidget {
     await prefs.setInt(minuteKey, picked.minute);
     ref.invalidate(thawReminderPrefsProvider);
     ref.read(thawReminderServiceProvider).scheduleThawReminders();
+  }
+}
+
+class _SharingTile extends ConsumerWidget {
+  const _SharingTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isPremium = ref.watch(isPremiumProvider);
+    final isSignedIn = ref.watch(isCloudSignedInProvider);
+    final pantryAsync = ref.watch(currentSharedPantryProvider);
+
+    // Not premium
+    if (isPremium.valueOrNull != true) {
+      return ListTile(
+        leading: CircleAvatar(
+          backgroundColor: AppColors.coral.withValues(alpha: 0.15),
+          child: const Icon(Icons.people, color: AppColors.coral),
+        ),
+        title: const Text('Family Sharing'),
+        subtitle: const Text('Premium feature'),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.coral.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                'PRO',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.coral,
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(Icons.chevron_right,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ],
+        ),
+        onTap: () => context.push(Routes.premium),
+      );
+    }
+
+    // Not signed in
+    if (!isSignedIn) {
+      return ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+          child: Icon(Icons.people_outline,
+              color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
+        title: const Text('Family Sharing'),
+        subtitle: const Text('Sign in to share your pantry'),
+        trailing: Icon(Icons.chevron_right,
+            color: Theme.of(context).colorScheme.onSurfaceVariant),
+        onTap: () => showSignInBottomSheet(context, ref),
+      );
+    }
+
+    // Has pantry
+    return pantryAsync.when(
+      loading: () => const ListTile(
+        leading: CircleAvatar(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+        title: Text('Family Sharing'),
+        subtitle: Text('Loading...'),
+      ),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (pantry) {
+        if (pantry == null) {
+          return ListTile(
+            leading: CircleAvatar(
+              backgroundColor: AppColors.sage.withValues(alpha: 0.15),
+              child: const Icon(Icons.people_outline, color: AppColors.sage),
+            ),
+            title: const Text('Family Sharing'),
+            subtitle: const Text('Set up sharing'),
+            trailing: Icon(Icons.chevron_right,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
+            onTap: () {
+              final pantryId =
+                  ref.read(sharedPantryIdProvider).valueOrNull;
+              if (pantryId != null) {
+                context.push(Routes.collaborators
+                    .replaceFirst(':firestoreId', pantryId));
+              }
+            },
+          );
+        }
+
+        final memberCount = pantry.collaborators.length;
+        return ListTile(
+          leading: CircleAvatar(
+            backgroundColor: AppColors.sage.withValues(alpha: 0.15),
+            child: const Icon(Icons.people, color: AppColors.sage),
+          ),
+          title: Text(pantry.name),
+          subtitle: Text(
+              '$memberCount member${memberCount == 1 ? '' : 's'}'),
+          trailing: Icon(Icons.chevron_right,
+              color: Theme.of(context).colorScheme.onSurfaceVariant),
+          onTap: () => context.push(Routes.collaborators
+              .replaceFirst(':firestoreId', pantry.firestoreId)),
+        );
+      },
+    );
   }
 }
 

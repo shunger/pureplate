@@ -134,12 +134,15 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Column(
         children: [
           // Chat messages
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.all(16),
               itemCount: _messages.length + (_isLoading ? 1 : 0),
               itemBuilder: (context, index) {
@@ -258,6 +261,7 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -537,11 +541,20 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
     _scrollToBottom();
 
     try {
-      // Build chat history from previous messages.
+      // Build chat history from previous messages, including recipe data.
       final historyBuffer = StringBuffer();
       for (final msg in _messages) {
         final role = msg.isUser ? 'User' : 'Chef';
         historyBuffer.writeln('$role: ${msg.text}');
+        if (!msg.isUser && msg.recipes.isNotEmpty) {
+          for (final recipe in msg.recipes) {
+            historyBuffer.writeln('[Recipe: ${recipe.name}]');
+            historyBuffer.writeln('Cuisine: ${recipe.cuisine ?? "unspecified"}');
+            historyBuffer.writeln('Ingredients: ${recipe.ingredients.map((i) => '${i.quantity} ${i.unit ?? ""} ${i.name}'.trim()).join(", ")}');
+            historyBuffer.writeln('Instructions: ${recipe.instructions.map((i) => '${i.stepNumber}. ${i.instruction}').join(" ")}');
+            historyBuffer.writeln('[/Recipe]');
+          }
+        }
       }
 
       // Build preference summary from local data.

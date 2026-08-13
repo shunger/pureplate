@@ -39,6 +39,7 @@ class _RecipeBrowserScreenState extends ConsumerState<RecipeBrowserScreen> {
     final filteredAsync = ref.watch(filteredRecipesProvider);
     final cuisinesAsync = ref.watch(availableCuisinesProvider);
     final selectedCuisine = ref.watch(recipeCuisineFilterProvider);
+    final favoritesOnly = ref.watch(recipeFavoritesOnlyProvider);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -87,23 +88,51 @@ class _RecipeBrowserScreenState extends ConsumerState<RecipeBrowserScreen> {
                     Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: FilterChip(
+                        avatar: Icon(
+                          favoritesOnly ? Icons.favorite : Icons.favorite_border,
+                          size: 16,
+                          color: favoritesOnly ? Colors.white : AppColors.coral,
+                        ),
+                        label: const Text('Saved'),
+                        selected: favoritesOnly,
+                        selectedColor: AppColors.coral,
+                        labelStyle: TextStyle(
+                          color: favoritesOnly ? Colors.white : null,
+                        ),
+                        onSelected: (selected) {
+                          ref.read(recipeFavoritesOnlyProvider.notifier).state =
+                              selected;
+                          if (selected) {
+                            ref.read(recipeCuisineFilterProvider.notifier).state =
+                                null;
+                          }
+                        },
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
                         label: const Text('All'),
-                        selected: selectedCuisine == null,
-                        onSelected: (_) => ref
-                            .read(recipeCuisineFilterProvider.notifier)
-                            .state = null,
+                        selected: selectedCuisine == null && !favoritesOnly,
+                        onSelected: (_) {
+                          ref.read(recipeCuisineFilterProvider.notifier).state =
+                              null;
+                          ref.read(recipeFavoritesOnlyProvider.notifier).state =
+                              false;
+                        },
                       ),
                     ),
                     ...cuisines.map((cuisine) => Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: FilterChip(
                             label: Text(cuisine),
-                            selected: selectedCuisine == cuisine,
-                            onSelected: (_) => ref
-                                .read(recipeCuisineFilterProvider.notifier)
-                                .state = selectedCuisine == cuisine
-                                ? null
-                                : cuisine,
+                            selected: selectedCuisine == cuisine && !favoritesOnly,
+                            onSelected: (_) {
+                              ref.read(recipeFavoritesOnlyProvider.notifier).state =
+                                  false;
+                              ref.read(recipeCuisineFilterProvider.notifier).state =
+                                  selectedCuisine == cuisine ? null : cuisine;
+                            },
                           ),
                         )),
                   ],
@@ -131,7 +160,9 @@ class _RecipeBrowserScreenState extends ConsumerState<RecipeBrowserScreen> {
                             color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
                         const SizedBox(height: 16),
                         Text(
-                          'No recipes found',
+                          favoritesOnly
+                              ? 'No saved recipes'
+                              : 'No recipes found',
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                             fontSize: 16,
@@ -139,7 +170,9 @@ class _RecipeBrowserScreenState extends ConsumerState<RecipeBrowserScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Generate a meal plan to add recipes',
+                          favoritesOnly
+                              ? 'Tap the heart icon on a recipe to save it'
+                              : 'Generate a meal plan to add recipes',
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                             fontSize: 14,

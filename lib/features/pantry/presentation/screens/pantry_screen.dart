@@ -4,9 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/database/app_database.dart';
+import '../../../../core/providers/auth_providers.dart';
 import '../../../../core/providers/database_providers.dart';
 import '../../../../core/routing/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/sign_in_bottom_sheet.dart';
+import '../../../settings/presentation/providers/settings_providers.dart';
+import '../../../sharing/presentation/providers/sharing_providers.dart';
 import '../../data/datasources/pantry_sync_orchestrator.dart';
 import '../providers/pantry_providers.dart';
 import '../widgets/add_pantry_item_sheet.dart';
@@ -39,6 +43,12 @@ class _PantryScreenState extends ConsumerState<PantryScreen> {
       appBar: AppBar(
         title: const Text('Pantry'),
         actions: [
+          // Share / collaborators
+          IconButton(
+            onPressed: () => _handleShareTap(),
+            icon: const Icon(Icons.people_outline),
+            tooltip: 'Sharing',
+          ),
           // Expiring items badge
           expiringAsync.when(
             data: (items) => items.isEmpty
@@ -191,6 +201,33 @@ class _PantryScreenState extends ConsumerState<PantryScreen> {
       context: context,
       delegate: _PantrySearchDelegate(ref),
     );
+  }
+
+  Future<void> _handleShareTap() async {
+    // 1. Premium gate
+    final isPremium = ref.read(isPremiumProvider);
+    if (isPremium.valueOrNull != true) {
+      context.push(Routes.premium);
+      return;
+    }
+
+    // 2. Sign-in gate
+    final isSignedIn = ref.read(isCloudSignedInProvider);
+    if (!isSignedIn) {
+      final signedIn = await showSignInBottomSheet(context, ref);
+      if (!signedIn || !mounted) return;
+      // After sign-in, _ensurePersonalPantry runs and sets sharedPantryId.
+      // Wait a frame for providers to update.
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
+    }
+
+    // 3. Navigate to collaborators
+    final pantryId = ref.read(sharedPantryIdProvider).valueOrNull;
+    if (pantryId != null && mounted) {
+      context.push(
+          Routes.collaborators.replaceFirst(':firestoreId', pantryId));
+    }
   }
 }
 

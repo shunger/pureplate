@@ -11,10 +11,12 @@ const awsRegion = defineSecret("AWS_REGION");
 
 const MODEL_ID = "amazon.nova-micro-v1:0";
 const VISION_MODEL_ID = "amazon.nova-lite-v1:0";
+const HAIKU_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0";
 
 export interface BedrockOptions {
   temperature?: number;
   maxTokens?: number;
+  modelId?: string;
 }
 
 /**
@@ -26,7 +28,7 @@ export async function callBedrock(
   userMessage: string,
   options: BedrockOptions = {}
 ): Promise<string> {
-  const {temperature = 0.3, maxTokens = 4096} = options;
+  const {temperature = 0.3, maxTokens = 4096, modelId} = options;
 
   const client = new BedrockRuntimeClient({
     region: awsRegion.value() || "us-east-1",
@@ -44,7 +46,7 @@ export async function callBedrock(
   ];
 
   const command = new ConverseCommand({
-    modelId: MODEL_ID,
+    modelId: modelId || MODEL_ID,
     system: [{text: systemPrompt}],
     messages,
     inferenceConfig: {
@@ -79,7 +81,7 @@ export async function callBedrockVision(
   imageMediaType: "image/jpeg" | "image/png" | "image/webp",
   options: BedrockOptions = {}
 ): Promise<string> {
-  const {temperature = 0.3, maxTokens = 4096} = options;
+  const {temperature = 0.3, maxTokens = 4096, modelId} = options;
 
   const client = new BedrockRuntimeClient({
     region: awsRegion.value() || "us-east-1",
@@ -107,7 +109,7 @@ export async function callBedrockVision(
   ];
 
   const command = new ConverseCommand({
-    modelId: VISION_MODEL_ID,
+    modelId: modelId || VISION_MODEL_ID,
     system: [{text: systemPrompt}],
     messages,
     inferenceConfig: {
@@ -130,6 +132,9 @@ export async function callBedrockVision(
 
   return text;
 }
+
+/** Export model IDs for function-specific overrides */
+export {HAIKU_MODEL_ID};
 
 /** Export secrets so functions can declare them in runWith config */
 export const bedrockSecrets = [awsAccessKeyId, awsSecretAccessKey, awsRegion];

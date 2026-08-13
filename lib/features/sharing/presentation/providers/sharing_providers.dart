@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/providers/auth_providers.dart';
+import '../../../../core/providers/database_providers.dart';
 import '../../data/datasources/firestore_pantry_sharing_service.dart';
 
 /// Stream of shared pantries for the current user.
@@ -15,4 +17,41 @@ final sharedPantryItemsProvider =
     StreamProvider.family<List<SharedPantryItem>, String>((ref, pantryId) {
   final service = ref.watch(firestorePantrySharingServiceProvider);
   return service.watchSharedPantryItems(pantryId);
+});
+
+/// The Firestore pantry doc ID from user preferences, exposed reactively.
+final sharedPantryIdProvider = Provider<AsyncValue<String?>>((ref) {
+  final prefsAsync = ref.watch(userPreferencesProvider);
+  return prefsAsync.whenData((prefs) => prefs.sharedPantryId);
+});
+
+/// The full [SharedPantryInfo] for the user's current shared pantry.
+/// Combines user UID with the shared pantries stream to find the matching pantry.
+final currentSharedPantryProvider =
+    Provider<AsyncValue<SharedPantryInfo?>>((ref) {
+  final userAsync = ref.watch(currentUserProvider);
+  final user = userAsync.valueOrNull;
+  if (user == null) return const AsyncValue.data(null);
+
+  final pantriesAsync = ref.watch(sharedPantriesProvider(user.uid));
+  final pantryIdAsync = ref.watch(sharedPantryIdProvider);
+
+  return pantryIdAsync.when(
+    loading: () => const AsyncValue.loading(),
+    error: (e, st) => AsyncValue.error(e, st),
+    data: (pantryId) {
+      if (pantryId == null) return const AsyncValue.data(null);
+      return pantriesAsync.when(
+        loading: () => const AsyncValue.loading(),
+        error: (e, st) => AsyncValue.error(e, st),
+        data: (pantries) {
+          final match = pantries.cast<SharedPantryInfo?>().firstWhere(
+                (p) => p!.firestoreId == pantryId,
+                orElse: () => null,
+              );
+          return AsyncValue.data(match);
+        },
+      );
+    },
+  );
 });

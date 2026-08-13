@@ -1,6 +1,6 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {initializeApp, getApps} from "firebase-admin/app";
-import {callBedrock, callBedrockVision, bedrockSecrets} from "../services/bedrockService";
+import {callBedrock, callBedrockVision, bedrockSecrets, HAIKU_MODEL_ID} from "../services/bedrockService";
 import {checkKillSwitch} from "../middleware/killSwitch";
 import {checkRateLimit} from "../middleware/rateLimiter";
 import {buildChatSystemPrompt, buildChatUserPrompt} from "../prompts/chatPrompt";
@@ -62,7 +62,7 @@ export const chatWithChef = onCall(
       attempts++;
       try {
         const temperature = attempts === 1 ? 0.7 : 0.3;
-        const bedrockOptions = {temperature, maxTokens: 4096};
+        const bedrockOptions = {temperature, maxTokens: 4096, modelId: HAIKU_MODEL_ID};
 
         const raw = hasImage
           ? await callBedrockVision(
@@ -78,6 +78,7 @@ export const chatWithChef = onCall(
         parsed = validateChatResponse(parsed);
         break;
       } catch (err: any) {
+        console.error(`chatWithChef: attempt ${attempts} failed:`, err.name, err.message, err.stack);
         if (attempts >= maxAttempts) {
           if (err.message?.includes("timeout") || err.name === "TimeoutError") {
             throw new HttpsError("deadline-exceeded", "AI request timed out. Please try again.");

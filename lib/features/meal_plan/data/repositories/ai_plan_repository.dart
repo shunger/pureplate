@@ -35,13 +35,14 @@ class AiPlanRepository {
     required int numDays,
     required List<String> dayLabels,
     required Map<String, dynamic> preferenceSummary,
+    String mealType = 'dinner',
   }) async {
     try {
       final result = await _functions.httpsCallable('generatePlan').call({
         'feature': 'quick_plan',
         'days': numDays,
         'dayLabels': dayLabels,
-        'mealType': 'dinner',
+        'mealType': mealType,
         'preferenceSummary': preferenceSummary,
       });
 
