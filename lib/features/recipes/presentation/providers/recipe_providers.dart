@@ -2,7 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/database_providers.dart';
 import '../../data/datasources/recipe_mapper.dart';
+import '../../data/services/recipe_pdf_service.dart';
 import '../../domain/models/recipe.dart';
+
+/// PDF generation service for recipes.
+final recipePdfServiceProvider =
+    Provider<RecipePdfService>((ref) => RecipePdfService());
 
 /// All recipes mapped from DB rows to domain models.
 final allRecipesDomainProvider = StreamProvider<List<Recipe>>((ref) {

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/providers/database_providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/voice_input_button.dart';
+import '../../domain/models/recipe.dart';
 import '../providers/recipe_providers.dart';
 import '../widgets/recipe_widgets.dart';
 
@@ -32,6 +34,39 @@ class _RecipeBrowserScreenState extends ConsumerState<RecipeBrowserScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _confirmDelete(Recipe recipe) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Recipe'),
+        content: Text('Are you sure you want to delete "${recipe.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    await ref.read(recipeDaoProvider).deleteRecipe(recipe.id);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${recipe.name} deleted'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -196,6 +231,7 @@ class _RecipeBrowserScreenState extends ConsumerState<RecipeBrowserScreen> {
                     return RecipeCard(
                       recipe: recipe,
                       onTap: () => context.push('/recipes/${recipe.id}'),
+                      onLongPress: () => _confirmDelete(recipe),
                     );
                   },
                 );

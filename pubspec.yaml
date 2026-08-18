@@ -71,8 +71,9 @@ dependencies:
   # ── Charts (spending trends, nutrition) ───────────────────
   fl_chart: ^0.70.2
 
-  # ── Sharing ───────────────────────────────────────────────
+  # ── Sharing / PDF ────────────────────────────────────────
   share_plus: ^10.1.4
+  pdf: ^3.11.2
 
   # ── URL Launching ─────────────────────────────────────────
   url_launcher: ^6.3.1

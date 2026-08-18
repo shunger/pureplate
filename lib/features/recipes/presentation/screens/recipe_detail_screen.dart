@@ -8,14 +8,17 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/database/app_database.dart' as db;
+import '../../../../core/routing/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/database_providers.dart';
 import '../../../../shared/models/product_category.dart';
 import '../../../meal_plan/presentation/providers/meal_plan_providers.dart';
 import '../../../pantry/domain/models/pantry_item.dart';
+import '../../../settings/presentation/providers/settings_providers.dart';
 import '../../../shopping_list/data/datasources/auto_list_generator.dart';
 import '../../../shopping_list/data/datasources/shopping_list_mapper.dart';
 import '../../../shopping_list/domain/models/shopping_list.dart';
@@ -82,6 +85,46 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     await File(xFile.path).copy(destPath);
 
     ref.read(recipeDaoProvider).updateImageUrl(widget.recipeId, destPath);
+  }
+
+  Future<void> _shareAsPdf(Recipe recipe) async {
+    // Premium gate.
+    final isPremium = ref.read(isPremiumProvider);
+    final premium = isPremium.whenOrNull(data: (v) => v) ?? false;
+    if (!premium) {
+      context.push(Routes.premium);
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Generating PDF...'),
+        duration: Duration(seconds: 1),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+
+    try {
+      final pdfBytes =
+          await ref.read(recipePdfServiceProvider).generatePdf(recipe);
+
+      final tempDir = await getTemporaryDirectory();
+      final safeName =
+          recipe.name.replaceAll(RegExp(r'[^\w\s-]'), '').replaceAll(' ', '_');
+      final file = File(p.join(tempDir.path, '$safeName.pdf'));
+      await file.writeAsBytes(pdfBytes);
+
+      await Share.shareXFiles([XFile(file.path)]);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to generate PDF: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   void _showAssignToMealPlanSheet(Recipe recipe) {
@@ -174,6 +217,11 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 expandedHeight: recipe.imageUrl != null ? 250 : 180,
                 pinned: true,
                 actions: [
+                  IconButton(
+                    icon: const Icon(Icons.share_outlined),
+                    tooltip: 'Share as PDF',
+                    onPressed: () => _shareAsPdf(recipe),
+                  ),
                   IconButton(
                     icon: const Icon(Icons.calendar_month_outlined),
                     tooltip: 'Add to meal plan',

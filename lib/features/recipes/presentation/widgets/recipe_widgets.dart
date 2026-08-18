@@ -76,8 +76,14 @@ class RecipeImage extends StatelessWidget {
 class RecipeCard extends StatelessWidget {
   final Recipe recipe;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
-  const RecipeCard({super.key, required this.recipe, this.onTap});
+  const RecipeCard({
+    super.key,
+    required this.recipe,
+    this.onTap,
+    this.onLongPress,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -85,6 +91,7 @@ class RecipeCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
