@@ -25,6 +25,25 @@ class OnboardingCookingScreen extends ConsumerStatefulWidget {
 
 class _OnboardingCookingScreenState
     extends ConsumerState<OnboardingCookingScreen> {
+  final _cuisineController = TextEditingController();
+
+  @override
+  void dispose() {
+    _cuisineController.dispose();
+    super.dispose();
+  }
+
+  void _addCustomCuisine(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return;
+    final notifier = ref.read(onboardingStateProvider.notifier);
+    final current = ref.read(onboardingStateProvider).cuisinePreferences;
+    if (!current.any((c) => c.toLowerCase() == trimmed.toLowerCase())) {
+      notifier.setCuisinePreferences([...current, trimmed]);
+    }
+    _cuisineController.clear();
+  }
+
   static const _cuisineOptions = [
     'Italian',
     'Mexican',
@@ -108,6 +127,57 @@ class _OnboardingCookingScreenState
                         );
                       }).toList(),
                     ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _cuisineController,
+                      decoration: InputDecoration(
+                        hintText: 'Add another cuisine...',
+                        hintStyle: TextStyle(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant
+                              .withValues(alpha: 0.6),
+                          fontSize: 14,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.add, size: 20),
+                          onPressed: () =>
+                              _addCustomCuisine(_cuisineController.text),
+                        ),
+                      ),
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: _addCustomCuisine,
+                    ),
+                    Builder(builder: (context) {
+                      final customCuisines = state.cuisinePreferences
+                          .where((c) => !_cuisineOptions.contains(c))
+                          .toList();
+                      if (customCuisines.isEmpty) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: customCuisines.map((cuisine) {
+                            return Chip(
+                              label: Text(cuisine),
+                              deleteIcon: const Icon(Icons.close, size: 16),
+                              onDeleted: () {
+                                final updated = List<String>.from(
+                                    state.cuisinePreferences)
+                                  ..remove(cuisine);
+                                notifier.setCuisinePreferences(updated);
+                              },
+                            );
+                          }).toList(),
+                        ),
+                      );
+                    }),
 
                     const SizedBox(height: 24),
 
@@ -214,8 +284,10 @@ class _OnboardingCookingScreenState
       kids: Value(state.kids),
       kidAgeRangesJson: Value(
           jsonEncode(state.kidAgeRanges.map((r) => r.name).toList())),
-      dietaryRestrictionsJson: Value(
-          jsonEncode(state.dietaryRestrictions.map((d) => d.name).toList())),
+      dietaryRestrictionsJson: Value(jsonEncode([
+        ...state.dietaryRestrictions.map((d) => d.name),
+        ...state.customDietaryRestrictions,
+      ])),
       cuisinePreferencesJson: Value(jsonEncode(cuisineMap)),
       preferredCookTime: Value(cookTimeStr),
       budgetLevel: Value(state.budgetLevel.name),

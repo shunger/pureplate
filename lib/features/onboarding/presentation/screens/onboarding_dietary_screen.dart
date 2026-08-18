@@ -20,11 +20,24 @@ class OnboardingDietaryScreen extends ConsumerStatefulWidget {
 class _OnboardingDietaryScreenState
     extends ConsumerState<OnboardingDietaryScreen> {
   final _ingredientController = TextEditingController();
+  final _customRestrictionController = TextEditingController();
 
   @override
   void dispose() {
     _ingredientController.dispose();
+    _customRestrictionController.dispose();
     super.dispose();
+  }
+
+  void _addCustomRestriction(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return;
+    final notifier = ref.read(onboardingStateProvider.notifier);
+    final current = ref.read(onboardingStateProvider).customDietaryRestrictions;
+    if (!current.any((r) => r.toLowerCase() == trimmed.toLowerCase())) {
+      notifier.setCustomDietaryRestrictions([...current, trimmed]);
+    }
+    _customRestrictionController.clear();
   }
 
   void _addIngredient(String value) {
@@ -99,6 +112,53 @@ class _OnboardingDietaryScreenState
                         );
                       }).toList(),
                     ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _customRestrictionController,
+                      decoration: InputDecoration(
+                        hintText: 'Add a custom restriction...',
+                        hintStyle: TextStyle(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant
+                              .withValues(alpha: 0.6),
+                          fontSize: 14,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.add, size: 20),
+                          onPressed: () => _addCustomRestriction(
+                              _customRestrictionController.text),
+                        ),
+                      ),
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: _addCustomRestriction,
+                    ),
+                    if (state.customDietaryRestrictions.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: state.customDietaryRestrictions
+                            .map((restriction) {
+                          return Chip(
+                            label: Text(restriction),
+                            deleteIcon: const Icon(Icons.close, size: 16),
+                            onDeleted: () {
+                              final updated = List<String>.from(
+                                  state.customDietaryRestrictions)
+                                ..remove(restriction);
+                              notifier
+                                  .setCustomDietaryRestrictions(updated);
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ],
 
                     const SizedBox(height: 28),
 

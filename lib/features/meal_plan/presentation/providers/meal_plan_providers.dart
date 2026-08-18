@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/database_providers.dart';
@@ -18,14 +20,36 @@ final allMealPlansDomainProvider = StreamProvider<List<MealPlan>>((ref) {
 });
 
 /// The most recent meal plan with its days.
+///
+/// Watches both the `mealPlans` table (for plan create/delete/date shifts)
+/// and the `mealPlanDays` table (for reorders, mark-cooked, recipe swaps).
+/// Without watching days, drag-and-drop reordering wouldn't trigger a
+/// UI rebuild since `swapDayDates` only touches the days table.
 final latestMealPlanProvider = StreamProvider<MealPlan?>((ref) {
-  final mealPlanDao = ref.watch(mealPlanDaoProvider);
-  return mealPlanDao.watchAllPlans().asyncMap((plans) async {
-    if (plans.isEmpty) return null;
+  final dao = ref.watch(mealPlanDaoProvider);
+
+  StreamSubscription<dynamic>? daysSub;
+  final controller = StreamController<MealPlan?>();
+
+  final plansSub = dao.watchAllPlans().listen((plans) {
+    daysSub?.cancel();
+    if (plans.isEmpty) {
+      controller.add(null);
+      return;
+    }
     final latest = plans.first; // Already sorted by createdAt desc
-    final days = await mealPlanDao.getDaysForPlan(latest.id);
-    return MealPlanMapper.fromDbWithDays(latest, days);
+    daysSub = dao.watchDaysForPlan(latest.id).listen((days) {
+      controller.add(MealPlanMapper.fromDbWithDays(latest, days));
+    });
   });
+
+  ref.onDispose(() {
+    daysSub?.cancel();
+    plansSub.cancel();
+    controller.close();
+  });
+
+  return controller.stream;
 });
 
 /// A single meal plan with its days, by ID.

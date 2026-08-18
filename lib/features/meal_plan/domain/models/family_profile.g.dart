@@ -21,6 +21,11 @@ _FamilyProfile _$FamilyProfileFromJson(Map<String, dynamic> json) =>
               ?.map((e) => $enumDecode(_$DietaryRestrictionEnumMap, e))
               .toList() ??
           const [],
+      customDietaryRestrictions:
+          (json['customDietaryRestrictions'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
       cuisinePreferences:
           (json['cuisinePreferences'] as List<dynamic>?)
               ?.map((e) => e as String)
@@ -74,6 +79,7 @@ Map<String, dynamic> _$FamilyProfileToJson(
   'dietaryRestrictions': instance.dietaryRestrictions
       .map((e) => _$DietaryRestrictionEnumMap[e]!)
       .toList(),
+  'customDietaryRestrictions': instance.customDietaryRestrictions,
   'cuisinePreferences': instance.cuisinePreferences,
   'preferredCookTime': _$PreferredCookTimeEnumMap[instance.preferredCookTime]!,
   'budgetLevel': _$BudgetLevelEnumMap[instance.budgetLevel]!,

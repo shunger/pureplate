@@ -140,8 +140,10 @@ class PreferenceSummaryBuilder {
         if (profile.kidAgeRanges.isNotEmpty)
           'kid_age_ranges':
               profile.kidAgeRanges.map((r) => r.label).toList(),
-        'dietary_restrictions':
-            profile.dietaryRestrictions.map((d) => d.displayName).toList(),
+        'dietary_restrictions': [
+            ...profile.dietaryRestrictions.map((d) => d.displayName),
+            ...profile.customDietaryRestrictions,
+          ],
         'preferred_cook_time': profile.preferredCookTime.name,
         'budget_level': profile.budgetLevel.name,
         'skill_level': profile.skillLevel.name,

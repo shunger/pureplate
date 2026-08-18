@@ -30,6 +30,7 @@ abstract class FamilyProfile with _$FamilyProfile {
     @Default(0) int kids,
     @Default([]) List<KidAgeRange> kidAgeRanges,
     @Default([]) List<DietaryRestriction> dietaryRestrictions,
+    @Default([]) List<String> customDietaryRestrictions,
     @Default([]) List<String> cuisinePreferences,
     @Default(PreferredCookTime.under45) PreferredCookTime preferredCookTime,
     @Default(BudgetLevel.moderate) BudgetLevel budgetLevel,

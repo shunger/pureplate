@@ -16,6 +16,7 @@ class OnboardingState {
   final SpiceTolerance spiceTolerance;
   final VarietyPreference varietyPreference;
   final List<String> dislikedIngredients;
+  final List<String> customDietaryRestrictions;
 
   const OnboardingState({
     this.adults = 2,
@@ -29,6 +30,7 @@ class OnboardingState {
     this.spiceTolerance = SpiceTolerance.medium,
     this.varietyPreference = VarietyPreference.mixed,
     this.dislikedIngredients = const [],
+    this.customDietaryRestrictions = const [],
   });
 
   OnboardingState copyWith({
@@ -43,6 +45,7 @@ class OnboardingState {
     SpiceTolerance? spiceTolerance,
     VarietyPreference? varietyPreference,
     List<String>? dislikedIngredients,
+    List<String>? customDietaryRestrictions,
   }) {
     return OnboardingState(
       adults: adults ?? this.adults,
@@ -56,6 +59,7 @@ class OnboardingState {
       spiceTolerance: spiceTolerance ?? this.spiceTolerance,
       varietyPreference: varietyPreference ?? this.varietyPreference,
       dislikedIngredients: dislikedIngredients ?? this.dislikedIngredients,
+      customDietaryRestrictions: customDietaryRestrictions ?? this.customDietaryRestrictions,
     );
   }
 }
@@ -83,6 +87,8 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       state = state.copyWith(varietyPreference: value);
   void setDislikedIngredients(List<String> value) =>
       state = state.copyWith(dislikedIngredients: value);
+  void setCustomDietaryRestrictions(List<String> value) =>
+      state = state.copyWith(customDietaryRestrictions: value);
 }
 
 final onboardingStateProvider =

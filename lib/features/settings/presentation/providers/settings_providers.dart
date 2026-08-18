@@ -10,7 +10,7 @@ import '../../../../core/services/thaw_reminder_service.dart';
 // in database_providers.dart and can be used directly.
 
 /// App version info (static for now).
-final appVersionProvider = Provider<String>((ref) => '1.0.0');
+final appVersionProvider = Provider<String>((ref) => '1.1.0');
 
 /// Derives [ThemeMode] from the stored theme preference string.
 final themeModeProvider = Provider<ThemeMode>((ref) {

@@ -19,6 +19,7 @@ import '../../data/repositories/ai_plan_repository.dart';
 import '../../data/datasources/preference_summary_builder.dart';
 import '../../data/datasources/meal_plan_mapper.dart';
 import '../../../recipes/data/datasources/recipe_mapper.dart';
+import '../../../../shared/models/dietary_restriction.dart';
 import '../../../../shared/models/product_category.dart';
 import '../../domain/models/family_profile.dart';
 import '../../../pantry/domain/models/pantry_item.dart';
@@ -351,10 +352,13 @@ class PlanGenerationNotifier extends StateNotifier<PlanGenerationState> {
   }
 
   FamilyProfile _profileFromDb(db.FamilyProfile row) {
+    final parsedRestrictions = _parseDietaryRestrictions(row.dietaryRestrictionsJson);
     return FamilyProfile(
       id: row.id,
       adults: row.adults,
       kids: row.kids,
+      dietaryRestrictions: parsedRestrictions.enumRestrictions,
+      customDietaryRestrictions: parsedRestrictions.customRestrictions,
       skillLevel: SkillLevel.values
               .where((s) => s.name == row.skillLevel)
               .firstOrNull ??
@@ -369,6 +373,29 @@ class PlanGenerationNotifier extends StateNotifier<PlanGenerationState> {
           VarietyPreference.mixed,
       dislikedIngredients: _parseJsonList(row.dislikedIngredientsJson),
     );
+  }
+
+  ({List<DietaryRestriction> enumRestrictions, List<String> customRestrictions})
+      _parseDietaryRestrictions(String json) {
+    try {
+      final list = jsonDecode(json) as List<dynamic>;
+      final enumRestrictions = <DietaryRestriction>[];
+      final customRestrictions = <String>[];
+      for (final item in list) {
+        final name = item.toString();
+        final dr = DietaryRestriction.values
+            .where((d) => d.name == name)
+            .firstOrNull;
+        if (dr != null) {
+          enumRestrictions.add(dr);
+        } else {
+          customRestrictions.add(name);
+        }
+      }
+      return (enumRestrictions: enumRestrictions, customRestrictions: customRestrictions);
+    } catch (_) {
+      return (enumRestrictions: <DietaryRestriction>[], customRestrictions: <String>[]);
+    }
   }
 
   List<String> _parseJsonList(String json) {

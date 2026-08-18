@@ -19,6 +19,7 @@ import '../../data/datasources/preference_summary_builder.dart';
 import '../../domain/models/family_profile.dart';
 import '../../../pantry/domain/models/pantry_item.dart';
 import '../../../recipes/domain/models/recipe.dart';
+import '../../../../shared/models/dietary_restriction.dart';
 import '../../../../shared/models/product_category.dart';
 import '../../data/datasources/meal_plan_mapper.dart';
 import '../../../home/presentation/widgets/meal_preferences_sheet.dart';
@@ -96,6 +97,11 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
             : "What can I make for $mealType$pantryConstraint?";
       }
 
+      // Append free-form notes if provided.
+      if (prefs.notes != null && prefs.notes!.isNotEmpty) {
+        prompt += '\nAdditional notes: ${prefs.notes}';
+      }
+
       _messages.add(_ChatMessage(text: greeting, isUser: false));
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _controller.text = prompt;
@@ -125,6 +131,13 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
+        leading: _isMealMode
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                tooltip: 'Back to home',
+                onPressed: () => context.go(Routes.home),
+              )
+            : null,
         title: Text(_isMealMode ? 'Chat Planner' : 'Chat'),
         actions: [
           TextButton(
@@ -689,10 +702,13 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
   }
 
   FamilyProfile _profileFromDb(db.FamilyProfile row) {
+    final parsedRestrictions = _parseDietaryRestrictions(row.dietaryRestrictionsJson);
     return FamilyProfile(
       id: row.id,
       adults: row.adults,
       kids: row.kids,
+      dietaryRestrictions: parsedRestrictions.enumRestrictions,
+      customDietaryRestrictions: parsedRestrictions.customRestrictions,
       skillLevel: SkillLevel.values
               .where((s) => s.name == row.skillLevel)
               .firstOrNull ??
@@ -707,6 +723,29 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
           VarietyPreference.mixed,
       dislikedIngredients: _parseJsonList(row.dislikedIngredientsJson),
     );
+  }
+
+  ({List<DietaryRestriction> enumRestrictions, List<String> customRestrictions})
+      _parseDietaryRestrictions(String json) {
+    try {
+      final list = jsonDecode(json) as List<dynamic>;
+      final enumRestrictions = <DietaryRestriction>[];
+      final customRestrictions = <String>[];
+      for (final item in list) {
+        final name = item.toString();
+        final dr = DietaryRestriction.values
+            .where((d) => d.name == name)
+            .firstOrNull;
+        if (dr != null) {
+          enumRestrictions.add(dr);
+        } else {
+          customRestrictions.add(name);
+        }
+      }
+      return (enumRestrictions: enumRestrictions, customRestrictions: customRestrictions);
+    } catch (_) {
+      return (enumRestrictions: <DietaryRestriction>[], customRestrictions: <String>[]);
+    }
   }
 
   List<String> _parseJsonList(String json) {

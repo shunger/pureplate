@@ -11,27 +11,38 @@ class MealPreferences {
   final String? effort;
   final String? vibe;
   final bool pantryOnly;
+  final String? notes;
 
   const MealPreferences({
     this.cuisine,
     this.effort,
     this.vibe,
     this.pantryOnly = false,
+    this.notes,
   });
 
-  /// Encode as query parameter string (e.g. "italian|quick|healthy|pantryOnly").
+  /// Encode as query parameter string (e.g. "italian|quick|healthy|pantryOnly|notes").
+  /// Notes are URL-encoded to avoid issues with `|` or special characters.
   String toQueryParam() =>
-      [cuisine ?? '', effort ?? '', vibe ?? '', pantryOnly ? 'pantryOnly' : '']
-          .join('|');
+      [
+        cuisine ?? '',
+        effort ?? '',
+        vibe ?? '',
+        pantryOnly ? 'pantryOnly' : '',
+        notes != null ? Uri.encodeComponent(notes!) : '',
+      ].join('|');
 
   /// Decode from query parameter string.
   factory MealPreferences.fromQueryParam(String param) {
     final parts = param.split('|');
+    final rawNotes = parts.length > 4 ? parts.sublist(4).join('|') : '';
+    final decodedNotes = rawNotes.isNotEmpty ? Uri.decodeComponent(rawNotes) : null;
     return MealPreferences(
       cuisine: parts.isNotEmpty && parts[0].isNotEmpty ? parts[0] : null,
       effort: parts.length > 1 && parts[1].isNotEmpty ? parts[1] : null,
       vibe: parts.length > 2 && parts[2].isNotEmpty ? parts[2] : null,
       pantryOnly: parts.length > 3 && parts[3] == 'pantryOnly',
+      notes: decodedNotes,
     );
   }
 
@@ -48,11 +59,13 @@ class MealPreferences {
     }
     if (effort != null) parts.add(effort!);
     if (vibe != null) parts.add(vibe!);
+    if (notes != null && notes!.isNotEmpty) parts.add(notes!);
     return parts.join(', ');
   }
 
   bool get isEmpty =>
-      cuisine == null && effort == null && vibe == null && !pantryOnly;
+      cuisine == null && effort == null && vibe == null && !pantryOnly &&
+      (notes == null || notes!.isEmpty);
 }
 
 /// Shows the meal preferences sheet and returns selections, or null if
@@ -83,6 +96,13 @@ class _MealPreferencesBodyState extends State<_MealPreferencesBody> {
   String? _effort;
   String? _vibe;
   bool _pantryOnly = false;
+  final _notesController = TextEditingController();
+
+  @override
+  void dispose() {
+    _notesController.dispose();
+    super.dispose();
+  }
 
   static const _cuisines = [
     ('Italian', Icons.local_pizza_outlined),
@@ -266,6 +286,32 @@ class _MealPreferencesBodyState extends State<_MealPreferencesBody> {
                       ),
                       showCheckmark: false,
                     ),
+                    const SizedBox(height: 18),
+
+                    // Free-form notes
+                    _QuestionLabel(label: 'Anything else?'),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _notesController,
+                      minLines: 1,
+                      maxLines: 2,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: InputDecoration(
+                        hintText: 'e.g. something with pasta, kid-friendly...',
+                        hintStyle: TextStyle(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant
+                              .withValues(alpha: 0.6),
+                          fontSize: 14,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -277,8 +323,15 @@ class _MealPreferencesBodyState extends State<_MealPreferencesBody> {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => Navigator.pop(
-                        context, const MealPreferences()),
+                    onPressed: () {
+                      final notesText = _notesController.text.trim();
+                      Navigator.pop(
+                        context,
+                        MealPreferences(
+                          notes: notesText.isNotEmpty ? notesText : null,
+                        ),
+                      );
+                    },
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -292,15 +345,19 @@ class _MealPreferencesBodyState extends State<_MealPreferencesBody> {
                 Expanded(
                   flex: 2,
                   child: FilledButton.icon(
-                    onPressed: () => Navigator.pop(
-                      context,
-                      MealPreferences(
-                        cuisine: _cuisine,
-                        effort: _effort,
-                        vibe: _vibe,
-                        pantryOnly: _pantryOnly,
-                      ),
-                    ),
+                    onPressed: () {
+                      final notesText = _notesController.text.trim();
+                      Navigator.pop(
+                        context,
+                        MealPreferences(
+                          cuisine: _cuisine,
+                          effort: _effort,
+                          vibe: _vibe,
+                          pantryOnly: _pantryOnly,
+                          notes: notesText.isNotEmpty ? notesText : null,
+                        ),
+                      );
+                    },
                     icon: const Icon(Icons.auto_awesome, size: 18),
                     label: const Text('Suggest something'),
                     style: FilledButton.styleFrom(

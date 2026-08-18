@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -182,7 +184,40 @@ class SettingsScreen extends ConsumerWidget {
           const Divider(indent: 16, endIndent: 16),
 
           // ── About Section ───────────────────────────────────
-          _SectionHeader(title: 'About'),
+          GestureDetector(
+            onLongPress: () async {
+              final isPremium =
+                  ref.read(userPreferencesProvider).valueOrNull?.isPremium ??
+                      false;
+              final newStatus = !isPremium;
+
+              // Update local DB.
+              await ref.read(preferencesDaoProvider).setPremium(newStatus);
+
+              // Update Firestore quota doc so the backend rate limiter
+              // also respects the override.
+              final uid = FirebaseAuth.instance.currentUser?.uid;
+              if (uid != null) {
+                await FirebaseFirestore.instance
+                    .doc('users/$uid/quota/weekly')
+                    .set(
+                        {'isPremium': newStatus},
+                        SetOptions(merge: true));
+              }
+
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(newStatus
+                        ? 'Premium enabled'
+                        : 'Premium disabled'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            child: _SectionHeader(title: 'About'),
+          ),
           ListTile(
             leading:
                 Icon(Icons.info_outline, color: Theme.of(context).colorScheme.onSurfaceVariant),
