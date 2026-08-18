@@ -22,7 +22,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final prefsAsync = ref.watch(userPreferencesProvider);
     final profileAsync = ref.watch(familyProfileProvider);
-    final version = ref.watch(appVersionProvider);
+    final versionAsync = ref.watch(appVersionProvider);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -222,8 +222,12 @@ class SettingsScreen extends ConsumerWidget {
             leading:
                 Icon(Icons.info_outline, color: Theme.of(context).colorScheme.onSurfaceVariant),
             title: const Text('Version'),
-            trailing: Text(version,
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            trailing: versionAsync.when(
+              data: (v) => Text(v,
+                  style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const Text('--'),
+            ),
           ),
           ListTile(
             leading: Icon(Icons.description_outlined,

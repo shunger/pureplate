@@ -95,6 +95,7 @@ dependencies:
 
   # ── Splash Screen ─────────────────────────────────────────
   flutter_native_splash: ^2.4.4
+  package_info_plus: ^9.0.1
 
 dev_dependencies:
   flutter_test:

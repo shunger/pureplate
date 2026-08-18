@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/providers/database_providers.dart';
@@ -9,8 +10,11 @@ import '../../../../core/services/thaw_reminder_service.dart';
 // userPreferencesProvider and familyProfileProvider are already defined
 // in database_providers.dart and can be used directly.
 
-/// App version info (static for now).
-final appVersionProvider = Provider<String>((ref) => '1.1.0');
+/// App version read from platform metadata (set by pubspec.yaml at build time).
+final appVersionProvider = FutureProvider<String>((ref) async {
+  final info = await PackageInfo.fromPlatform();
+  return info.version;
+});
 
 /// Derives [ThemeMode] from the stored theme preference string.
 final themeModeProvider = Provider<ThemeMode>((ref) {

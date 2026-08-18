@@ -59,7 +59,6 @@ class MealPreferences {
     }
     if (effort != null) parts.add(effort!);
     if (vibe != null) parts.add(vibe!);
-    if (notes != null && notes!.isNotEmpty) parts.add(notes!);
     return parts.join(', ');
   }
 

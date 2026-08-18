@@ -107,9 +107,9 @@ class PremiumScreen extends ConsumerWidget {
             isPremium: true,
           ),
           _FeatureRow(
-            icon: Icons.block,
-            title: 'No Ads',
-            subtitle: 'Ad-free experience',
+            icon: Icons.share,
+            title: 'Share Recipes',
+            subtitle: 'Share recipes you like',
             isPremium: true,
           ),
 
