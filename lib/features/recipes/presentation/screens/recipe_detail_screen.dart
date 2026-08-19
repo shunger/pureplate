@@ -218,6 +218,20 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 pinned: true,
                 actions: [
                   IconButton(
+                    icon: const Icon(Icons.auto_awesome),
+                    tooltip: 'Modify with AI',
+                    onPressed: () {
+                      final isPremium = ref.read(isPremiumProvider);
+                      final premium =
+                          isPremium.whenOrNull(data: (v) => v) ?? false;
+                      if (!premium) {
+                        context.push(Routes.premium);
+                      } else {
+                        context.push('/recipes/${recipe.id}/chat');
+                      }
+                    },
+                  ),
+                  IconButton(
                     icon: const Icon(Icons.share_outlined),
                     tooltip: 'Share as PDF',
                     onPressed: () => _shareAsPdf(recipe),

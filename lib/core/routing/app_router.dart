@@ -20,6 +20,7 @@ import '../../features/shopping_list/presentation/screens/shopping_list_detail_s
 import '../../features/scanner/presentation/screens/scanner_screen.dart';
 import '../../features/recipes/presentation/screens/recipe_browser_screen.dart';
 import '../../features/recipes/presentation/screens/recipe_detail_screen.dart';
+import '../../features/recipes/presentation/screens/recipe_chat_screen.dart';
 import '../../features/recipes/presentation/screens/cooking_mode_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/settings/presentation/screens/profile_edit_screen.dart';
@@ -140,6 +141,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                 RecipeDetailScreen(recipeId: state.pathParameters['id']!),
           ),
         ],
+      ),
+      GoRoute(
+        path: Routes.recipeChat,
+        builder: (context, state) =>
+            RecipeChatScreen(recipeId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: Routes.cookingMode,
