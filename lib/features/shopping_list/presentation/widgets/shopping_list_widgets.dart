@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/providers/database_providers.dart';
+import '../../../../core/routing/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/voice_input_button.dart';
 import '../../../../shared/models/product_category.dart';
 import '../../data/datasources/shopping_list_mapper.dart';
 import '../../domain/models/shopping_list.dart';
+import '../providers/shopping_list_providers.dart';
 
 const _uuid = Uuid();
 
@@ -524,5 +527,205 @@ class ShoppingListCard extends StatelessWidget {
       return true;
     }
     return false;
+  }
+}
+
+// ── Go Shopping Sheet ───────────────────────────────────────
+
+class GoShoppingSheet extends ConsumerStatefulWidget {
+  const GoShoppingSheet({super.key});
+
+  @override
+  ConsumerState<GoShoppingSheet> createState() => _GoShoppingSheetState();
+}
+
+class _GoShoppingSheetState extends ConsumerState<GoShoppingSheet> {
+  final _selected = <String>{};
+  bool _merging = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final listsAsync = ref.watch(activeShoppingListsDomainProvider);
+
+    return listsAsync.when(
+      data: (lists) => _buildContent(context, lists),
+      loading: () => const SizedBox(
+        height: 200,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => SizedBox(
+        height: 200,
+        child: Center(child: Text('Error: $e')),
+      ),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, List<ShoppingList> lists) {
+    final allSelected = _selected.length == lists.length;
+    final selectedCount = _selected.length;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.outline,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Header
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Go Shopping',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    if (allSelected) {
+                      _selected.clear();
+                    } else {
+                      _selected
+                        ..clear()
+                        ..addAll(lists.map((l) => l.id));
+                    }
+                  });
+                },
+                child: Text(allSelected ? 'Deselect All' : 'Select All'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Select lists to combine into one shopping trip.',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 12),
+          // List rows
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.4,
+            ),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: lists.length,
+              itemBuilder: (context, index) {
+                final list = lists[index];
+                final isChecked = _selected.contains(list.id);
+                return CheckboxListTile(
+                  value: isChecked,
+                  onChanged: (_) {
+                    setState(() {
+                      if (isChecked) {
+                        _selected.remove(list.id);
+                      } else {
+                        _selected.add(list.id);
+                      }
+                    });
+                  },
+                  title: Text(
+                    list.name,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    [
+                      '${list.items.length} items',
+                      if (list.storeName != null) list.storeName!,
+                    ].join(' · '),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 12,
+                    ),
+                  ),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Combine button
+          FilledButton.icon(
+            onPressed: selectedCount >= 2 && !_merging ? _combine : null,
+            icon: _merging
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.shopping_bag),
+            label: Text(
+              selectedCount >= 2
+                  ? 'Combine $selectedCount lists'
+                  : 'Select at least 2 lists',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _combine() async {
+    final lists = ref.read(activeShoppingListsDomainProvider).valueOrNull ?? [];
+    final selectedLists =
+        lists.where((l) => _selected.contains(l.id)).toList();
+
+    if (selectedLists.length < 2) return;
+
+    setState(() => _merging = true);
+
+    try {
+      final mergeService = ref.read(shoppingListMergeServiceProvider);
+      final dao = ref.read(shoppingListDaoProvider);
+
+      final newList = await mergeService.mergeLists(
+        sourceLists: selectedLists,
+        shoppingListDao: dao,
+      );
+
+      if (!mounted) return;
+
+      // Pop the sheet.
+      Navigator.pop(context);
+
+      // Show confirmation snackbar.
+      final totalItems = newList.items.length;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Combined ${selectedLists.length} lists — $totalItems items total',
+          ),
+        ),
+      );
+
+      // Navigate to the new combined list.
+      context.go('${Routes.lists}/${newList.id}');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _merging = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to combine lists: $e')),
+      );
+    }
   }
 }

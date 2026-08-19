@@ -3,6 +3,7 @@ import '../database/app_database.dart';
 import '../services/notification_service.dart';
 import '../services/thaw_reminder_service.dart';
 import '../../features/pantry/data/services/pantry_consumption_service.dart';
+import '../../features/shopping_list/data/services/shopping_list_merge_service.dart';
 
 // ── Database singleton ────────────────────────────────────
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
@@ -50,6 +51,9 @@ final familyProfileProvider = StreamProvider((ref) =>
     ref.watch(familyProfileDaoProvider).watchProfile());
 
 // ── Services ─────────────────────────────────────────────
+final shoppingListMergeServiceProvider = Provider<ShoppingListMergeService>(
+  (ref) => ShoppingListMergeService(),
+);
 final notificationServiceProvider = Provider((ref) => NotificationService());
 
 final pantryConsumptionServiceProvider = Provider<PantryConsumptionService>(

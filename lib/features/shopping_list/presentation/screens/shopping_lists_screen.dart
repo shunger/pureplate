@@ -87,6 +87,10 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen> {
             error: (e, _) => Center(child: Text('Error: $e')),
           );
 
+          final activeCount =
+              activeAsync.valueOrNull?.length ?? 0;
+          final showGoShopping = activeCount >= 2;
+
           return Stack(
             children: [
               bodyContent,
@@ -104,10 +108,16 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen> {
                       );
                     });
                   },
-                  child: FloatingActionButton(
-                    onPressed: () => _showCreateDialog(context),
-                    child: const Icon(Icons.add),
-                  ),
+                  child: showGoShopping
+                      ? FloatingActionButton(
+                          onPressed: () => _showGoShoppingSheet(context),
+                          tooltip: 'Go Shopping',
+                          child: const Icon(Icons.shopping_bag),
+                        )
+                      : FloatingActionButton(
+                          onPressed: () => _showCreateDialog(context),
+                          child: const Icon(Icons.add),
+                        ),
                 ),
               ),
             ],
@@ -121,6 +131,14 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen> {
     showDialog<ShoppingList>(
       context: context,
       builder: (_) => const CreateListDialog(),
+    );
+  }
+
+  void _showGoShoppingSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => const GoShoppingSheet(),
     );
   }
 

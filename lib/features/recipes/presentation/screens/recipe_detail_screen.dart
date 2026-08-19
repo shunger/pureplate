@@ -89,7 +89,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     ref.read(recipeDaoProvider).updateImageUrl(widget.recipeId, destPath);
   }
 
-  Future<void> _shareAsPdf(Recipe recipe) async {
+  Future<void> _shareAsPdf(BuildContext context, Recipe recipe) async {
     // Premium gate.
     final isPremium = ref.read(isPremiumProvider);
     final premium = isPremium.whenOrNull(data: (v) => v) ?? false;
@@ -98,7 +98,13 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
+    // Capture the share button position for the iOS share popover.
+    final box = context.findRenderObject() as RenderBox?;
+    final shareOrigin = box != null
+        ? box.localToGlobal(Offset.zero) & box.size
+        : Rect.fromLTWH(0, 0, 100, 100);
+
+    ScaffoldMessenger.of(this.context).showSnackBar(
       const SnackBar(
         content: Text('Generating PDF...'),
         duration: Duration(seconds: 1),
@@ -116,10 +122,13 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       final file = File(p.join(tempDir.path, '$safeName.pdf'));
       await file.writeAsBytes(pdfBytes);
 
-      await Share.shareXFiles([XFile(file.path)]);
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        sharePositionOrigin: shareOrigin,
+      );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        ScaffoldMessenger.of(this.context).showSnackBar(
           SnackBar(
             content: Text('Failed to generate PDF: $e'),
             behavior: SnackBarBehavior.floating,
@@ -233,10 +242,12 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                       }
                     },
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.share_outlined),
-                    tooltip: 'Share as PDF',
-                    onPressed: () => _shareAsPdf(recipe),
+                  Builder(
+                    builder: (btnContext) => IconButton(
+                      icon: const Icon(Icons.share_outlined),
+                      tooltip: 'Share as PDF',
+                      onPressed: () => _shareAsPdf(btnContext, recipe),
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.calendar_month_outlined),
