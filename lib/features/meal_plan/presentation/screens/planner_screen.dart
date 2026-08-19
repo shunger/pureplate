@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/routing/route_names.dart';
 import '../../../../core/providers/database_providers.dart';
+import '../../../pantry/data/services/pantry_consumption_service.dart';
+import '../../../recipes/data/datasources/recipe_mapper.dart';
 import '../../domain/models/meal_plan.dart';
 import '../providers/meal_plan_providers.dart';
 import '../providers/plan_generation_providers.dart';
@@ -204,6 +206,21 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
     await dao.swapDayDates(sortedDays[oldIndex].id, sortedDays[newIndex].id);
   }
 
+  String _buildCookedMessage(String recipeName, ConsumptionResult? result) {
+    if (result == null || result.deductedCount == 0) {
+      return '$recipeName marked as cooked';
+    }
+    final parts = <String>[
+      'Pantry updated — ${result.deductedCount} item${result.deductedCount == 1 ? '' : 's'} deducted',
+    ];
+    if (result.addedToListCount > 0) {
+      parts.add(
+        '${result.addedToListCount} added to ${result.shoppingListName ?? 'shopping list'}',
+      );
+    }
+    return parts.join(', ');
+  }
+
   Widget _buildPlanView(MealPlan plan) {
     final sortedDays = List.of(plan.days)
       ..sort((a, b) => a.date.compareTo(b.date));
@@ -254,9 +271,31 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
                   await ref
                       .read(mealPlanDaoProvider)
                       .markCooked(day.id, true);
+
+                  // Deduct pantry items.
+                  ConsumptionResult? result;
+                  final dbRecipe = await ref
+                      .read(recipeDaoProvider)
+                      .getRecipeById(day.recipeId);
+                  if (dbRecipe != null) {
+                    final recipe = RecipeMapper.fromDb(dbRecipe);
+                    result = await ref
+                        .read(pantryConsumptionServiceProvider)
+                        .deductIngredientsForRecipe(
+                          recipe: recipe,
+                          pantryDao: ref.read(pantryDaoProvider),
+                          shoppingListDao:
+                              ref.read(shoppingListDaoProvider),
+                        );
+                  }
+
+                  final msg = _buildCookedMessage(
+                    day.recipeName,
+                    result,
+                  );
                   messenger.showSnackBar(
                     SnackBar(
-                      content: Text('${day.recipeName} marked as cooked'),
+                      content: Text(msg),
                       behavior: SnackBarBehavior.floating,
                     ),
                   );

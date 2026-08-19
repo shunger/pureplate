@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../database/app_database.dart';
 import '../services/notification_service.dart';
 import '../services/thaw_reminder_service.dart';
+import '../../features/pantry/data/services/pantry_consumption_service.dart';
 
 // ── Database singleton ────────────────────────────────────
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
@@ -50,6 +51,10 @@ final familyProfileProvider = StreamProvider((ref) =>
 
 // ── Services ─────────────────────────────────────────────
 final notificationServiceProvider = Provider((ref) => NotificationService());
+
+final pantryConsumptionServiceProvider = Provider<PantryConsumptionService>(
+  (ref) => PantryConsumptionService(),
+);
 
 final thawReminderServiceProvider = Provider((ref) {
   final db = ref.watch(appDatabaseProvider);

@@ -17,12 +17,14 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/database_providers.dart';
 import '../../../../shared/models/product_category.dart';
 import '../../../meal_plan/presentation/providers/meal_plan_providers.dart';
+import '../../../pantry/data/services/pantry_consumption_service.dart';
 import '../../../pantry/domain/models/pantry_item.dart';
 import '../../../settings/presentation/providers/settings_providers.dart';
 import '../../../shopping_list/data/datasources/auto_list_generator.dart';
 import '../../../shopping_list/data/datasources/shopping_list_mapper.dart';
 import '../../../shopping_list/domain/models/shopping_list.dart';
 import '../../../shopping_list/presentation/providers/shopping_list_providers.dart';
+import '../../data/datasources/recipe_mapper.dart';
 import '../../domain/models/recipe.dart';
 import '../providers/recipe_providers.dart';
 import '../widgets/recipe_widgets.dart';
@@ -598,6 +600,21 @@ class _NutrientValue extends StatelessWidget {
 
 // ── Bottom Cooking Bar ────────────────────────────────────
 
+String _consumptionMessage(String recipeName, ConsumptionResult? result) {
+  if (result == null || result.deductedCount == 0) {
+    return '$recipeName marked as cooked';
+  }
+  final parts = <String>[
+    'Pantry updated — ${result.deductedCount} item${result.deductedCount == 1 ? '' : 's'} deducted',
+  ];
+  if (result.addedToListCount > 0) {
+    parts.add(
+      '${result.addedToListCount} added to ${result.shoppingListName ?? 'shopping list'}',
+    );
+  }
+  return parts.join(', ');
+}
+
 class _BottomCookingBar extends ConsumerWidget {
   final String recipeId;
 
@@ -673,12 +690,32 @@ class _BottomCookingBar extends ConsumerWidget {
                       await ref
                           .read(mealPlanDaoProvider)
                           .markCooked(day.id, true);
+
+                      // Deduct pantry items.
+                      ConsumptionResult? result;
+                      final dbRecipe = await ref
+                          .read(recipeDaoProvider)
+                          .getRecipeById(recipeId);
+                      if (dbRecipe != null) {
+                        final recipe = RecipeMapper.fromDb(dbRecipe);
+                        result = await ref
+                            .read(pantryConsumptionServiceProvider)
+                            .deductIngredientsForRecipe(
+                              recipe: recipe,
+                              pantryDao: ref.read(pantryDaoProvider),
+                              shoppingListDao:
+                                  ref.read(shoppingListDaoProvider),
+                            );
+                      }
+
                       if (context.mounted) {
+                        final msg = _consumptionMessage(
+                          day.recipeName,
+                          result,
+                        );
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(
-                              '${day.recipeName} marked as cooked',
-                            ),
+                            content: Text(msg),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );

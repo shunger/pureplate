@@ -5,6 +5,8 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/database_providers.dart';
+import '../../../pantry/data/services/pantry_consumption_service.dart';
+import '../../data/datasources/recipe_mapper.dart';
 import '../providers/recipe_providers.dart';
 
 /// Step-by-step cooking mode with large text, timers, and screen-awake lock.
@@ -310,21 +312,53 @@ class _CookingModeScreenState extends ConsumerState<CookingModeScreen> {
     });
   }
 
-  void _finishCooking(BuildContext context) {
+  Future<void> _finishCooking(BuildContext context) async {
     // Try to mark today's meal as cooked if this recipe is in a plan
-    ref.read(mealPlanDaoProvider).getTodaysMeal().then((meal) {
-      if (meal != null && meal.recipeId == widget.recipeId) {
-        ref.read(mealPlanDaoProvider).markCooked(meal.id, true);
-      }
-    });
+    final meal = await ref.read(mealPlanDaoProvider).getTodaysMeal();
+    if (meal != null && meal.recipeId == widget.recipeId) {
+      await ref.read(mealPlanDaoProvider).markCooked(meal.id, true);
+    }
 
+    // Deduct pantry items for this recipe.
+    ConsumptionResult? result;
+    final dbRecipe =
+        await ref.read(recipeDaoProvider).getRecipeById(widget.recipeId);
+    if (dbRecipe != null) {
+      final recipe = RecipeMapper.fromDb(dbRecipe);
+      result = await ref
+          .read(pantryConsumptionServiceProvider)
+          .deductIngredientsForRecipe(
+            recipe: recipe,
+            pantryDao: ref.read(pantryDaoProvider),
+            shoppingListDao: ref.read(shoppingListDaoProvider),
+          );
+    }
+
+    if (!context.mounted) return;
+
+    final message = _buildCookingMessage(result);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Great cooking! Meal marked as done.'),
+      SnackBar(
+        content: Text(message),
         backgroundColor: AppColors.sage,
       ),
     );
     Navigator.of(context).pop();
+  }
+
+  String _buildCookingMessage(ConsumptionResult? result) {
+    if (result == null || result.deductedCount == 0) {
+      return 'Great cooking! Meal marked as done.';
+    }
+    final parts = <String>[
+      'Pantry updated — ${result.deductedCount} item${result.deductedCount == 1 ? '' : 's'} deducted',
+    ];
+    if (result.addedToListCount > 0) {
+      parts.add(
+        '${result.addedToListCount} added to ${result.shoppingListName ?? 'shopping list'}',
+      );
+    }
+    return parts.join(', ');
   }
 
   String _formatTimer(int totalSeconds) {
