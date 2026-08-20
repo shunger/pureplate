@@ -64,7 +64,10 @@ class VoiceLoopService extends ChangeNotifier {
       debugPrint('VoiceLoopService TTS error: $e');
     }
 
+    // Transition out of speaking before starting to listen —
+    // _startListening guards against being called while speaking.
     if (_loopActive) {
+      _setState(VoiceLoopState.idle);
       await _startListening();
     }
   }
