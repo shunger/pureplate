@@ -639,23 +639,25 @@ class _BottomCookingBar extends ConsumerWidget {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
         child: daysAsync.when(
-          loading: () => _startCookingButton(context),
-          error: (_, _) => _startCookingButton(context),
+          loading: () => _cookingRow(context, ref),
+          error: (_, _) => _cookingRow(context, ref),
           data: (days) {
             final uncookedDays =
                 days.where((d) => !d.isCooked).toList();
             final allCooked =
                 days.isNotEmpty && uncookedDays.isEmpty;
 
-            // Not in any plan — just "Start Cooking"
+            // Not in any plan — just "Start Cooking" + voice
             if (days.isEmpty) {
-              return _startCookingButton(context);
+              return _cookingRow(context, ref);
             }
 
             // All matching days already cooked
             if (allCooked) {
               return Row(
                 children: [
+                  _voiceCookingButton(context, ref),
+                  const SizedBox(width: 8),
                   Expanded(child: _startCookingButton(context)),
                   const SizedBox(width: 12),
                   const Icon(Icons.check_circle,
@@ -673,9 +675,11 @@ class _BottomCookingBar extends ConsumerWidget {
               );
             }
 
-            // Has uncooked days — show both buttons
+            // Has uncooked days — show all buttons
             return Row(
               children: [
+                _voiceCookingButton(context, ref),
+                const SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () =>
@@ -753,6 +757,17 @@ class _BottomCookingBar extends ConsumerWidget {
     );
   }
 
+  /// Start Cooking button + voice cooking button side by side.
+  Widget _cookingRow(BuildContext context, WidgetRef ref) {
+    return Row(
+      children: [
+        _voiceCookingButton(context, ref),
+        const SizedBox(width: 8),
+        Expanded(child: _startCookingButton(context)),
+      ],
+    );
+  }
+
   Widget _startCookingButton(BuildContext context) {
     return FilledButton.icon(
       onPressed: () => context.push('/cooking/$recipeId'),
@@ -762,6 +777,30 @@ class _BottomCookingBar extends ConsumerWidget {
         backgroundColor: AppColors.coral,
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(vertical: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+        ),
+      ),
+    );
+  }
+
+  Widget _voiceCookingButton(BuildContext context, WidgetRef ref) {
+    return IconButton.filled(
+      onPressed: () {
+        final isPremium = ref.read(isPremiumProvider);
+        final premium = isPremium.whenOrNull(data: (v) => v) ?? false;
+        if (!premium) {
+          context.push(Routes.premium);
+        } else {
+          context.push('/voice-cooking/$recipeId');
+        }
+      },
+      icon: const Icon(Icons.headset_mic, size: 22),
+      tooltip: 'Voice cooking assistant',
+      style: IconButton.styleFrom(
+        backgroundColor: AppColors.coral.withValues(alpha: 0.12),
+        foregroundColor: AppColors.coral,
+        padding: const EdgeInsets.all(14),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(28),
         ),

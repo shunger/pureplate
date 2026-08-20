@@ -22,6 +22,7 @@ import '../../features/recipes/presentation/screens/recipe_browser_screen.dart';
 import '../../features/recipes/presentation/screens/recipe_detail_screen.dart';
 import '../../features/recipes/presentation/screens/recipe_chat_screen.dart';
 import '../../features/recipes/presentation/screens/cooking_mode_screen.dart';
+import '../../features/recipes/presentation/screens/voice_cooking_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/settings/presentation/screens/profile_edit_screen.dart';
 import '../../features/premium/presentation/screens/premium_screen.dart';
@@ -151,6 +152,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Routes.cookingMode,
         builder: (context, state) =>
             CookingModeScreen(recipeId: state.pathParameters['recipeId']!),
+      ),
+      GoRoute(
+        path: Routes.voiceCooking,
+        builder: (context, state) =>
+            VoiceCookingScreen(recipeId: state.pathParameters['recipeId']!),
       ),
       GoRoute(
         path: Routes.planGeneration,

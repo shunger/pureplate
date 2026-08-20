@@ -69,12 +69,13 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Used to select photos for product images</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Used for voice input to fill in text fields throughout the app</string>
+	<string>Used for voice input and hands-free cooking mode</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Used to convert speech to text for hands-free input</string>
+	<string>Used to convert speech to text for hands-free cooking assistant</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
+		<string>audio</string>
 	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>

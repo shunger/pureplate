@@ -38,6 +38,7 @@ class Routes {
   static const recipeDetail = '/recipes/:id';
   static const recipeChat = '/recipes/:id/chat';
   static const cookingMode = '/cooking/:recipeId';
+  static const voiceCooking = '/voice-cooking/:recipeId';
 
   // Shopping lists
   static const listDetail = '/lists/:id';
