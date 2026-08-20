@@ -26,6 +26,9 @@ class VoiceLoopService extends ChangeNotifier {
   bool _loopActive = false;
   bool get isActive => _loopActive;
 
+  /// True while processing a voice result (prevents error-handler restarts).
+  bool _processing = false;
+
   String _lastHeardText = '';
   String get lastHeardText => _lastHeardText;
 
@@ -48,6 +51,11 @@ class VoiceLoopService extends ChangeNotifier {
   /// Speak [text] via TTS, then automatically start listening when done.
   Future<void> speakThenListen(String text) async {
     if (!_loopActive) return;
+
+    _processing = false;
+    // Stop any existing STT session before speaking.
+    _safetyTimer?.cancel();
+    await _stt.stop();
 
     _setState(VoiceLoopState.speaking);
     try {
@@ -77,6 +85,7 @@ class VoiceLoopService extends ChangeNotifier {
   /// Stop the entire voice loop.
   Future<void> stopLoop() async {
     _loopActive = false;
+    _processing = false;
     _safetyTimer?.cancel();
     _safetyTimer = null;
     await _tts.stop();
@@ -86,6 +95,7 @@ class VoiceLoopService extends ChangeNotifier {
 
   /// Pause listening (user said "pause" or tapped mic).
   Future<void> pauseListening() async {
+    _processing = false;
     _safetyTimer?.cancel();
     await _tts.stop();
     await _stt.stop();
@@ -102,6 +112,8 @@ class VoiceLoopService extends ChangeNotifier {
 
   Future<void> _startListening() async {
     if (!_loopActive) return;
+    // Don't restart if we're currently processing a result or speaking.
+    if (_processing || _state == VoiceLoopState.speaking) return;
 
     _setState(VoiceLoopState.listening);
 
@@ -109,16 +121,26 @@ class VoiceLoopService extends ChangeNotifier {
       onError: (error) {
         debugPrint('VoiceLoopService STT error: ${error.errorMsg}');
         _safetyTimer?.cancel();
-        // Auto-retry after a brief delay if loop is still active.
-        if (_loopActive && _state != VoiceLoopState.speaking) {
+        // Auto-retry after a brief delay, but only if we're not processing
+        // or speaking (which means speakThenListen will handle restart).
+        if (_loopActive && !_processing && _state == VoiceLoopState.listening) {
           Future.delayed(const Duration(seconds: 1), () {
-            if (_loopActive) _startListening();
+            if (_loopActive && !_processing) _startListening();
           });
         }
       },
       onStatus: (status) {
         if (status == 'done' || status == 'notListening') {
           _safetyTimer?.cancel();
+          // If STT ended without a result and we're still supposed to listen,
+          // restart. But don't if we're processing or speaking.
+          if (_loopActive && !_processing && _state == VoiceLoopState.listening) {
+            Future.delayed(const Duration(milliseconds: 500), () {
+              if (_loopActive && !_processing && _state != VoiceLoopState.speaking) {
+                _startListening();
+              }
+            });
+          }
         }
       },
     );
@@ -132,11 +154,11 @@ class VoiceLoopService extends ChangeNotifier {
     // 55-second safety timer — proactively stop STT before iOS ~60s limit.
     _safetyTimer?.cancel();
     _safetyTimer = Timer(const Duration(seconds: 55), () {
-      if (_loopActive && _state == VoiceLoopState.listening) {
+      if (_loopActive && _state == VoiceLoopState.listening && !_processing) {
         _stt.stop();
         // Restart listening after a brief gap.
         Future.delayed(const Duration(milliseconds: 300), () {
-          if (_loopActive) _startListening();
+          if (_loopActive && !_processing) _startListening();
         });
       }
     });
@@ -151,14 +173,17 @@ class VoiceLoopService extends ChangeNotifier {
 
           if (text.isEmpty) {
             // Empty result — silently restart listening.
-            if (_loopActive) {
+            if (_loopActive && !_processing) {
               Future.delayed(const Duration(milliseconds: 500), () {
-                if (_loopActive) _startListening();
+                if (_loopActive && !_processing) _startListening();
               });
             }
             return;
           }
 
+          // Mark as processing to prevent error/status handlers from
+          // restarting listening while we handle the command.
+          _processing = true;
           _setState(VoiceLoopState.processing);
           onResult?.call(text);
         }

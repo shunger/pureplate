@@ -26,19 +26,46 @@ enum LocalCommandType {
 /// Returns a [LocalCommandResult] if the input matches a known command,
 /// or `null` if it should be forwarded to the AI.
 class LocalCommandMatcher {
-  static final _timerRegex = RegExp(
-    r'(?:set\s+(?:a\s+)?timer\s+(?:for\s+)?|timer\s+)(\d+)\s*min',
+  // Matches: "set timer for 5 minutes", "set a timer for 10 min",
+  // "timer 5 minutes", "set timer for five minutes", etc.
+  static final _timerDigitRegex = RegExp(
+    r'(?:set\s+(?:a\s+)?timer\s+(?:for\s+)?|timer\s+(?:for\s+)?)(\d+)\s*min',
     caseSensitive: false,
   );
+
+  // Matches spoken number words: "set timer for five minutes"
+  static final _timerWordRegex = RegExp(
+    r'(?:set\s+(?:a\s+)?timer\s+(?:for\s+)?|timer\s+(?:for\s+)?)'
+    r'(one|two|three|four|five|six|seven|eight|nine|ten|'
+    r'eleven|twelve|thirteen|fourteen|fifteen|twenty|thirty|forty|fifty)\s*min',
+    caseSensitive: false,
+  );
+
+  static const _wordToNumber = <String, int>{
+    'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+    'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
+    'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14,
+    'fifteen': 15, 'twenty': 20, 'thirty': 30, 'forty': 40, 'fifty': 50,
+  };
 
   LocalCommandResult? match(String input) {
     final lower = input.toLowerCase().trim();
     if (lower.isEmpty) return null;
 
     // Timer (check regex first since it's more specific).
-    final timerMatch = _timerRegex.firstMatch(lower);
-    if (timerMatch != null) {
-      final minutes = int.tryParse(timerMatch.group(1)!);
+    final timerDigitMatch = _timerDigitRegex.firstMatch(lower);
+    if (timerDigitMatch != null) {
+      final minutes = int.tryParse(timerDigitMatch.group(1)!);
+      if (minutes != null && minutes > 0) {
+        return LocalCommandResult(
+          LocalCommandType.setTimer,
+          timerMinutes: minutes,
+        );
+      }
+    }
+    final timerWordMatch = _timerWordRegex.firstMatch(lower);
+    if (timerWordMatch != null) {
+      final minutes = _wordToNumber[timerWordMatch.group(1)!.toLowerCase()];
       if (minutes != null && minutes > 0) {
         return LocalCommandResult(
           LocalCommandType.setTimer,

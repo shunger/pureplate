@@ -664,6 +664,52 @@ class _VoiceCookingScreenState extends ConsumerState<VoiceCookingScreen> {
                       ),
                       const SizedBox(height: 32),
 
+                      // Timer display (prominent)
+                      if (_timerRunning) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: _timerSeconds <= 10
+                                ? AppColors.error.withValues(alpha: 0.1)
+                                : AppColors.coral.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: _timerSeconds <= 10
+                                  ? AppColors.error.withValues(alpha: 0.3)
+                                  : AppColors.coral.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.timer,
+                                size: 24,
+                                color: _timerSeconds <= 10
+                                    ? AppColors.error
+                                    : AppColors.coral,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _formatTimer(_timerSeconds),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 28,
+                                  color: _timerSeconds <= 10
+                                      ? AppColors.error
+                                      : AppColors.coral,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures()
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+
                       // Current step text
                       if (step != null) ...[
                         Text(
