@@ -89,6 +89,40 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     ref.read(recipeDaoProvider).updateImageUrl(widget.recipeId, destPath);
   }
 
+  Future<void> _shareAsFile(BuildContext context, Recipe recipe) async {
+    // Premium gate.
+    final isPremium = ref.read(isPremiumProvider);
+    final premium = isPremium.whenOrNull(data: (v) => v) ?? false;
+    if (!premium) {
+      context.push(Routes.premium);
+      return;
+    }
+
+    final box = context.findRenderObject() as RenderBox?;
+    final shareOrigin = box != null
+        ? box.localToGlobal(Offset.zero) & box.size
+        : Rect.fromLTWH(0, 0, 100, 100);
+
+    try {
+      final file =
+          await ref.read(recipeShareServiceProvider).exportToFile(recipe);
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        sharePositionOrigin: shareOrigin,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(this.context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to export recipe: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _shareAsPdf(BuildContext context, Recipe recipe) async {
     // Premium gate.
     final isPremium = ref.read(isPremiumProvider);
@@ -243,10 +277,37 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     },
                   ),
                   Builder(
-                    builder: (btnContext) => IconButton(
+                    builder: (btnContext) => PopupMenuButton<String>(
                       icon: const Icon(Icons.share_outlined),
-                      tooltip: 'Share as PDF',
-                      onPressed: () => _shareAsPdf(btnContext, recipe),
+                      tooltip: 'Share',
+                      onSelected: (value) {
+                        switch (value) {
+                          case 'pdf':
+                            _shareAsPdf(btnContext, recipe);
+                          case 'file':
+                            _shareAsFile(btnContext, recipe);
+                        }
+                      },
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(
+                          value: 'pdf',
+                          child: ListTile(
+                            leading: Icon(Icons.picture_as_pdf),
+                            title: Text('Share as PDF'),
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'file',
+                          child: ListTile(
+                            leading: Icon(Icons.upload_file),
+                            title: Text('Export Recipe'),
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   IconButton(

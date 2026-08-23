@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/providers/database_providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/voice_input_button.dart';
+import '../../data/datasources/recipe_mapper.dart';
 import '../../domain/models/recipe.dart';
 import '../providers/recipe_providers.dart';
 import '../widgets/recipe_widgets.dart';
@@ -34,6 +36,51 @@ class _RecipeBrowserScreenState extends ConsumerState<RecipeBrowserScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _importRecipe() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(type: FileType.any);
+      if (result == null || result.files.isEmpty) return;
+
+      final path = result.files.single.path;
+      if (path == null || !path.endsWith('.purepantry')) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please select a .purepantry file.'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
+      }
+
+      final recipe =
+          await ref.read(recipeShareServiceProvider).importFromFile(path);
+      await ref
+          .read(recipeDaoProvider)
+          .insertRecipe(RecipeMapper.toCompanion(recipe));
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${recipe.name} imported'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        context.push('/recipes/${recipe.id}');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to import recipe: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _confirmDelete(Recipe recipe) async {
@@ -80,6 +127,13 @@ class _RecipeBrowserScreenState extends ConsumerState<RecipeBrowserScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Recipes'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.download_outlined),
+            tooltip: 'Import Recipe',
+            onPressed: _importRecipe,
+          ),
+        ],
       ),
       body: Column(
         children: [
