@@ -2,15 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../../core/database/app_database.dart';
 import '../../../../core/providers/auth_providers.dart';
 import '../../../../core/providers/database_providers.dart';
 import '../../../../core/routing/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/models/product_category.dart';
 import '../../../../shared/widgets/sign_in_bottom_sheet.dart';
 import '../../../settings/presentation/providers/settings_providers.dart';
 import '../../../sharing/presentation/providers/sharing_providers.dart';
+import '../../../shopping_list/data/datasources/shopping_list_mapper.dart';
+import '../../../shopping_list/domain/models/shopping_list.dart'
+    as shopping_domain;
+import '../../../shopping_list/presentation/providers/shopping_list_providers.dart';
 import '../../data/datasources/pantry_sync_orchestrator.dart';
 import '../providers/pantry_providers.dart';
 import '../widgets/add_pantry_item_sheet.dart';
@@ -402,6 +408,7 @@ class _PantryGroupTile extends ConsumerWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: InkWell(
           onTap: () => _showEditSheet(context, item),
+          onLongPress: () => _showAddToShoppingListSheet(context, ref),
           borderRadius: BorderRadius.circular(16),
           child: Padding(
             padding: const EdgeInsets.all(14),
@@ -548,6 +555,17 @@ class _PantryGroupTile extends ConsumerWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) => AddPantryItemSheet(existingItem: item),
+    );
+  }
+
+  void _showAddToShoppingListSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _AddToShoppingListSheet(group: group),
     );
   }
 
@@ -761,6 +779,240 @@ class _EmptyState extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ── Add to Shopping List sheet ───────────────────────────────
+
+const _kNewListId = '__new_list__';
+
+class _AddToShoppingListSheet extends ConsumerStatefulWidget {
+  final PantryGroup group;
+
+  const _AddToShoppingListSheet({required this.group});
+
+  @override
+  ConsumerState<_AddToShoppingListSheet> createState() =>
+      _AddToShoppingListSheetState();
+}
+
+class _AddToShoppingListSheetState
+    extends ConsumerState<_AddToShoppingListSheet> {
+  String? _selectedListId;
+  bool _isSaving = false;
+  late final TextEditingController _qtyController;
+
+  @override
+  void initState() {
+    super.initState();
+    final qty = widget.group.totalQuantity;
+    _qtyController = TextEditingController(
+      text: qty == qty.toInt() ? qty.toInt().toString() : qty.toStringAsFixed(1),
+    );
+  }
+
+  @override
+  void dispose() {
+    _qtyController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _addItem() async {
+    setState(() => _isSaving = true);
+
+    try {
+      final dao = ref.read(shoppingListDaoProvider);
+      final uuid = const Uuid();
+      final item = widget.group.batches.first;
+      String targetListId;
+
+      if (_selectedListId == null || _selectedListId == _kNewListId) {
+        targetListId = uuid.v4();
+        final now = DateTime.now();
+        final newList = shopping_domain.ShoppingList(
+          id: targetListId,
+          name: 'Shopping List',
+          source: shopping_domain.ShoppingListSource.manual,
+          createdAt: now,
+        );
+        await dao.insertList(ShoppingListMapper.listToCompanion(newList));
+      } else {
+        targetListId = _selectedListId!;
+      }
+
+      final parsedQty = double.tryParse(_qtyController.text) ?? 1;
+      final category = ProductCategory.values.asNameMap()[item.category] ??
+          ProductCategory.other;
+
+      final shoppingItem = shopping_domain.ShoppingListItem(
+        id: uuid.v4(),
+        listId: targetListId,
+        name: item.name,
+        category: category,
+        quantity: parsedQty,
+        unitType: item.unitType,
+        addedAt: DateTime.now(),
+      );
+
+      await dao.insertItem(ShoppingListMapper.itemToCompanion(shoppingItem));
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${item.name} added to list'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to add item: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final listsAsync = ref.watch(activeShoppingListsDomainProvider);
+    final item = widget.group.batches.first;
+
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 12,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Drag handle
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color:
+                    theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Title
+          Text(
+            'Add to Shopping List',
+            style: theme.textTheme.titleMedium
+                ?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 16),
+          // Item preview
+          Row(
+            children: [
+              Text(
+                (ProductCategory.values.asNameMap()[item.category] ??
+                        ProductCategory.other)
+                    .emoji,
+                style: const TextStyle(fontSize: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  widget.group.name,
+                  style: theme.textTheme.bodyLarge
+                      ?.copyWith(fontWeight: FontWeight.w600),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Quantity field
+          TextFormField(
+            controller: _qtyController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              labelText: 'Quantity (${item.unitType})',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // List selector
+          listsAsync.when(
+            loading: () => const SizedBox.shrink(),
+            error: (_, _) => const SizedBox.shrink(),
+            data: (lists) {
+              final items = <DropdownMenuItem<String>>[
+                const DropdownMenuItem(
+                  value: _kNewListId,
+                  child: Text('New list'),
+                ),
+                ...lists.map((l) => DropdownMenuItem(
+                      value: l.id,
+                      child: Text(
+                        l.name,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    )),
+              ];
+
+              return DropdownButtonFormField<String>(
+                initialValue: _selectedListId ?? _kNewListId,
+                decoration: InputDecoration(
+                  labelText: 'Shopping list',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 12),
+                ),
+                items: items,
+                onChanged: (v) => setState(() => _selectedListId = v),
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          // Add button
+          FilledButton.icon(
+            onPressed: _isSaving ? null : _addItem,
+            icon: _isSaving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.add_shopping_cart),
+            label: Text(_isSaving ? 'Adding...' : 'Add'),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.coral,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(28),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

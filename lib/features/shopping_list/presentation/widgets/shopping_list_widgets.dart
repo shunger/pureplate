@@ -316,16 +316,27 @@ class _ShoppingListItemSheetState
           widget.existingItem?.pantryQuantityAvailable ?? 0,
     );
 
-    final dao = ref.read(shoppingListDaoProvider);
-    final companion = ShoppingListMapper.itemToCompanion(item);
+    try {
+      final dao = ref.read(shoppingListDaoProvider);
+      final companion = ShoppingListMapper.itemToCompanion(item);
 
-    if (_isEditing) {
-      await dao.updateItem(companion);
-    } else {
-      await dao.insertItem(companion);
+      if (_isEditing) {
+        await dao.updateItem(companion);
+      } else {
+        await dao.insertItem(companion);
+      }
+
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save item: $e'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
-
-    if (mounted) Navigator.pop(context);
   }
 }
 

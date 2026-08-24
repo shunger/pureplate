@@ -37,12 +37,15 @@ final archivedShoppingListsProvider =
 });
 
 /// Single shopping list detail with items — used on the detail screen.
+///
+/// Watches the items stream so the UI rebuilds when items are added,
+/// removed, or toggled. Fetches the list record on each emission.
 final shoppingListDetailProvider =
     StreamProvider.family<ShoppingList?, String>((ref, id) {
   final dao = ref.watch(shoppingListDaoProvider);
-  return dao.watchListById(id).asyncMap((dbList) async {
+  return dao.watchItemsForList(id).asyncMap((dbItems) async {
+    final dbList = await dao.getListById(id);
     if (dbList == null) return null;
-    final dbItems = await dao.getItemsForList(dbList.id);
     return ShoppingListMapper.fromDbWithItems(dbList, dbItems);
   });
 });

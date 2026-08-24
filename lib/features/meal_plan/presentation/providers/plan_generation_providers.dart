@@ -89,7 +89,7 @@ class PlanGenerationNotifier extends StateNotifier<PlanGenerationState> {
   /// Generate a plan for [numDays] days.
   ///
   /// Returns the plan ID on success, null on failure.
-  Future<String?> generate({required int numDays}) async {
+  Future<String?> generate({required int numDays, String userPrompt = ''}) async {
     state = state.copyWith(isGenerating: true, errorMessage: null);
 
     try {
@@ -138,6 +138,10 @@ class PlanGenerationNotifier extends StateNotifier<PlanGenerationState> {
         recentMeals: domainRecentMeals,
         feedbackWithCuisine: feedbackWithCuisine,
       );
+
+      if (userPrompt.trim().isNotEmpty) {
+        summary['user_request'] = userPrompt.trim();
+      }
 
       // Step 2: Compute day labels starting from next Monday.
       final startDate = _nextMonday(DateTime.now());

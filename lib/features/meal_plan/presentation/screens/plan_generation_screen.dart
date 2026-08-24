@@ -24,6 +24,13 @@ class PlanGenerationScreen extends ConsumerStatefulWidget {
 
 class _PlanGenerationScreenState extends ConsumerState<PlanGenerationScreen> {
   int _selectedDays = 5;
+  final _promptController = TextEditingController();
+
+  @override
+  void dispose() {
+    _promptController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -140,6 +147,26 @@ class _PlanGenerationScreenState extends ConsumerState<PlanGenerationScreen> {
             }).toList(),
           ),
           const SizedBox(height: 24),
+
+          // User prompt
+          TextField(
+            controller: _promptController,
+            maxLines: 2,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: InputDecoration(
+              hintText: 'e.g. comfort food, quick weeknight meals, use up the chicken...',
+              hintStyle: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                fontSize: 14,
+              ),
+              labelText: 'Any requests?',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+          const SizedBox(height: 16),
 
           // Pantry context preview
           Card(
@@ -287,7 +314,10 @@ class _PlanGenerationScreenState extends ConsumerState<PlanGenerationScreen> {
 
   Future<void> _generatePlan() async {
     final notifier = ref.read(planGenerationStateProvider.notifier);
-    final planId = await notifier.generate(numDays: _selectedDays);
+    final planId = await notifier.generate(
+      numDays: _selectedDays,
+      userPrompt: _promptController.text,
+    );
 
     if (planId != null && mounted) {
       context.go(Routes.planner);
