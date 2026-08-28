@@ -32,6 +32,7 @@ import '../../features/onboarding/presentation/screens/onboarding_dietary_screen
 import '../../features/onboarding/presentation/screens/onboarding_style_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_cooking_screen.dart';
 import '../../features/sharing/presentation/screens/collaborators_screen.dart';
+import '../../features/sharing/presentation/screens/list_collaborators_screen.dart';
 import '../../features/sharing/presentation/screens/activity_feed_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -188,6 +189,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.collaborators,
         builder: (context, state) => CollaboratorsScreen(
+            firestoreId: state.pathParameters['firestoreId']!),
+      ),
+      GoRoute(
+        path: Routes.listCollaborators,
+        builder: (context, state) => ListCollaboratorsScreen(
             firestoreId: state.pathParameters['firestoreId']!),
       ),
       GoRoute(

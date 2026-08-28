@@ -80,6 +80,10 @@ class ShoppingListDao extends DatabaseAccessor<AppDatabase>
     return query.watch();
   }
 
+  Future<ShoppingListItem?> getItemById(String id) =>
+      (select(shoppingListItems)..where((i) => i.id.equals(id)))
+          .getSingleOrNull();
+
   // ── Item mutations ──────────────────────────────────────
 
   Future<void> insertItem(ShoppingListItemsCompanion item) =>
@@ -138,4 +142,63 @@ class ShoppingListDao extends DatabaseAccessor<AppDatabase>
       await deleteAllItemsForList(list.id);
     }
   }
+
+  // ── Firestore sync methods ────────────────────────────────
+
+  /// Find a local item by its Firestore item document ID.
+  Future<ShoppingListItem?> findItemByFirestoreItemId(
+          String firestoreItemId) =>
+      (select(shoppingListItems)
+            ..where((i) => i.firestoreItemId.equals(firestoreItemId)))
+          .getSingleOrNull();
+
+  /// Upsert by Firestore item ID — used during sync from shared list.
+  Future<void> upsertByFirestoreItemId(
+      ShoppingListItemsCompanion item) async {
+    final existing = await findItemByFirestoreItemId(
+        item.firestoreItemId.value ?? '');
+    if (existing != null) {
+      await (update(shoppingListItems)
+            ..where((i) => i.id.equals(existing.id)))
+          .write(item);
+    } else {
+      await into(shoppingListItems).insert(item);
+    }
+  }
+
+  /// Link/unlink a local item to a Firestore shared list and item doc.
+  Future<void> updateFirestoreIds(
+          String localId, String? firestoreListId, String? firestoreItemId) =>
+      (update(shoppingListItems)..where((i) => i.id.equals(localId))).write(
+          ShoppingListItemsCompanion(
+              firestoreListId: Value(firestoreListId),
+              firestoreItemId: Value(firestoreItemId),
+              updatedAt: Value(DateTime.now())));
+
+  /// Remove items that were deleted remotely from a shared list.
+  Future<void> deleteItemsNotInRemoteSet(
+      String firestoreListId, Set<String> remoteItemIds) async {
+    final localItems = await getItemsByFirestoreListId(firestoreListId);
+    for (final item in localItems) {
+      if (item.firestoreItemId != null &&
+          !remoteItemIds.contains(item.firestoreItemId)) {
+        await deleteItem(item.id);
+      }
+    }
+  }
+
+  /// Get all items linked to a specific Firestore shared list.
+  Future<List<ShoppingListItem>> getItemsByFirestoreListId(
+          String firestoreListId) =>
+      (select(shoppingListItems)
+            ..where((i) => i.firestoreListId.equals(firestoreListId)))
+          .get();
+
+  /// Set the firestoreId on a shopping list record.
+  Future<void> updateListFirestoreId(
+          String localListId, String? firestoreId) =>
+      (update(shoppingLists)..where((l) => l.id.equals(localListId))).write(
+          ShoppingListsCompanion(
+              firestoreId: Value(firestoreId),
+              updatedAt: Value(DateTime.now())));
 }

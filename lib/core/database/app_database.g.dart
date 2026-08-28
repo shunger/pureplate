@@ -5099,6 +5099,28 @@ class $ShoppingListItemsTable extends ShoppingListItems
         requiredDuringInsert: false,
         defaultValue: const Constant(0.0),
       );
+  static const VerificationMeta _firestoreListIdMeta = const VerificationMeta(
+    'firestoreListId',
+  );
+  @override
+  late final GeneratedColumn<String> firestoreListId = GeneratedColumn<String>(
+    'firestore_list_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _firestoreItemIdMeta = const VerificationMeta(
+    'firestoreItemId',
+  );
+  @override
+  late final GeneratedColumn<String> firestoreItemId = GeneratedColumn<String>(
+    'firestore_item_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _sortOrderMeta = const VerificationMeta(
     'sortOrder',
   );
@@ -5153,6 +5175,8 @@ class $ShoppingListItemsTable extends ShoppingListItems
     recipeId,
     recipeName,
     pantryQuantityAvailable,
+    firestoreListId,
+    firestoreItemId,
     sortOrder,
     addedAt,
     updatedAt,
@@ -5292,6 +5316,24 @@ class $ShoppingListItemsTable extends ShoppingListItems
         ),
       );
     }
+    if (data.containsKey('firestore_list_id')) {
+      context.handle(
+        _firestoreListIdMeta,
+        firestoreListId.isAcceptableOrUnknown(
+          data['firestore_list_id']!,
+          _firestoreListIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('firestore_item_id')) {
+      context.handle(
+        _firestoreItemIdMeta,
+        firestoreItemId.isAcceptableOrUnknown(
+          data['firestore_item_id']!,
+          _firestoreItemIdMeta,
+        ),
+      );
+    }
     if (data.containsKey('sort_order')) {
       context.handle(
         _sortOrderMeta,
@@ -5395,6 +5437,14 @@ class $ShoppingListItemsTable extends ShoppingListItems
         DriftSqlType.double,
         data['${effectivePrefix}pantry_quantity_available'],
       )!,
+      firestoreListId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}firestore_list_id'],
+      ),
+      firestoreItemId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}firestore_item_id'],
+      ),
       sortOrder: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
@@ -5436,6 +5486,8 @@ class ShoppingListItem extends DataClass
   final String? recipeId;
   final String? recipeName;
   final double pantryQuantityAvailable;
+  final String? firestoreListId;
+  final String? firestoreItemId;
   final int sortOrder;
   final DateTime addedAt;
   final DateTime updatedAt;
@@ -5458,6 +5510,8 @@ class ShoppingListItem extends DataClass
     this.recipeId,
     this.recipeName,
     required this.pantryQuantityAvailable,
+    this.firestoreListId,
+    this.firestoreItemId,
     required this.sortOrder,
     required this.addedAt,
     required this.updatedAt,
@@ -5501,6 +5555,12 @@ class ShoppingListItem extends DataClass
     map['pantry_quantity_available'] = Variable<double>(
       pantryQuantityAvailable,
     );
+    if (!nullToAbsent || firestoreListId != null) {
+      map['firestore_list_id'] = Variable<String>(firestoreListId);
+    }
+    if (!nullToAbsent || firestoreItemId != null) {
+      map['firestore_item_id'] = Variable<String>(firestoreItemId);
+    }
     map['sort_order'] = Variable<int>(sortOrder);
     map['added_at'] = Variable<DateTime>(addedAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -5543,6 +5603,12 @@ class ShoppingListItem extends DataClass
           ? const Value.absent()
           : Value(recipeName),
       pantryQuantityAvailable: Value(pantryQuantityAvailable),
+      firestoreListId: firestoreListId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(firestoreListId),
+      firestoreItemId: firestoreItemId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(firestoreItemId),
       sortOrder: Value(sortOrder),
       addedAt: Value(addedAt),
       updatedAt: Value(updatedAt),
@@ -5575,6 +5641,8 @@ class ShoppingListItem extends DataClass
       pantryQuantityAvailable: serializer.fromJson<double>(
         json['pantryQuantityAvailable'],
       ),
+      firestoreListId: serializer.fromJson<String?>(json['firestoreListId']),
+      firestoreItemId: serializer.fromJson<String?>(json['firestoreItemId']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
       addedAt: serializer.fromJson<DateTime>(json['addedAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -5604,6 +5672,8 @@ class ShoppingListItem extends DataClass
       'pantryQuantityAvailable': serializer.toJson<double>(
         pantryQuantityAvailable,
       ),
+      'firestoreListId': serializer.toJson<String?>(firestoreListId),
+      'firestoreItemId': serializer.toJson<String?>(firestoreItemId),
       'sortOrder': serializer.toJson<int>(sortOrder),
       'addedAt': serializer.toJson<DateTime>(addedAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -5629,6 +5699,8 @@ class ShoppingListItem extends DataClass
     Value<String?> recipeId = const Value.absent(),
     Value<String?> recipeName = const Value.absent(),
     double? pantryQuantityAvailable,
+    Value<String?> firestoreListId = const Value.absent(),
+    Value<String?> firestoreItemId = const Value.absent(),
     int? sortOrder,
     DateTime? addedAt,
     DateTime? updatedAt,
@@ -5654,6 +5726,12 @@ class ShoppingListItem extends DataClass
     recipeName: recipeName.present ? recipeName.value : this.recipeName,
     pantryQuantityAvailable:
         pantryQuantityAvailable ?? this.pantryQuantityAvailable,
+    firestoreListId: firestoreListId.present
+        ? firestoreListId.value
+        : this.firestoreListId,
+    firestoreItemId: firestoreItemId.present
+        ? firestoreItemId.value
+        : this.firestoreItemId,
     sortOrder: sortOrder ?? this.sortOrder,
     addedAt: addedAt ?? this.addedAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -5688,6 +5766,12 @@ class ShoppingListItem extends DataClass
       pantryQuantityAvailable: data.pantryQuantityAvailable.present
           ? data.pantryQuantityAvailable.value
           : this.pantryQuantityAvailable,
+      firestoreListId: data.firestoreListId.present
+          ? data.firestoreListId.value
+          : this.firestoreListId,
+      firestoreItemId: data.firestoreItemId.present
+          ? data.firestoreItemId.value
+          : this.firestoreItemId,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       addedAt: data.addedAt.present ? data.addedAt.value : this.addedAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -5715,6 +5799,8 @@ class ShoppingListItem extends DataClass
           ..write('recipeId: $recipeId, ')
           ..write('recipeName: $recipeName, ')
           ..write('pantryQuantityAvailable: $pantryQuantityAvailable, ')
+          ..write('firestoreListId: $firestoreListId, ')
+          ..write('firestoreItemId: $firestoreItemId, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('addedAt: $addedAt, ')
           ..write('updatedAt: $updatedAt')
@@ -5742,6 +5828,8 @@ class ShoppingListItem extends DataClass
     recipeId,
     recipeName,
     pantryQuantityAvailable,
+    firestoreListId,
+    firestoreItemId,
     sortOrder,
     addedAt,
     updatedAt,
@@ -5768,6 +5856,8 @@ class ShoppingListItem extends DataClass
           other.recipeId == this.recipeId &&
           other.recipeName == this.recipeName &&
           other.pantryQuantityAvailable == this.pantryQuantityAvailable &&
+          other.firestoreListId == this.firestoreListId &&
+          other.firestoreItemId == this.firestoreItemId &&
           other.sortOrder == this.sortOrder &&
           other.addedAt == this.addedAt &&
           other.updatedAt == this.updatedAt);
@@ -5792,6 +5882,8 @@ class ShoppingListItemsCompanion extends UpdateCompanion<ShoppingListItem> {
   final Value<String?> recipeId;
   final Value<String?> recipeName;
   final Value<double> pantryQuantityAvailable;
+  final Value<String?> firestoreListId;
+  final Value<String?> firestoreItemId;
   final Value<int> sortOrder;
   final Value<DateTime> addedAt;
   final Value<DateTime> updatedAt;
@@ -5815,6 +5907,8 @@ class ShoppingListItemsCompanion extends UpdateCompanion<ShoppingListItem> {
     this.recipeId = const Value.absent(),
     this.recipeName = const Value.absent(),
     this.pantryQuantityAvailable = const Value.absent(),
+    this.firestoreListId = const Value.absent(),
+    this.firestoreItemId = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.addedAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -5839,6 +5933,8 @@ class ShoppingListItemsCompanion extends UpdateCompanion<ShoppingListItem> {
     this.recipeId = const Value.absent(),
     this.recipeName = const Value.absent(),
     this.pantryQuantityAvailable = const Value.absent(),
+    this.firestoreListId = const Value.absent(),
+    this.firestoreItemId = const Value.absent(),
     this.sortOrder = const Value.absent(),
     required DateTime addedAt,
     required DateTime updatedAt,
@@ -5867,6 +5963,8 @@ class ShoppingListItemsCompanion extends UpdateCompanion<ShoppingListItem> {
     Expression<String>? recipeId,
     Expression<String>? recipeName,
     Expression<double>? pantryQuantityAvailable,
+    Expression<String>? firestoreListId,
+    Expression<String>? firestoreItemId,
     Expression<int>? sortOrder,
     Expression<DateTime>? addedAt,
     Expression<DateTime>? updatedAt,
@@ -5892,6 +5990,8 @@ class ShoppingListItemsCompanion extends UpdateCompanion<ShoppingListItem> {
       if (recipeName != null) 'recipe_name': recipeName,
       if (pantryQuantityAvailable != null)
         'pantry_quantity_available': pantryQuantityAvailable,
+      if (firestoreListId != null) 'firestore_list_id': firestoreListId,
+      if (firestoreItemId != null) 'firestore_item_id': firestoreItemId,
       if (sortOrder != null) 'sort_order': sortOrder,
       if (addedAt != null) 'added_at': addedAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -5918,6 +6018,8 @@ class ShoppingListItemsCompanion extends UpdateCompanion<ShoppingListItem> {
     Value<String?>? recipeId,
     Value<String?>? recipeName,
     Value<double>? pantryQuantityAvailable,
+    Value<String?>? firestoreListId,
+    Value<String?>? firestoreItemId,
     Value<int>? sortOrder,
     Value<DateTime>? addedAt,
     Value<DateTime>? updatedAt,
@@ -5943,6 +6045,8 @@ class ShoppingListItemsCompanion extends UpdateCompanion<ShoppingListItem> {
       recipeName: recipeName ?? this.recipeName,
       pantryQuantityAvailable:
           pantryQuantityAvailable ?? this.pantryQuantityAvailable,
+      firestoreListId: firestoreListId ?? this.firestoreListId,
+      firestoreItemId: firestoreItemId ?? this.firestoreItemId,
       sortOrder: sortOrder ?? this.sortOrder,
       addedAt: addedAt ?? this.addedAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -6009,6 +6113,12 @@ class ShoppingListItemsCompanion extends UpdateCompanion<ShoppingListItem> {
         pantryQuantityAvailable.value,
       );
     }
+    if (firestoreListId.present) {
+      map['firestore_list_id'] = Variable<String>(firestoreListId.value);
+    }
+    if (firestoreItemId.present) {
+      map['firestore_item_id'] = Variable<String>(firestoreItemId.value);
+    }
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
@@ -6045,6 +6155,8 @@ class ShoppingListItemsCompanion extends UpdateCompanion<ShoppingListItem> {
           ..write('recipeId: $recipeId, ')
           ..write('recipeName: $recipeName, ')
           ..write('pantryQuantityAvailable: $pantryQuantityAvailable, ')
+          ..write('firestoreListId: $firestoreListId, ')
+          ..write('firestoreItemId: $firestoreItemId, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('addedAt: $addedAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -17160,6 +17272,8 @@ typedef $$ShoppingListItemsTableCreateCompanionBuilder =
       Value<String?> recipeId,
       Value<String?> recipeName,
       Value<double> pantryQuantityAvailable,
+      Value<String?> firestoreListId,
+      Value<String?> firestoreItemId,
       Value<int> sortOrder,
       required DateTime addedAt,
       required DateTime updatedAt,
@@ -17185,6 +17299,8 @@ typedef $$ShoppingListItemsTableUpdateCompanionBuilder =
       Value<String?> recipeId,
       Value<String?> recipeName,
       Value<double> pantryQuantityAvailable,
+      Value<String?> firestoreListId,
+      Value<String?> firestoreItemId,
       Value<int> sortOrder,
       Value<DateTime> addedAt,
       Value<DateTime> updatedAt,
@@ -17325,6 +17441,16 @@ class $$ShoppingListItemsTableFilterComposer
 
   ColumnFilters<double> get pantryQuantityAvailable => $composableBuilder(
     column: $table.pantryQuantityAvailable,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get firestoreListId => $composableBuilder(
+    column: $table.firestoreListId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get firestoreItemId => $composableBuilder(
+    column: $table.firestoreItemId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -17479,6 +17605,16 @@ class $$ShoppingListItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get firestoreListId => $composableBuilder(
+    column: $table.firestoreListId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get firestoreItemId => $composableBuilder(
+    column: $table.firestoreItemId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
@@ -17608,6 +17744,16 @@ class $$ShoppingListItemsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get firestoreListId => $composableBuilder(
+    column: $table.firestoreListId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get firestoreItemId => $composableBuilder(
+    column: $table.firestoreItemId,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
 
@@ -17715,6 +17861,8 @@ class $$ShoppingListItemsTableTableManager
                 Value<String?> recipeId = const Value.absent(),
                 Value<String?> recipeName = const Value.absent(),
                 Value<double> pantryQuantityAvailable = const Value.absent(),
+                Value<String?> firestoreListId = const Value.absent(),
+                Value<String?> firestoreItemId = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<DateTime> addedAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -17738,6 +17886,8 @@ class $$ShoppingListItemsTableTableManager
                 recipeId: recipeId,
                 recipeName: recipeName,
                 pantryQuantityAvailable: pantryQuantityAvailable,
+                firestoreListId: firestoreListId,
+                firestoreItemId: firestoreItemId,
                 sortOrder: sortOrder,
                 addedAt: addedAt,
                 updatedAt: updatedAt,
@@ -17763,6 +17913,8 @@ class $$ShoppingListItemsTableTableManager
                 Value<String?> recipeId = const Value.absent(),
                 Value<String?> recipeName = const Value.absent(),
                 Value<double> pantryQuantityAvailable = const Value.absent(),
+                Value<String?> firestoreListId = const Value.absent(),
+                Value<String?> firestoreItemId = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 required DateTime addedAt,
                 required DateTime updatedAt,
@@ -17786,6 +17938,8 @@ class $$ShoppingListItemsTableTableManager
                 recipeId: recipeId,
                 recipeName: recipeName,
                 pantryQuantityAvailable: pantryQuantityAvailable,
+                firestoreListId: firestoreListId,
+                firestoreItemId: firestoreItemId,
                 sortOrder: sortOrder,
                 addedAt: addedAt,
                 updatedAt: updatedAt,

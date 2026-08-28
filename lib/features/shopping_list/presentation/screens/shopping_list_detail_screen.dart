@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/providers/auth_providers.dart';
 import '../../../../core/providers/database_providers.dart';
+import '../../../../core/routing/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/product_category.dart';
+import '../../../sharing/presentation/providers/sharing_providers.dart';
+import '../../data/datasources/shopping_list_sync_orchestrator.dart';
 import '../../domain/models/shopping_list.dart';
 import '../providers/shopping_list_providers.dart';
 import '../widgets/shopping_list_widgets.dart';
@@ -56,6 +62,7 @@ class _DetailBody extends ConsumerWidget {
       appBar: AppBar(
         title: Text(list.name),
         actions: [
+          _ShareButton(list: list),
           PopupMenuButton<String>(
             onSelected: (action) =>
                 _handleMenuAction(context, ref, action),
@@ -194,6 +201,174 @@ class _DetailBody extends ConsumerWidget {
       ),
     );
     return result ?? false;
+  }
+}
+
+// ── Share button ─────────────────────────────────────────────
+
+class _ShareButton extends ConsumerWidget {
+  final ShoppingList list;
+
+  const _ShareButton({required this.list});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isShared = list.firestoreId != null;
+
+    return IconButton(
+      icon: Icon(isShared ? Icons.people : Icons.share),
+      tooltip: isShared ? 'Shared list' : 'Share list',
+      onPressed: () async {
+        if (isShared) {
+          context.push(Routes.listCollaborators
+              .replaceFirst(':firestoreId', list.firestoreId!));
+        } else {
+          await _shareList(context, ref);
+        }
+      },
+    );
+  }
+
+  Future<void> _shareList(BuildContext context, WidgetRef ref) async {
+    final user = ref.read(currentUserProvider).valueOrNull;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sign in to share lists')),
+      );
+      return;
+    }
+
+    try {
+      final orchestrator = ref.read(shoppingListSyncOrchestratorProvider);
+      final firestoreId = await orchestrator.shareList(
+        localListId: list.id,
+        displayName: user.displayName ?? 'Member',
+      );
+
+      if (!context.mounted) return;
+
+      // Show the invite code in a bottom sheet.
+      _showInviteCodeSheet(context, ref, firestoreId);
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to share: $e')),
+      );
+    }
+  }
+
+  void _showInviteCodeSheet(
+      BuildContext context, WidgetRef ref, String firestoreId) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _InviteCodeSheet(firestoreId: firestoreId),
+    );
+  }
+}
+
+class _InviteCodeSheet extends ConsumerWidget {
+  final String firestoreId;
+
+  const _InviteCodeSheet({required this.firestoreId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final uid = ref.watch(currentUserProvider).valueOrNull?.uid;
+    final listsAsync =
+        uid != null ? ref.watch(sharedListsProvider(uid)) : null;
+
+    String inviteCode = '------';
+    if (listsAsync != null) {
+      final lists = listsAsync.valueOrNull ?? [];
+      for (final l in lists) {
+        if (l.firestoreId == firestoreId) {
+          inviteCode = l.inviteCode ?? '------';
+          break;
+        }
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.outline,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text('List Shared!',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          Text(
+            'Share this invite code with others.',
+            style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                  color: Theme.of(context).colorScheme.outline),
+            ),
+            child: Text(
+              inviteCode,
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 6,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              FilledButton.icon(
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: inviteCode));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Invite code copied!')),
+                  );
+                },
+                icon: const Icon(Icons.copy, size: 18),
+                label: const Text('Copy Code'),
+                style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.coral),
+              ),
+              const SizedBox(width: 12),
+              OutlinedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  GoRouter.of(context).push(Routes.listCollaborators
+                      .replaceFirst(':firestoreId', firestoreId));
+                },
+                style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.coral),
+                child: const Text('Manage'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
   }
 }
 

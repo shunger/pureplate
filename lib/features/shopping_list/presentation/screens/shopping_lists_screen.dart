@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/database/app_database.dart' as db;
 import '../../../../core/providers/database_providers.dart';
 import '../../../../core/routing/route_names.dart';
+import '../../../sharing/presentation/widgets/join_list_sheet.dart';
 import '../../domain/models/shopping_list.dart';
 import '../providers/shopping_list_providers.dart';
 import '../widgets/shopping_list_widgets.dart';
@@ -35,6 +36,11 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen> {
       appBar: AppBar(
         title: const Text('Lists'),
         actions: [
+          IconButton(
+            onPressed: () => showJoinListSheet(context, ref),
+            icon: const Icon(Icons.group_add),
+            tooltip: 'Join shared list',
+          ),
           IconButton(
             onPressed: () => _showCreateDialog(context),
             icon: const Icon(Icons.add),

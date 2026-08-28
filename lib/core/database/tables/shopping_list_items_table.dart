@@ -38,6 +38,10 @@ class ShoppingListItems extends Table {
   // Pantry deduction — how much of this item is already in the pantry.
   RealColumn get pantryQuantityAvailable => real().withDefault(const Constant(0.0))();
 
+  // Firestore sharing — links item to a shared list doc and its item doc.
+  TextColumn get firestoreListId => text().nullable()();
+  TextColumn get firestoreItemId => text().nullable()();
+
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
 
   // Timestamps.

@@ -52,6 +52,7 @@ class Routes {
 
   // Sharing
   static const collaborators = '/collaborators/:firestoreId';
+  static const listCollaborators = '/list-collaborators/:firestoreId';
   static const activityFeed = '/activity';
 
   // Premium

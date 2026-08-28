@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/auth_providers.dart';
 import '../../../../core/providers/database_providers.dart';
+import '../../data/datasources/firestore_list_sharing_service.dart';
 import '../../data/datasources/firestore_pantry_sharing_service.dart';
 
 /// Stream of shared pantries for the current user.
@@ -54,4 +55,26 @@ final currentSharedPantryProvider =
       );
     },
   );
+});
+
+// ── Shopping list sharing providers ─────────────────────────
+
+/// Stream of shared lists for a given user UID.
+final sharedListsProvider =
+    StreamProvider.family<List<SharedListInfo>, String>((ref, uid) {
+  final service = ref.watch(firestoreListSharingServiceProvider);
+  return service.watchSharedListsForUser(uid);
+});
+
+/// Stream of items in a shared list.
+final sharedListItemsProvider =
+    StreamProvider.family<List<SharedListItem>, String>((ref, listId) {
+  final service = ref.watch(firestoreListSharingServiceProvider);
+  return service.watchSharedListItems(listId);
+});
+
+/// The Firestore shared list doc ID from user preferences, exposed reactively.
+final sharedListIdProvider = Provider<AsyncValue<String?>>((ref) {
+  final prefsAsync = ref.watch(userPreferencesProvider);
+  return prefsAsync.whenData((prefs) => prefs.sharedListId);
 });
