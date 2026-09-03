@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/constants/app_links.dart';
 import '../../../../core/providers/database_providers.dart';
+import '../../../../core/routing/route_names.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../data/services/purchase_service.dart';
 import '../providers/purchase_providers.dart';
 
@@ -56,7 +60,7 @@ class PremiumScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Unlimited meal plans, advanced features,\nand family sharing.',
+                  'Unlimited meal plans and AI chat,\nvoice cooking, and family sharing.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.85),
@@ -79,13 +83,13 @@ class PremiumScreen extends ConsumerWidget {
           _FeatureRow(
             icon: Icons.auto_awesome,
             title: 'Unlimited Meal Plans',
-            subtitle: 'Free: 2/week',
+            subtitle: 'Free: 2 per week',
             isPremium: true,
           ),
           _FeatureRow(
             icon: Icons.chat,
-            title: 'AI Chat Planning',
-            subtitle: 'Conversational meal planning',
+            title: 'Unlimited AI Chat',
+            subtitle: 'Free: 10 messages per week',
             isPremium: true,
           ),
           _FeatureRow(
@@ -97,19 +101,13 @@ class PremiumScreen extends ConsumerWidget {
           _FeatureRow(
             icon: Icons.family_restroom,
             title: 'Family Sharing',
-            subtitle: 'Share pantry with family',
-            isPremium: true,
-          ),
-          _FeatureRow(
-            icon: Icons.analytics_outlined,
-            title: 'Spending Insights',
-            subtitle: 'Budget tracking & reports',
+            subtitle: 'Share your pantry and lists',
             isPremium: true,
           ),
           _FeatureRow(
             icon: Icons.share,
             title: 'Share Recipes',
-            subtitle: 'Share recipes you like',
+            subtitle: 'Export and send any recipe',
             isPremium: true,
           ),
 
@@ -121,32 +119,9 @@ class PremiumScreen extends ConsumerWidget {
             error: (_, __) => const SizedBox.shrink(),
             data: (prefs) {
               if (prefs.isPremium) {
-                return Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.success.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.check_circle,
-                          color: AppColors.success, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        'You\'re a Premium member!',
-                        style: TextStyle(
-                          color: AppColors.success,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
+                return const _ActiveMemberSection();
               }
-
-              return _SubscribeSection();
+              return const _SubscribeSection();
             },
           ),
 
@@ -157,7 +132,49 @@ class PremiumScreen extends ConsumerWidget {
   }
 }
 
+/// Shown to existing subscribers, with a route to manage or cancel.
+class _ActiveMemberSection extends StatelessWidget {
+  const _ActiveMemberSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.success.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.check_circle, color: AppColors.success, size: 20),
+              SizedBox(width: 8),
+              Text(
+                'You\'re a Premium member!',
+                style: TextStyle(
+                  color: AppColors.success,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: () => context.push(Routes.subscriptionManage),
+          child: const Text('Manage subscription'),
+        ),
+      ],
+    );
+  }
+}
+
 class _SubscribeSection extends ConsumerWidget {
+  const _SubscribeSection();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final productsAsync = ref.watch(availableProductsProvider);
@@ -173,6 +190,18 @@ class _SubscribeSection extends ConsumerWidget {
               const SnackBar(
                 content: Text('Premium activated!'),
                 backgroundColor: AppColors.success,
+              ),
+            );
+          case PurchaseVerificationPending():
+            // The charge went through but the backend could not confirm it.
+            // Access is deliberately not granted yet; the receipt is stored
+            // and retried, so say so rather than implying failure.
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                    'Purchase received. We\'re confirming it with the store — '
+                    'Premium unlocks automatically, usually within a minute.'),
+                duration: Duration(seconds: 6),
               ),
             );
           case PurchaseError(:final message):
@@ -273,10 +302,84 @@ class _SubscribeSection extends ConsumerWidget {
               : () => ref.read(purchaseServiceProvider).restorePurchases(),
           child: Text(
             'Restore Purchases',
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
+            style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 14),
           ),
         ),
+        const SizedBox(height: 16),
+        const _SubscriptionDisclosure(),
       ],
+    );
+  }
+}
+
+/// Auto-renew terms and legal links.
+///
+/// Both stores reject paywalls that omit the renewal disclosure or do not link
+/// to Terms and Privacy from the purchase screen itself.
+class _SubscriptionDisclosure extends StatelessWidget {
+  const _SubscriptionDisclosure();
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+
+    return Column(
+      children: [
+        Text(
+          'Subscriptions renew automatically at the price and period shown '
+          'above unless cancelled at least 24 hours before the end of the '
+          'current period. Your account is charged for renewal within 24 '
+          'hours of the end of the current period. You can manage or cancel '
+          'your subscription in your store account settings at any time.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 11.5, height: 1.45, color: muted),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _LegalLink(label: 'Terms of Use', url: AppLinks.terms),
+            Text('  ·  ', style: TextStyle(fontSize: 12, color: muted)),
+            _LegalLink(label: 'Privacy Policy', url: AppLinks.privacy),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _LegalLink extends StatelessWidget {
+  final String label;
+  final String url;
+
+  const _LegalLink({required this.label, required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () async {
+        final ok = await launchUrl(
+          Uri.parse(url),
+          mode: LaunchMode.externalApplication,
+        );
+        if (!ok && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not open $url')),
+          );
+        }
+      },
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 12,
+          color: AppColors.coral,
+          fontWeight: FontWeight.w600,
+          decoration: TextDecoration.underline,
+          decorationColor: AppColors.coral,
+        ),
+      ),
     );
   }
 }
@@ -320,7 +423,8 @@ class _FeatureRow extends StatelessWidget {
                         color: Theme.of(context).colorScheme.onSurface)),
                 Text(subtitle,
                     style: TextStyle(
-                        fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant)),
               ],
             ),
           ),

@@ -24,6 +24,8 @@ import '../../../../shared/models/product_category.dart';
 import '../../data/datasources/meal_plan_mapper.dart';
 import '../../../home/presentation/widgets/meal_preferences_sheet.dart';
 import '../../../recipes/data/datasources/recipe_mapper.dart';
+import '../providers/quota_providers.dart';
+import '../widgets/quota_hint.dart';
 
 /// Chat-style interface for conversational meal planning.
 ///
@@ -227,7 +229,14 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
                     )
                   : null,
             ),
-            child: Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                QuotaHint(
+                  provider: chatQuotaProvider,
+                  unit: 'message',
+                ),
+                Row(
               children: [
                 IconButton(
                   onPressed: _isLoading ? null : _showImageSourceSheet,
@@ -269,6 +278,8 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
                     backgroundColor: AppColors.coral,
                     foregroundColor: Colors.white,
                   ),
+                ),
+              ],
                 ),
               ],
             ),
@@ -649,6 +660,8 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
         imageBase64: imageBase64,
         imageMediaType: imageMediaType,
       );
+
+      ref.read(chatQuotaProvider.notifier).update(response.quota);
 
       // Persist returned recipes to local DB so detail screen can find them.
       if (response.recipes.isNotEmpty) {

@@ -1,4 +1,3 @@
-import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pure_pantry/core/database/app_database.dart';
 import 'package:pure_pantry/core/database/daos/preferences_dao.dart';
@@ -70,36 +69,33 @@ void main() {
       });
     });
 
-    group('setSubscription', () {
-      test('computes isPremium from future expiresAt', () async {
+    group('applyEntitlement', () {
+      test('stores the entitlement the server granted', () async {
         await dao.getPreferences();
-        await dao.setSubscription(
+        await dao.applyEntitlement(
+          isPremium: true,
           subscriptionId: 'sub-1',
-          plan: 'annual',
+          plan: 'premium_annual',
           expiresAt: DateTime.now().add(const Duration(days: 365)),
         );
 
         final prefs = await dao.getPreferences();
         expect(prefs.isPremium, isTrue);
         expect(prefs.subscriptionId, 'sub-1');
-        expect(prefs.subscriptionPlan, 'annual');
+        expect(prefs.subscriptionPlan, 'premium_annual');
       });
 
-      test('computes isPremium as false when expiresAt is past', () async {
+      test('clears premium when the server revokes it', () async {
         await dao.getPreferences();
-        await dao.setSubscription(
+        await dao.applyEntitlement(
+          isPremium: true,
           subscriptionId: 'sub-1',
-          plan: 'annual',
-          expiresAt: DateTime.now().subtract(const Duration(days: 1)),
+          plan: 'premium_annual',
+          expiresAt: DateTime.now().add(const Duration(days: 365)),
         );
 
-        final prefs = await dao.getPreferences();
-        expect(prefs.isPremium, isFalse);
-      });
-
-      test('computes isPremium as false when expiresAt is null', () async {
-        await dao.getPreferences();
-        await dao.setSubscription(
+        await dao.applyEntitlement(
+          isPremium: false,
           subscriptionId: null,
           plan: null,
           expiresAt: null,
@@ -107,32 +103,37 @@ void main() {
 
         final prefs = await dao.getPreferences();
         expect(prefs.isPremium, isFalse);
-      });
-    });
-
-    group('incrementWeeklyPlanCount', () {
-      test('increments count', () async {
-        await dao.getPreferences();
-        await dao.incrementWeeklyPlanCount();
-        await dao.incrementWeeklyPlanCount();
-
-        final prefs = await dao.getPreferences();
-        expect(prefs.weeklyPlanCount, 2);
+        expect(prefs.subscriptionId, isNull);
+        expect(prefs.subscriptionExpiresAt, isNull);
       });
 
-      test('resets count past reset date', () async {
+      test('does not infer premium from the expiry date', () async {
         await dao.getPreferences();
-        // Set reset date in the past.
-        await dao.updatePreferences(UserPreferencesTableCompanion(
-          weeklyPlanCount: const Value(5),
-          weeklyPlanResetDate: Value(
-              DateTime.now().subtract(const Duration(days: 1))),
-        ));
-
-        await dao.incrementWeeklyPlanCount();
+        // A future expiry with the server saying "not entitled" — e.g. a
+        // refunded subscription — must not be read as premium.
+        await dao.applyEntitlement(
+          isPremium: false,
+          subscriptionId: 'sub-1',
+          plan: 'premium_annual',
+          expiresAt: DateTime.now().add(const Duration(days: 365)),
+        );
 
         final prefs = await dao.getPreferences();
-        expect(prefs.weeklyPlanCount, 1);
+        expect(prefs.isPremium, isFalse);
+      });
+
+      test('records a past expiry so the app can lapse offline', () async {
+        await dao.getPreferences();
+        final expired = DateTime.now().subtract(const Duration(days: 1));
+        await dao.applyEntitlement(
+          isPremium: true,
+          subscriptionId: 'sub-1',
+          plan: 'premium_annual',
+          expiresAt: expired,
+        );
+
+        final prefs = await dao.getPreferences();
+        expect(prefs.subscriptionExpiresAt!.isBefore(DateTime.now()), isTrue);
       });
     });
 

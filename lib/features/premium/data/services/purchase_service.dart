@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/database/daos/preferences_dao.dart';
 
 /// Product IDs for the subscription tiers.
+/// Mirrored in functions/src/constants/products.ts.
 abstract class ProductIds {
   static const monthly = 'premium_monthly';
   static const annual = 'premium_annual';
@@ -15,7 +18,13 @@ abstract class ProductIds {
 
 /// Manages in-app purchases including subscription purchasing,
 /// receipt verification via Cloud Function, and restoring purchases.
+///
+/// Entitlement is never granted locally on the strength of a failed or
+/// unreachable verification. A purchase the server could not confirm is
+/// persisted and retried instead — see [retryPendingVerification].
 class PurchaseService {
+  static const _pendingKey = 'pending_purchase_verification';
+
   final InAppPurchase _iap;
   final FirebaseFunctions _functions;
   final PreferencesDao _preferencesDao;
@@ -74,6 +83,32 @@ class PurchaseService {
     await _iap.restorePurchases();
   }
 
+  /// Re-submits a receipt the server could not confirm last time.
+  ///
+  /// Call on app start. Does nothing when there is no pending receipt.
+  Future<void> retryPendingVerification() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_pendingKey);
+    if (raw == null) return;
+
+    late final Map<String, dynamic> pending;
+    try {
+      pending = jsonDecode(raw) as Map<String, dynamic>;
+    } catch (_) {
+      await prefs.remove(_pendingKey);
+      return;
+    }
+
+    debugPrint('Retrying pending purchase verification');
+    await _verifyReceipt(
+      receipt: pending['receipt'] as String,
+      source: pending['source'] as String,
+      productId: pending['productId'] as String,
+      purchaseId: pending['purchaseId'] as String?,
+      announce: false,
+    );
+  }
+
   Future<void> _handlePurchaseUpdates(
       List<PurchaseDetails> purchaseDetailsList) async {
     for (final purchase in purchaseDetailsList) {
@@ -91,58 +126,134 @@ class PurchaseService {
           _stateController.add(PurchaseState.error(
             purchase.error?.message ?? 'Purchase failed. Please try again.',
           ));
+          // Nothing was bought, so acknowledge and clear it from the queue.
+          await _completeIfNeeded(purchase);
           break;
 
         case PurchaseStatus.canceled:
           _stateController.add(const PurchaseState.idle());
+          await _completeIfNeeded(purchase);
           break;
       }
     }
   }
 
   Future<void> _verifyAndFinalize(PurchaseDetails purchase) async {
-    try {
-      // Determine source based on platform.
-      final source =
-          defaultTargetPlatform == TargetPlatform.iOS ? 'apple' : 'google';
+    final source =
+        defaultTargetPlatform == TargetPlatform.iOS ? 'apple' : 'google';
 
-      // Verify receipt with Cloud Function.
-      final result =
-          await _functions.httpsCallable('verifyReceipt').call({
-        'receipt': purchase.verificationData.serverVerificationData,
+    final resolved = await _verifyReceipt(
+      receipt: purchase.verificationData.serverVerificationData,
+      source: source,
+      productId: purchase.productID,
+      purchaseId: purchase.purchaseID,
+      announce: true,
+    );
+
+    // Only acknowledge once the server has given a definitive answer. Leaving
+    // an unconfirmed purchase pending means the store re-delivers it on next
+    // launch, which is a second safety net behind our own stored retry.
+    if (resolved) {
+      await _completeIfNeeded(purchase);
+    }
+  }
+
+  /// Sends a receipt to the backend for verification.
+  ///
+  /// Returns true when the store reached a verdict either way, false when the
+  /// attempt was transient and the receipt has been stored for retry.
+  Future<bool> _verifyReceipt({
+    required String receipt,
+    required String source,
+    required String productId,
+    required String? purchaseId,
+    required bool announce,
+  }) async {
+    try {
+      final result = await _functions.httpsCallable('verifyReceipt').call({
+        'receipt': receipt,
         'source': source,
-        'productId': purchase.productID,
+        'productId': productId,
       });
 
-      final data = result.data as Map<String, dynamic>;
+      final data = Map<String, dynamic>.from(result.data as Map);
       final valid = data['valid'] as bool? ?? false;
 
-      if (valid) {
-        // Update local DB with subscription info.
-        final expiresAtStr = data['expiresAt'] as String?;
-        final expiresAt =
-            expiresAtStr != null ? DateTime.tryParse(expiresAtStr) : null;
+      final expiresAtStr = data['expiresAt'] as String?;
+      final expiresAt =
+          expiresAtStr != null ? DateTime.tryParse(expiresAtStr) : null;
 
-        await _preferencesDao.setSubscription(
-          subscriptionId: purchase.purchaseID,
-          plan: purchase.productID,
-          expiresAt: expiresAt,
-        );
+      await _preferencesDao.applyEntitlement(
+        isPremium: valid,
+        subscriptionId: purchaseId,
+        plan: data['productId'] as String? ?? productId,
+        expiresAt: expiresAt,
+      );
 
-        _stateController.add(const PurchaseState.success());
-      } else {
-        _stateController.add(
-            const PurchaseState.error('Purchase verification failed.'));
+      await _clearPending();
+
+      if (announce) {
+        _stateController.add(valid
+            ? const PurchaseState.success()
+            : const PurchaseState.error(
+                'The store could not confirm this purchase. If you were '
+                'charged, tap Restore Purchases or contact support.'));
       }
+      return true;
+    } on FirebaseFunctionsException catch (e) {
+      // `unavailable` is the backend telling us the store was unreachable.
+      // Anything else is also treated as transient: we would rather retry than
+      // wrongly tell a paying user their purchase failed.
+      debugPrint('Receipt verification error (${e.code}): ${e.message}');
+      await _storePending(
+        receipt: receipt,
+        source: source,
+        productId: productId,
+        purchaseId: purchaseId,
+      );
+      if (announce) {
+        _stateController.add(const PurchaseState.verificationPending());
+      }
+      return false;
     } catch (e) {
       debugPrint('Receipt verification error: $e');
-      // On verification failure, still grant access optimistically
-      // and mark for later re-verification.
-      await _preferencesDao.setPremium(true);
-      _stateController.add(const PurchaseState.success());
+      await _storePending(
+        receipt: receipt,
+        source: source,
+        productId: productId,
+        purchaseId: purchaseId,
+      );
+      if (announce) {
+        _stateController.add(const PurchaseState.verificationPending());
+      }
+      return false;
     }
+  }
 
-    // Always complete the purchase to acknowledge it with the store.
+  Future<void> _storePending({
+    required String receipt,
+    required String source,
+    required String productId,
+    required String? purchaseId,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _pendingKey,
+      jsonEncode({
+        'receipt': receipt,
+        'source': source,
+        'productId': productId,
+        'purchaseId': purchaseId,
+      }),
+    );
+  }
+
+  Future<void> _clearPending() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_pendingKey);
+  }
+
+  Future<void> _completeIfNeeded(PurchaseDetails purchase) async {
     if (purchase.pendingCompletePurchase) {
       await _iap.completePurchase(purchase);
     }
@@ -162,6 +273,7 @@ sealed class PurchaseState {
   const factory PurchaseState.purchasing() = PurchasePurchasing;
   const factory PurchaseState.restoring() = PurchaseRestoring;
   const factory PurchaseState.success() = PurchaseSuccess;
+  const factory PurchaseState.verificationPending() = PurchaseVerificationPending;
   const factory PurchaseState.error(String message) = PurchaseError;
 }
 
@@ -179,6 +291,12 @@ class PurchaseRestoring extends PurchaseState {
 
 class PurchaseSuccess extends PurchaseState {
   const PurchaseSuccess() : super._();
+}
+
+/// The purchase went through but the backend could not confirm it yet.
+/// The receipt is stored and retried automatically; access is not granted.
+class PurchaseVerificationPending extends PurchaseState {
+  const PurchaseVerificationPending() : super._();
 }
 
 class PurchaseError extends PurchaseState {

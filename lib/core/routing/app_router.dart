@@ -25,6 +25,7 @@ import '../../features/recipes/presentation/screens/cooking_mode_screen.dart';
 import '../../features/recipes/presentation/screens/voice_cooking_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/settings/presentation/screens/profile_edit_screen.dart';
+import '../../features/premium/presentation/screens/manage_subscription_screen.dart';
 import '../../features/premium/presentation/screens/premium_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_welcome_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_family_screen.dart';
@@ -185,6 +186,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.premium,
         builder: (context, state) => const PremiumScreen(),
+      ),
+      GoRoute(
+        path: Routes.subscriptionManage,
+        builder: (context, state) => const ManageSubscriptionScreen(),
       ),
       GoRoute(
         path: Routes.collaborators,

@@ -29,7 +29,9 @@ class UserPreferencesTable extends Table {
   // ── From MealPlannerAI ─────────────────────────────────
   BoolColumn get onboardingCompleted => boolean().withDefault(const Constant(false))();
 
-  // Plan quota (free tier).
+  // Plan quota (free tier). Retained for schema compatibility only — usage is
+  // metered server-side in users/{uid}/quota/weekly and reported back by the
+  // generatePlan/chatWithChef responses. Nothing writes these.
   IntColumn get weeklyPlanCount => integer().withDefault(const Constant(0))();
   DateTimeColumn get weeklyPlanResetDate => dateTime().nullable()();
 

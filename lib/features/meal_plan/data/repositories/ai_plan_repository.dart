@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../domain/models/ai_quota.dart';
 import '../../domain/models/meal_plan.dart';
 import '../../../recipes/domain/models/recipe.dart';
 import '../../../recipes/domain/models/ingredient.dart';
@@ -135,6 +136,7 @@ class AiPlanRepository {
       plan: plan,
       recipes: recipes,
       suggestedShoppingItems: shoppingItems,
+      quota: AiQuotaStatus.fromJson(data['quota'] as Map<String, dynamic>?),
     );
   }
 
@@ -215,10 +217,14 @@ class GeneratedPlanResult {
   final List<Recipe> recipes;
   final List<AiShoppingItem> suggestedShoppingItems;
 
+  /// Weekly usage after this call, or null if the backend did not report it.
+  final AiQuotaStatus? quota;
+
   const GeneratedPlanResult({
     required this.plan,
     required this.recipes,
     required this.suggestedShoppingItems,
+    this.quota,
   });
 }
 

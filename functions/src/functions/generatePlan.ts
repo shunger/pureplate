@@ -31,7 +31,7 @@ export const generatePlan = onCall(
     // Rate limit (skip in emulator without auth)
     const uid = request.auth?.uid ?? "emulator-test-user";
     console.log("generatePlan: checking rate limit for uid:", uid);
-    await checkRateLimit(uid, "plan");
+    const quota = await checkRateLimit(uid, "plan");
 
     // Validate input
     const data = request.data as GeneratePlanRequest;
@@ -97,6 +97,7 @@ export const generatePlan = onCall(
     return {
       plan: parsed.plan,
       shopping_list: shoppingList,
+      quota,
     };
   }
 );

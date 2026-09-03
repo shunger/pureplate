@@ -91,39 +91,23 @@ class PreferencesDao extends DatabaseAccessor<AppDatabase>
       updatePreferences(
           UserPreferencesTableCompanion(isPremium: Value(isPremium)));
 
-  Future<void> setSubscription({
+  /// Caches the server's entitlement decision locally.
+  ///
+  /// [isPremium] comes from users/{uid}/entitlement/current, which only Cloud
+  /// Functions can write — this row is a cache for offline reads, never the
+  /// source of truth. Callers must not derive [isPremium] themselves.
+  Future<void> applyEntitlement({
+    required bool isPremium,
     required String? subscriptionId,
     required String? plan,
     required DateTime? expiresAt,
   }) =>
       updatePreferences(UserPreferencesTableCompanion(
-        isPremium: Value(expiresAt != null && expiresAt.isAfter(DateTime.now())),
+        isPremium: Value(isPremium),
         subscriptionId: Value(subscriptionId),
         subscriptionPlan: Value(plan),
         subscriptionExpiresAt: Value(expiresAt),
       ));
-
-  Future<void> incrementWeeklyPlanCount() async {
-    final prefs = await getPreferences();
-    final now = DateTime.now();
-
-    // Reset counter if past the reset date.
-    if (prefs.weeklyPlanResetDate != null &&
-        now.isAfter(prefs.weeklyPlanResetDate!)) {
-      await updatePreferences(UserPreferencesTableCompanion(
-        weeklyPlanCount: const Value(1),
-        weeklyPlanResetDate:
-            Value(now.add(const Duration(days: 7))),
-      ));
-    } else {
-      await updatePreferences(UserPreferencesTableCompanion(
-        weeklyPlanCount: Value(prefs.weeklyPlanCount + 1),
-        weeklyPlanResetDate: prefs.weeklyPlanResetDate == null
-            ? Value(now.add(const Duration(days: 7)))
-            : const Value.absent(),
-      ));
-    }
-  }
 
   Future<void> setVoicePersona(String? persona) =>
       updatePreferences(

@@ -42,9 +42,20 @@ final onboardingCompletedProvider = Provider<AsyncValue<bool>>((ref) {
 });
 
 /// Whether the user is a premium subscriber.
+///
+/// Reads the local cache of the server-owned entitlement doc (kept current by
+/// [entitlementSyncProvider]), and independently enforces the stored expiry so
+/// a stale cache cannot keep granting premium after a subscription has lapsed.
 final isPremiumProvider = Provider<AsyncValue<bool>>((ref) {
   final prefsAsync = ref.watch(userPreferencesProvider);
-  return prefsAsync.whenData((prefs) => prefs.isPremium);
+  return prefsAsync.whenData((prefs) {
+    if (!prefs.isPremium) return false;
+
+    final expiresAt = prefs.subscriptionExpiresAt;
+    if (expiresAt != null && expiresAt.isBefore(DateTime.now())) return false;
+
+    return true;
+  });
 });
 
 /// Thaw reminder preferences loaded from SharedPreferences.

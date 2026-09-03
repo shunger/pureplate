@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../domain/models/ai_quota.dart';
 import '../../../recipes/domain/models/recipe.dart';
 import '../../../recipes/domain/models/ingredient.dart';
 import '../../../recipes/domain/models/instruction_step.dart';
@@ -55,7 +56,11 @@ class AiChatRepository {
             .map((m) => _parseRecipe(_deepCast(m)))
             .toList();
 
-        return ChatResponse(responseText: responseText, recipes: recipes);
+        return ChatResponse(
+          responseText: responseText,
+          recipes: recipes,
+          quota: AiQuotaStatus.fromJson(data['quota'] as Map<String, dynamic>?),
+        );
       } on FirebaseFunctionsException catch (e) {
         final isAppCheckError =
             e.code == 'unauthenticated' || e.code == 'UNAUTHENTICATED';
@@ -184,7 +189,14 @@ class ChatResponse {
   final String responseText;
   final List<Recipe> recipes;
 
-  const ChatResponse({required this.responseText, required this.recipes});
+  /// Weekly usage after this call, or null if the backend did not report it.
+  final AiQuotaStatus? quota;
+
+  const ChatResponse({
+    required this.responseText,
+    required this.recipes,
+    this.quota,
+  });
 }
 
 class AiChatException implements Exception {

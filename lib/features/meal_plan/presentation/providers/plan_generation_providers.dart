@@ -16,6 +16,8 @@ import '../../../../core/database/daos/feedback_dao.dart';
 import '../../../../core/database/daos/pantry_dao.dart';
 import '../../../../core/providers/database_providers.dart';
 import '../../data/repositories/ai_plan_repository.dart';
+import '../../domain/models/ai_quota.dart';
+import 'quota_providers.dart';
 import '../../data/datasources/preference_summary_builder.dart';
 import '../../data/datasources/meal_plan_mapper.dart';
 import '../../../recipes/data/datasources/recipe_mapper.dart';
@@ -65,6 +67,10 @@ class PlanGenerationNotifier extends StateNotifier<PlanGenerationState> {
   final PantryDao _pantryDao;
   final FeedbackDao _feedbackDao;
 
+  /// Called with the weekly usage the backend reports after each generation,
+  /// so the planner can show what is left before the next attempt.
+  final void Function(AiQuotaStatus?)? _onQuota;
+
   PlanGenerationNotifier({
     required AiPlanRepository aiRepo,
     required PreferenceSummaryBuilder summaryBuilder,
@@ -75,6 +81,7 @@ class PlanGenerationNotifier extends StateNotifier<PlanGenerationState> {
     required FamilyProfileDao familyProfileDao,
     required PantryDao pantryDao,
     required FeedbackDao feedbackDao,
+    void Function(AiQuotaStatus?)? onQuota,
   })  : _aiRepo = aiRepo,
         _summaryBuilder = summaryBuilder,
         _mealPlanDao = mealPlanDao,
@@ -84,6 +91,7 @@ class PlanGenerationNotifier extends StateNotifier<PlanGenerationState> {
         _familyProfileDao = familyProfileDao,
         _pantryDao = pantryDao,
         _feedbackDao = feedbackDao,
+        _onQuota = onQuota,
         super(const PlanGenerationState());
 
   /// Generate a plan for [numDays] days.
@@ -160,6 +168,7 @@ class PlanGenerationNotifier extends StateNotifier<PlanGenerationState> {
         preferenceSummary: summary,
         mealType: mealType,
       );
+      _onQuota?.call(result.quota);
 
       // Step 4: Persist plan, recipes, and generate shopping list.
       // Save recipes first (referenced by meal plan days).
@@ -312,6 +321,7 @@ class PlanGenerationNotifier extends StateNotifier<PlanGenerationState> {
         preferenceSummary: summary,
         mealType: userPrefsPartial.mealType,
       );
+      _onQuota?.call(result.quota);
 
       // Save new recipes.
       final recipeCompanions = result.recipes
@@ -435,5 +445,7 @@ final planGenerationStateProvider =
     familyProfileDao: ref.watch(familyProfileDaoProvider),
     pantryDao: ref.watch(pantryDaoProvider),
     feedbackDao: ref.watch(feedbackDaoProvider),
+    onQuota: (quota) =>
+        ref.read(planQuotaProvider.notifier).update(quota),
   );
 });

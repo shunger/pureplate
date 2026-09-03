@@ -28,7 +28,7 @@ export const chatWithChef = onCall(
 
     // Rate limit (skip in emulator without auth)
     const uid = request.auth?.uid ?? "emulator-test-user";
-    await checkRateLimit(uid, "chat");
+    const quota = await checkRateLimit(uid, "chat");
 
     // Validate input
     const data = request.data as ChatRequest;
@@ -94,6 +94,7 @@ export const chatWithChef = onCall(
     return {
       responseText: parsed.responseText,
       recipes: parsed.recipes,
+      quota,
     };
   }
 );

@@ -3,9 +3,27 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // User quota documents — only the owning user can read/write.
+    // User quota documents — read-only to the owner, written only by Cloud
+    // Functions. The Admin SDK bypasses these rules, so checkRateLimit still
+    // works. Client writes are denied because a client could otherwise set
+    // isPremium or reset planCount/weekStart and bypass all AI metering.
     match /users/{uid}/quota/{doc} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Entitlement — the server-owned source of truth for premium status.
+    // Written only by verifyReceipt and the store notification handlers.
+    match /users/{uid}/entitlement/{doc} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Maps a store subscription (Apple originalTransactionId, or the SHA-256
+    // of a Google purchase token) back to a uid so renewal notifications can
+    // find the right account. Server-only in both directions.
+    match /subscriptionIndex/{id} {
+      allow read, write: if false;
     }
 
     // Shared pantries — owner and collaborators can read/write.

@@ -1,5 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -171,53 +170,59 @@ class SettingsScreen extends ConsumerWidget {
 
           // ── Premium Section ─────────────────────────────────
           _SectionHeader(title: 'Premium'),
-          ListTile(
-            leading: const Icon(Icons.workspace_premium,
-                color: AppColors.coral),
-            title: const Text('Pure Pantry Premium'),
-            subtitle: const Text('Unlimited meal plans & more'),
-            trailing:
-                Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurfaceVariant),
-            onTap: () => context.push(Routes.premium),
+          Consumer(
+            builder: (context, ref, _) {
+              final isPremium =
+                  ref.watch(isPremiumProvider).valueOrNull ?? false;
+              return ListTile(
+                leading: const Icon(Icons.workspace_premium,
+                    color: AppColors.coral),
+                title: Text(isPremium
+                    ? 'Manage Subscription'
+                    : 'Pure Pantry Premium'),
+                subtitle: Text(isPremium
+                    ? 'Plan, renewal date, and billing'
+                    : 'Unlimited meal plans & more'),
+                trailing: Icon(Icons.chevron_right,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+                onTap: () => context.push(isPremium
+                    ? Routes.subscriptionManage
+                    : Routes.premium),
+              );
+            },
           ),
 
           const Divider(indent: 16, endIndent: 16),
 
           // ── About Section ───────────────────────────────────
-          GestureDetector(
-            onLongPress: () async {
-              final isPremium =
-                  ref.read(userPreferencesProvider).valueOrNull?.isPremium ??
-                      false;
-              final newStatus = !isPremium;
+          // Debug-only entitlement override, compiled out of release builds.
+          // It flips the local cache only — the backend reads the server-owned
+          // entitlement doc, so this cannot grant real premium access.
+          if (kDebugMode)
+            GestureDetector(
+              onLongPress: () async {
+                final isPremium =
+                    ref.read(userPreferencesProvider).valueOrNull?.isPremium ??
+                        false;
+                final newStatus = !isPremium;
 
-              // Update local DB.
-              await ref.read(preferencesDaoProvider).setPremium(newStatus);
+                await ref.read(preferencesDaoProvider).setPremium(newStatus);
 
-              // Update Firestore quota doc so the backend rate limiter
-              // also respects the override.
-              final uid = FirebaseAuth.instance.currentUser?.uid;
-              if (uid != null) {
-                await FirebaseFirestore.instance
-                    .doc('users/$uid/quota/weekly')
-                    .set(
-                        {'isPremium': newStatus},
-                        SetOptions(merge: true));
-              }
-
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(newStatus
-                        ? 'Premium enabled'
-                        : 'Premium disabled'),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              }
-            },
-            child: _SectionHeader(title: 'About'),
-          ),
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(newStatus
+                          ? 'Premium enabled (debug only)'
+                          : 'Premium disabled (debug only)'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+              child: _SectionHeader(title: 'About'),
+            )
+          else
+            _SectionHeader(title: 'About'),
           ListTile(
             leading:
                 Icon(Icons.info_outline, color: Theme.of(context).colorScheme.onSurfaceVariant),

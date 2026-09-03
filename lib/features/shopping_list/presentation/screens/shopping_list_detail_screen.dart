@@ -8,6 +8,7 @@ import '../../../../core/providers/database_providers.dart';
 import '../../../../core/routing/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/product_category.dart';
+import '../../../settings/presentation/providers/settings_providers.dart';
 import '../../../sharing/presentation/providers/sharing_providers.dart';
 import '../../data/datasources/shopping_list_sync_orchestrator.dart';
 import '../../domain/models/shopping_list.dart';
@@ -230,6 +231,16 @@ class _ShareButton extends ConsumerWidget {
   }
 
   Future<void> _shareList(BuildContext context, WidgetRef ref) async {
+    // Premium gate, mirroring the pantry sharing gate in pantry_screen.dart so
+    // the same advertised benefit is not free through one door and paid
+    // through the other. Only new shares are gated: a list already shared
+    // (possibly from Smart Shopping Scanner) stays manageable.
+    final isPremium = ref.read(isPremiumProvider);
+    if (isPremium.valueOrNull != true) {
+      context.push(Routes.premium);
+      return;
+    }
+
     final user = ref.read(currentUserProvider).valueOrNull;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(

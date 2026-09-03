@@ -125,4 +125,52 @@ export interface VerifyReceiptRequest {
 export interface VerifyReceiptResponse {
   valid: boolean;
   expiresAt: string | null;
+  productId?: string | null;
+  autoRenewing?: boolean;
+  environment?: string | null;
+}
+
+/** Normalized result of asking Apple or Google about a subscription. */
+export interface VerifiedSubscription {
+  /** True only if the store confirms an unexpired, entitled subscription. */
+  valid: boolean;
+  productId: string | null;
+  /** ISO 8601, or null when the store reported no expiry. */
+  expiresAt: string | null;
+  /**
+   * Stable identity for the subscription across renewals: Apple's
+   * originalTransactionId, or the Google purchase token.
+   */
+  originalTransactionId: string | null;
+  environment: "production" | "sandbox" | null;
+  autoRenewing: boolean;
+  /** Machine-readable reason when `valid` is false. */
+  reason?: string;
+}
+
+/** Server-owned premium status at users/{uid}/entitlement/current. */
+export interface EntitlementDoc {
+  isPremium: boolean;
+  productId: string | null;
+  /** Epoch ms. */
+  expiresAt: number | null;
+  source: "apple" | "google" | null;
+  originalTransactionId: string | null;
+  environment: string | null;
+  autoRenewing: boolean;
+  /** Epoch ms. */
+  updatedAt: number;
+}
+
+/** Weekly usage, returned to the client so it can show quota before the wall. */
+export interface QuotaStatus {
+  /** True for premium subscribers and users inside the free trial. */
+  unlimited: boolean;
+  used: number;
+  limit: number;
+  remaining: number;
+  /** Epoch ms when the weekly counters reset. */
+  resetAt: number;
+  /** Epoch ms the free trial ends, or null if it does not apply. */
+  trialEndsAt: number | null;
 }

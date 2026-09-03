@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/routing/route_names.dart';
 import '../providers/plan_generation_providers.dart';
+import '../providers/quota_providers.dart';
+import '../widgets/quota_hint.dart';
 
 /// Screen where users configure and trigger AI meal plan generation.
 ///
@@ -239,6 +241,12 @@ class _PlanGenerationScreenState extends ConsumerState<PlanGenerationScreen> {
           ],
 
           const Spacer(),
+
+          QuotaHint(
+            provider: planQuotaProvider,
+            unit: 'plan',
+          ),
+          const SizedBox(height: 8),
 
           // Generate button
           SizedBox(
