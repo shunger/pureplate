@@ -19,7 +19,7 @@
       "android": {
         "default": {
           "projectId": "pure-pantry-ai",
-          "appId": "1:382740832833:android:79372ca5f23073b763dcc0",
+          "appId": "1:382740832833:android:36858c5f427988ce63dcc0",
           "fileOutput": "android/app/google-services.json"
         }
       },
@@ -35,7 +35,7 @@
         "lib/firebase_options.dart": {
           "projectId": "pure-pantry-ai",
           "configurations": {
-            "android": "1:382740832833:android:79372ca5f23073b763dcc0",
+            "android": "1:382740832833:android:36858c5f427988ce63dcc0",
             "ios": "1:382740832833:ios:51efad3ca1fce45d63dcc0"
           }
         }

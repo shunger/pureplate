@@ -1,15 +1,6 @@
-import {defineSecret} from "firebase-functions/params";
 import {google, androidpublisher_v3} from "googleapis";
 import {ANDROID_PACKAGE_NAME, isPremiumProductId} from "../constants/products";
 import {VerifiedSubscription} from "../types";
-
-/**
- * JSON key for a service account with the "View financial data" permission in
- * Play Console, stored whole as a single secret.
- */
-export const googlePlayServiceAccount = defineSecret(
-  "GOOGLE_PLAY_SERVICE_ACCOUNT"
-);
 
 /** States in which Google still considers the user entitled. */
 const ENTITLED_STATES = new Set([
@@ -29,9 +20,17 @@ function invalid(reason: string): VerifiedSubscription {
   };
 }
 
+/**
+ * Authenticates as the function's own runtime service account (Application
+ * Default Credentials) rather than a downloaded JSON key — the org policy
+ * `iam.disableServiceAccountKeyCreation` forbids creating those, and a key is
+ * only needed to impersonate an account from outside GCP.
+ *
+ * The runtime service account must be invited to Play Console with the
+ * "View financial data" permission for these calls to be authorized.
+ */
 function publisher(): androidpublisher_v3.Androidpublisher {
   const auth = new google.auth.GoogleAuth({
-    credentials: JSON.parse(googlePlayServiceAccount.value()),
     scopes: ["https://www.googleapis.com/auth/androidpublisher"],
   });
   return google.androidpublisher({version: "v3", auth});

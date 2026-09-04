@@ -2,10 +2,7 @@ import {onRequest} from "firebase-functions/v2/https";
 import {onMessagePublished} from "firebase-functions/v2/pubsub";
 import {initializeApp, getApps} from "firebase-admin/app";
 import {verifyAppleReceipt, appleSharedSecret} from "../services/appleVerifier";
-import {
-  verifyGooglePurchase,
-  googlePlayServiceAccount,
-} from "../services/googleVerifier";
+import {verifyGooglePurchase} from "../services/googleVerifier";
 import {
   writeEntitlement,
   lookupSubscription,
@@ -133,7 +130,7 @@ interface PlayNotification {
  * re-read from the Play Developer API.
  */
 export const googleSubscriptionNotifications = onMessagePublished(
-  {topic: PLAY_RTDN_TOPIC, secrets: [googlePlayServiceAccount]},
+  {topic: PLAY_RTDN_TOPIC},
   async (event) => {
     const notification = event.data.message.json as PlayNotification | undefined;
     const purchaseToken = notification?.subscriptionNotification?.purchaseToken;

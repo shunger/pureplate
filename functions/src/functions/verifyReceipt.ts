@@ -1,10 +1,7 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {initializeApp, getApps} from "firebase-admin/app";
 import {verifyAppleReceipt, appleSharedSecret} from "../services/appleVerifier";
-import {
-  verifyGooglePurchase,
-  googlePlayServiceAccount,
-} from "../services/googleVerifier";
+import {verifyGooglePurchase} from "../services/googleVerifier";
 import {
   writeEntitlement,
   linkSubscription,
@@ -17,7 +14,7 @@ if (getApps().length === 0) initializeApp();
 export const verifyReceipt = onCall(
   {
     enforceAppCheck: true,
-    secrets: [appleSharedSecret, googlePlayServiceAccount],
+    secrets: [appleSharedSecret],
   },
   async (request): Promise<VerifyReceiptResponse> => {
     // Auth check (skipped in emulator when no Auth emulator is running)

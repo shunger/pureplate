@@ -23,7 +23,6 @@ When you use Pure Pantry AI, you may provide:
 ### Information Collected Automatically
 
 - **Analytics:** Firebase Analytics collects usage events (e.g., features used, screens viewed) in aggregate
-- **Crash reports:** Firebase Crashlytics collects device model, OS version, and crash stack traces to help us fix bugs
 - **Device information:** Device type, operating system version, app version
 
 ### Camera & Microphone
@@ -42,7 +41,7 @@ We use the information we collect to:
 - Look up product information via barcode scanning (Open Food Facts, UPC Item Database)
 - Send push notifications you enable (expiry alerts, sharing events, reorder reminders, thaw reminders)
 - Manage your subscription status
-- Improve app stability and performance through analytics and crash reporting
+- Improve app stability and performance through analytics
 
 ---
 
@@ -68,7 +67,7 @@ We use the following third-party services:
 
 | Service | Purpose |
 |---------|---------|
-| **Firebase (Google)** | Authentication, Firestore database, Analytics, Crashlytics, Cloud Functions, Push Notifications, Remote Config, App Check |
+| **Firebase (Google)** | Authentication, Firestore database, Analytics, Cloud Functions, Push Notifications, Remote Config, App Check |
 | **AWS Bedrock** | AI meal planning and cooking assistant (accessed via Firebase Cloud Functions; no direct user PII is sent — only recipe/pantry context needed for generation) |
 | **Open Food Facts API** | Product nutrition and ingredient data lookup |
 | **UPC Item Database** | Barcode-to-product lookup |

@@ -20,4 +20,4 @@ export function isPremiumProductId(
 }
 
 /** Android applicationId, from android/app/build.gradle.kts. */
-export const ANDROID_PACKAGE_NAME = "com.purehungerlabs.purepantry";
+export const ANDROID_PACKAGE_NAME = "com.purehungerlabs.purepantryai";
