@@ -19,17 +19,29 @@ App Store Connect → your app → App Information → **App-Specific Shared Sec
 firebase functions:secrets:set APPLE_SHARED_SECRET
 ```
 
-### `GOOGLE_PLAY_SERVICE_ACCOUNT`
-The **entire service-account JSON key**, as one secret value.
+### Google Play — no secret required
 
-1. Google Cloud console → create a service account.
-2. Play Console → Users and permissions → invite that service account, grant
-   **View financial data, orders, and cancellation survey responses**.
-3. Download the JSON key, then:
+There is deliberately **no** `GOOGLE_PLAY_SERVICE_ACCOUNT` secret. The
+organization policy `iam.disableServiceAccountKeyCreation` forbids downloading
+service-account JSON keys in this project, so `googleVerifier.ts` authenticates
+with Application Default Credentials — the function's own runtime identity —
+instead. A key is only needed to impersonate an account from *outside* GCP,
+which these functions are not.
 
-```bash
-firebase functions:secrets:set GOOGLE_PLAY_SERVICE_ACCOUNT < service-account.json
-```
+Two one-time steps replace the secret:
+
+1. Enable the Play Developer API in the project:
+   <https://console.cloud.google.com/apis/library/androidpublisher.googleapis.com?project=pure-pantry-ai>
+2. Play Console → Users and permissions → invite the functions' runtime service
+   account and grant **View financial data, orders, and cancellation survey
+   responses**:
+
+   ```
+   382740832833-compute@developer.gserviceaccount.com
+   ```
+
+   (Confirm the address in Cloud Console → Cloud Run → any function → Security
+   if the runtime service account is ever overridden.)
 
 Permissions can take up to 24 hours to propagate on Google's side; until then
 `subscriptionsv2.get` returns 401 and the client keeps the receipt queued for
@@ -41,10 +53,57 @@ retry, which is the intended behaviour.
 
 Create both subscriptions with these exact product IDs — they are asserted
 server-side in `functions/src/constants/products.ts` and a receipt for anything
-else is rejected:
+else is rejected.
 
-- `premium_monthly`
-- `premium_annual`
+| Field | Monthly | Annual |
+|---|---|---|
+| Product ID | `ppmonthly02` | `ppannual02` |
+| Reference name | Premium Monthly | Premium Annual |
+| **Display name** | **Premium Monthly** | **Premium Annual** |
+| Duration | 1 month | 1 year |
+| Price (USD) | **$4.99** | **$39.99** |
+
+Annual works out to $3.33/month — a 33% saving worth calling out on the paywall.
+
+Chosen over a steeper annual discount deliberately. Break-even is 8.0 months
+($39.99 / $4.99): a monthly subscriber has to stay past eight months to be worth
+more than an annual one, which is beyond typical consumer-subscription
+retention, so the annual plan still wins on lifetime value without discounting
+harder than the decision requires. The monthly price is also the anchor that
+makes annual read as a bargain — cutting it to narrow the gap would weaken the
+annual pitch and shift mix toward the plan that churns more.
+
+Both products go in **one subscription group** ("Pure Pantry Premium"). Same
+group is what lets a subscriber switch plans and prevents holding both at once.
+
+The display name is not cosmetic: the paywall renders
+`'${product.title} — ${product.price}'` (`premium_screen.dart:290`), so these
+names are what produce "Premium Monthly — $4.99" on the purchase button. That
+string is how the paywall satisfies the stores' requirement to state the
+subscription period, so do not shorten them to "Premium".
+
+### Free trial: server-side only — configure no introductory offer
+
+**Do not create an introductory offer in App Store Connect or Play Console.**
+
+The 14-day trial is entirely server-side (`rateLimiter.ts:22`, `TRIAL_MS`) and
+independent of StoreKit / Play Billing. It keys off `firstUsedAt` in the user's
+quota doc, so it starts on first AI use rather than at signup, survives the
+weekly counter reset, and grants genuinely uncapped access
+(`unlimited = premium || inTrial`, `rateLimiter.ts:74`). `quota_hint.dart:37-44`
+renders the countdown to the user.
+
+Rationale: users reach the paywall having already had 14 uncapped days with no
+card on file, so a store trial would mostly defer revenue and hand a second free
+window to users who already declined. Published trial-conversion benchmarks
+compare against a hard paywall, which is not this app's shape.
+
+An introductory offer can be added later as pure store configuration — no code,
+no redeploy, no app update — so this is reversible once real conversion data
+exists. Removing one after launch is not.
+
+Known and accepted: the trial is per Firebase account, so signing in with a
+different account resets it.
 
 ---
 
@@ -78,16 +137,18 @@ the Pub/Sub Publisher role on the topic.
 
 ---
 
-## 4. Legal pages must be publicly reachable
+## 4. Legal pages must be publicly reachable ✅ hosted
 
 `lib/core/constants/app_links.dart` points at:
 
-- `https://purehungerlabs.com/terms`
-- `https://purehungerlabs.com/privacy`
+- <https://purehungerlabs.com/purepantry/TERMS_OF_USE.html>
+- <https://purehungerlabs.com/purepantry/PRIVACY_POLICY.html>
 
-**Neither is hosted yet.** The source text is in `TERMS_OF_USE.md` and
-`PRIVACY_POLICY.md`. Both App Review and Play review open these links from the
-paywall; publish the pages, or change the constants to wherever they land.
+Both return 200 and serve the Pure Pantry AI pages. Source text lives in
+`TERMS_OF_USE.md` / `PRIVACY_POLICY.md`; the rendered `.html` files next to them
+are what gets uploaded. **Re-upload after editing either markdown file** — the
+hosted copies do not regenerate themselves, and App Review compares the served
+policy against the App Privacy answers.
 
 ---
 

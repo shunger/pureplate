@@ -3,8 +3,8 @@
  * lib/features/premium/data/services/purchase_service.dart.
  */
 export const PREMIUM_PRODUCT_IDS = [
-  "premium_monthly",
-  "premium_annual",
+  "ppmonthly02",
+  "ppannual02",
 ] as const;
 
 export type PremiumProductId = (typeof PREMIUM_PRODUCT_IDS)[number];

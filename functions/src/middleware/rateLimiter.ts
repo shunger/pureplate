@@ -15,6 +15,14 @@ interface QuotaDoc {
   chatCount: number;
   weekStart: number;
   firstUsedAt?: number;
+  /**
+   * Cumulative counts that survive the weekly reset. The weekly fields above
+   * are zeroed every seven days, so they cannot answer "how much has this
+   * account ever used". These can. Absent on documents written before this
+   * field existed; treat undefined as 0 rather than backfilling.
+   */
+  lifetimePlanCount?: number;
+  lifetimeChatCount?: number;
 }
 
 const FREE_PLAN_LIMIT = 2;
@@ -55,6 +63,10 @@ export async function checkRateLimit(
         chatCount: 0,
         weekStart: now,
         firstUsedAt: data?.firstUsedAt ?? now,
+        // Carried forward explicitly: this set() replaces the whole document,
+        // so anything omitted here is destroyed at the week boundary.
+        lifetimePlanCount: data?.lifetimePlanCount ?? 0,
+        lifetimeChatCount: data?.lifetimeChatCount ?? 0,
       };
       tx.set(docRef, data);
     }
@@ -67,6 +79,8 @@ export async function checkRateLimit(
 
     const limit = feature === "plan" ? FREE_PLAN_LIMIT : FREE_CHAT_LIMIT;
     const field = feature === "plan" ? "planCount" : "chatCount";
+    const lifetimeField =
+      feature === "plan" ? "lifetimePlanCount" : "lifetimeChatCount";
     const used = feature === "plan" ? data.planCount : data.chatCount;
 
     const trialEndsAt = data.firstUsedAt + TRIAL_MS;
@@ -83,8 +97,16 @@ export async function checkRateLimit(
     }
 
     // Counted for everyone, including premium, so the client can always show
-    // usage — only the limit check above is skipped.
-    tx.set(docRef, {[field]: FieldValue.increment(1)}, {merge: true});
+    // usage — only the limit check above is skipped. The lifetime counter rides
+    // along in the same write: no extra document, no extra cost.
+    tx.set(
+      docRef,
+      {
+        [field]: FieldValue.increment(1),
+        [lifetimeField]: FieldValue.increment(1),
+      },
+      {merge: true}
+    );
 
     return {
       unlimited,

@@ -75,14 +75,14 @@ void main() {
         await dao.applyEntitlement(
           isPremium: true,
           subscriptionId: 'sub-1',
-          plan: 'premium_annual',
+          plan: 'ppannual02',
           expiresAt: DateTime.now().add(const Duration(days: 365)),
         );
 
         final prefs = await dao.getPreferences();
         expect(prefs.isPremium, isTrue);
         expect(prefs.subscriptionId, 'sub-1');
-        expect(prefs.subscriptionPlan, 'premium_annual');
+        expect(prefs.subscriptionPlan, 'ppannual02');
       });
 
       test('clears premium when the server revokes it', () async {
@@ -90,7 +90,7 @@ void main() {
         await dao.applyEntitlement(
           isPremium: true,
           subscriptionId: 'sub-1',
-          plan: 'premium_annual',
+          plan: 'ppannual02',
           expiresAt: DateTime.now().add(const Duration(days: 365)),
         );
 
@@ -114,7 +114,7 @@ void main() {
         await dao.applyEntitlement(
           isPremium: false,
           subscriptionId: 'sub-1',
-          plan: 'premium_annual',
+          plan: 'ppannual02',
           expiresAt: DateTime.now().add(const Duration(days: 365)),
         );
 
@@ -128,7 +128,7 @@ void main() {
         await dao.applyEntitlement(
           isPremium: true,
           subscriptionId: 'sub-1',
-          plan: 'premium_annual',
+          plan: 'ppannual02',
           expiresAt: expired,
         );
 

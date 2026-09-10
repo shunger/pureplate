@@ -94,9 +94,10 @@ The rest of this plan is written for the DIY route; under RevenueCat, steps
   `expiresDate` and `productId` off the latest transaction.
 - Google: `androidpublisher` lookup with `productId` + purchase token, read
   `lineItems[].expiryTime`.
-- Validate that the returned `productId` is in `{premium_monthly,
-  premium_annual}` — do not trust the client-supplied `productId` alone.
-- Store credentials in Secret Manager (`defineSecret`), never in the repo.
+- Validate that the returned `productId` is in `{ppmonthly02,
+  ppannual02}` — do not trust the client-supplied `productId` alone.
+- Store Apple's shared secret in Secret Manager (`defineSecret`), never in the
+  repo. Google uses Application Default Credentials — no stored credential.
 - Return the existing `VerifyReceiptResponse` shape
   (`functions/src/types/index.ts:125`): `{valid, expiresAt}`.
 
@@ -269,9 +270,17 @@ without the feature is worse than shipping a shorter list.
 
 Not code — see `PREMIUM_SETUP.md`:
 
-1. Set `APPLE_SHARED_SECRET` and `GOOGLE_PLAY_SERVICE_ACCOUNT`.
-2. Create `premium_monthly` and `premium_annual` in both stores.
+1. ~~Set `APPLE_SHARED_SECRET`~~ ✅ set 2026-09-03.
+   Google needs no secret: `iam.disableServiceAccountKeyCreation` blocks JSON
+   keys, so `googleVerifier.ts` uses Application Default Credentials and the
+   functions' runtime service account is invited to Play Console instead.
+2. Create `ppmonthly02` ($4.99/mo) and `ppannual02` ($39.99/yr) in
+   both stores, in one subscription group, with display names "Premium
+   Monthly" / "Premium Annual". No introductory offer — the 14-day trial is
+   server-side. Details in `PREMIUM_SETUP.md` §2.
 3. Point App Store Server Notifications V2 and Play RTDN at the new endpoints.
-4. Host the Terms and Privacy pages the paywall links to.
-5. Deploy `firestore:rules` **before** `functions`.
+4. ~~Host the Terms and Privacy pages the paywall links to.~~ ✅ live at
+   `purehungerlabs.com/purepantry/`.
+5. ~~Deploy `firestore:rules` **before** `functions`.~~ ✅ functions deployed
+   2026-09-03.
 6. Walk the sandbox matrix in `PREMIUM_SETUP.md` §6.

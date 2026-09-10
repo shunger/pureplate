@@ -4,8 +4,10 @@
 /// App Review and Play review check that a paywall's Terms and Privacy links
 /// resolve. Source text lives in TERMS_OF_USE.md and PRIVACY_POLICY.md.
 abstract class AppLinks {
-  static const terms = 'https://purehungerlabs.com/terms';
-  static const privacy = 'https://purehungerlabs.com/privacy';
+  static const terms =
+      'https://purehungerlabs.com/purepantry/TERMS_OF_USE.html';
+  static const privacy =
+      'https://purehungerlabs.com/purepantry/PRIVACY_POLICY.html';
   static const support = 'mailto:support@purehungerlabs.com';
 
   /// Platform subscription management. Apple and Google both require a route

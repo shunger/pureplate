@@ -11,8 +11,8 @@ import '../../../../core/database/daos/preferences_dao.dart';
 /// Product IDs for the subscription tiers.
 /// Mirrored in functions/src/constants/products.ts.
 abstract class ProductIds {
-  static const monthly = 'premium_monthly';
-  static const annual = 'premium_annual';
+  static const monthly = 'ppmonthly02';
+  static const annual = 'ppannual02';
   static const all = {monthly, annual};
 }
 
