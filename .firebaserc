@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "pure-pantry-ai"
+    "default": "smart-shopping-scanner-1e045",
+    "legacy": "pure-pantry-ai"
   }
 }
