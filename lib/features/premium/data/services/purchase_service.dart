@@ -66,7 +66,25 @@ class PurchaseService {
     if (response.error != null) {
       debugPrint('Product query error: ${response.error}');
     }
-    return response.productDetails;
+    return orderForPaywall(response.productDetails);
+  }
+
+  /// Stores return products in arbitrary order (and Apple and Google differ),
+  /// so pin the paywall order: annual first as the recommended plan, then
+  /// monthly, then anything unexpected in store order.
+  static List<ProductDetails> orderForPaywall(List<ProductDetails> products) {
+    int rank(ProductDetails p) => switch (p.id) {
+          ProductIds.annual => 0,
+          ProductIds.monthly => 1,
+          _ => 2,
+        };
+    // Dart's sort isn't guaranteed stable, so break ties on store order.
+    final indexed = products.indexed.toList()
+      ..sort((a, b) {
+        final byRank = rank(a.$2).compareTo(rank(b.$2));
+        return byRank != 0 ? byRank : a.$1.compareTo(b.$1);
+      });
+    return [for (final (_, p) in indexed) p];
   }
 
   /// Initiate a subscription purchase.
