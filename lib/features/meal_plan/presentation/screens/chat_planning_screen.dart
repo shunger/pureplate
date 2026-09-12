@@ -100,6 +100,9 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
       }
 
       // Append free-form notes if provided.
+      if (prefs.ingredients != null && prefs.ingredients!.isNotEmpty) {
+        prompt += '\nIt must include these ingredients: ${prefs.ingredients}';
+      }
       if (prefs.notes != null && prefs.notes!.isNotEmpty) {
         prompt += '\nAdditional notes: ${prefs.notes}';
       }
