@@ -7,6 +7,52 @@ verification fails.
 
 ---
 
+## 0. Firebase project
+
+Since 2026-09-10 Pure Pantry runs in the Smart Shopping Scanner project
+`smart-shopping-scanner-1e045` (project number `816594199281`) so both apps
+share pantries and shopping lists. `pure-pantry-ai` is the `legacy` alias in
+`.firebaserc` and receives no further deploys. Functions live in codebase
+`purepantry`; deploy with `firebase deploy --only functions:purepantry`.
+
+### App Check (blocks every callable until done)
+
+`generatePlan`, `chatWithChef`, and `verifyReceipt` all set
+`enforceAppCheck: true`, and `main.dart` activates App Attest (DeviceCheck
+fallback) on iOS and Play Integrity on Android. Register both apps under
+Firebase console → App Check → Apps:
+
+| App | Provider | Values |
+|---|---|---|
+| iOS `com.purehungerlabs.purepantry` | App Attest | Team ID `N5Z62KCFUZ` |
+| iOS (fallback) | DeviceCheck | Team ID `N5Z62KCFUZ`, a DeviceCheck `.p8` key + its Key ID from developer.apple.com → Keys |
+| Android `com.purehungerlabs.purepantryai` | Play Integrity | needs the **app signing** SHA-256 from Play Console → App integrity, added to the Firebase Android app |
+
+Debug builds use the debug provider. Each device prints a token on first
+launch (`Firebase App Check debug token: …`); paste it into App Check → Apps →
+overflow menu → Manage debug tokens.
+
+### Sign-in providers
+
+Firebase console → Authentication → Sign-in method:
+
+- **Anonymous** — already on (the scanner depends on it).
+- **Apple** — enable; nothing else needed for iOS-only sign-in. The
+  `Runner.entitlements` already carries `com.apple.developer.applesignin`.
+- **Google** — enable, set the support email. This creates the OAuth clients.
+  Afterwards regenerate the iOS plist so it carries `CLIENT_ID` /
+  `REVERSED_CLIENT_ID`, and replace the `CFBundleURLSchemes` entry in
+  `ios/Runner/Info.plist` (still the old project's
+  `com.googleusercontent.apps.382740832833-…`) with the new
+  `REVERSED_CLIENT_ID`. Android reads its OAuth client from
+  `google-services.json`; regenerate that too.
+
+Debug-keystore SHA-1 and SHA-256 for this Mac are already registered on the
+Android app. Add the Play app-signing SHA-1 alongside the SHA-256 or Google
+sign-in fails in release builds.
+
+---
+
 ## 1. Secrets
 
 Both are read via `defineSecret` and must live in Secret Manager. Never commit
@@ -31,13 +77,13 @@ which these functions are not.
 Two one-time steps replace the secret:
 
 1. Enable the Play Developer API in the project:
-   <https://console.cloud.google.com/apis/library/androidpublisher.googleapis.com?project=pure-pantry-ai>
+   <https://console.cloud.google.com/apis/library/androidpublisher.googleapis.com?project=smart-shopping-scanner-1e045>
 2. Play Console → Users and permissions → invite the functions' runtime service
    account and grant **View financial data, orders, and cancellation survey
    responses**:
 
    ```
-   382740832833-compute@developer.gserviceaccount.com
+   816594199281-compute@developer.gserviceaccount.com
    ```
 
    (Confirm the address in Cloud Console → Cloud Run → any function → Security
@@ -117,7 +163,7 @@ App Store Connect → App Information → App Store Server Notifications. Set bo
 the **production** and **sandbox** URLs to the deployed function:
 
 ```
-https://<region>-<project>.cloudfunctions.net/appleSubscriptionNotifications
+https://us-central1-smart-shopping-scanner-1e045.cloudfunctions.net/appleSubscriptionNotifications
 ```
 
 Version must be **V2**. V1 payloads will be ignored.
@@ -146,7 +192,17 @@ the Pub/Sub Publisher role on the topic.
 
 Both return 200 and serve the Pure Pantry AI pages. Source text lives in
 `TERMS_OF_USE.md` / `PRIVACY_POLICY.md`; the rendered `.html` files next to them
-are what gets uploaded. **Re-upload after editing either markdown file** — the
+are what gets uploaded.
+
+Play Console's **Account deletion** declaration also needs a public page:
+
+- <https://purehungerlabs.com/purepantry/DELETE_ACCOUNT.html>
+
+Source is `DELETE_ACCOUNT.html` in the repo root (HTML only, no markdown
+twin). Upload it alongside the other two; it links to `PRIVACY_POLICY.html`
+relatively. It promises deletion within 30 days by email to
+support@purehungerlabs.com, so requests to that address must actually be
+actioned. An in-app delete-account flow does not exist yet. **Re-upload after editing either markdown file** — the
 hosted copies do not regenerate themselves, and App Review compares the served
 policy against the App Privacy answers.
 
