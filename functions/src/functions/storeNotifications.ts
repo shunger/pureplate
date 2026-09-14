@@ -4,7 +4,7 @@ import {initializeApp, getApps} from "firebase-admin/app";
 import {verifyAppleReceipt, appleSharedSecret} from "../services/appleVerifier";
 import {verifyGooglePurchase} from "../services/googleVerifier";
 import {
-  writeEntitlement,
+  applyToLinkedAccounts,
   lookupSubscription,
 } from "../services/entitlementService";
 
@@ -97,13 +97,14 @@ export const appleSubscriptionNotifications = onRequest(
         return;
       }
 
-      // Re-verify from Apple rather than trusting the notification body.
+      // Re-verify from Apple rather than trusting the notification body, then
+      // update every account the subscription is linked to.
       const verified = await verifyAppleReceipt(link.receipt);
-      await writeEntitlement(link.uid, "apple", verified);
+      await applyToLinkedAccounts(link.uids, "apple", verified);
 
       console.log(
         `[appleNotifications] ${payload.notificationType}/${payload.subtype ?? "-"} ` +
-          `uid=${link.uid} valid=${verified.valid} expires=${verified.expiresAt}`
+          `accounts=${link.uids.length} valid=${verified.valid} expires=${verified.expiresAt}`
       );
 
       res.status(200).send("OK");
@@ -147,11 +148,11 @@ export const googleSubscriptionNotifications = onMessagePublished(
     }
 
     const verified = await verifyGooglePurchase(purchaseToken);
-    await writeEntitlement(link.uid, "google", verified);
+    await applyToLinkedAccounts(link.uids, "google", verified);
 
     console.log(
       `[playNotifications] type=${notification?.subscriptionNotification?.notificationType} ` +
-        `uid=${link.uid} valid=${verified.valid} expires=${verified.expiresAt}`
+        `accounts=${link.uids.length} valid=${verified.valid} expires=${verified.expiresAt}`
     );
   }
 );

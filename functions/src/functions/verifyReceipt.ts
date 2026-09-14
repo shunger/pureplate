@@ -3,9 +3,11 @@ import {initializeApp, getApps} from "firebase-admin/app";
 import {verifyAppleReceipt, appleSharedSecret} from "../services/appleVerifier";
 import {verifyGooglePurchase} from "../services/googleVerifier";
 import {
-  writeEntitlement,
+  applyEntitlement,
   linkSubscription,
+  revokeIfFromSubscription,
 } from "../services/entitlementService";
+import {isEntitlementActive} from "../services/subscriptionLinks";
 import {isPremiumProductId} from "../constants/products";
 import {VerifyReceiptRequest, VerifyReceiptResponse} from "../types";
 
@@ -70,24 +72,44 @@ export const verifyReceipt = onCall(
         `expires=${verified.expiresAt} reason=${verified.reason ?? "-"}`
     );
 
-    await writeEntitlement(uid, data.source, verified);
+    // Never replaces Premium from another subscription that's still active,
+    // e.g. when Restore re-delivers an old, lapsed purchase.
+    const {doc: entitlement} =
+      await applyEntitlement(uid, data.source, verified);
 
-    // Index the subscription so renewal notifications can find this account.
-    if (verified.originalTransactionId) {
-      await linkSubscription({
+    // Link the subscription so renewal notifications reach every account using
+    // it (one per device, say). Accounts dropped past the cap lose the
+    // Premium they had from this subscription.
+    const subscriptionId = verified.originalTransactionId;
+    if (subscriptionId) {
+      const dropped = await linkSubscription({
         uid,
         source: data.source,
-        id: verified.originalTransactionId,
+        id: subscriptionId,
         receipt: data.source === "apple" ? data.receipt : undefined,
       });
+      for (const droppedUid of dropped) {
+        await revokeIfFromSubscription(droppedUid, data.source, subscriptionId);
+      }
+      if (dropped.length > 0) {
+        console.log(
+          `[verifyReceipt] linked uid=${uid}; unlinked ${dropped.length} ` +
+            "least recently used account(s)"
+        );
+      }
     }
 
+    // Report the entitlement actually in effect, which can come from a
+    // different subscription than the receipt just checked.
     return {
-      valid: verified.valid,
-      expiresAt: verified.expiresAt,
-      productId: verified.productId,
-      autoRenewing: verified.autoRenewing,
-      environment: verified.environment,
+      valid: isEntitlementActive(entitlement, Date.now()),
+      expiresAt:
+        entitlement.expiresAt != null ?
+          new Date(entitlement.expiresAt).toISOString() :
+          null,
+      productId: entitlement.productId,
+      autoRenewing: entitlement.autoRenewing,
+      environment: entitlement.environment as VerifyReceiptResponse["environment"],
     };
   }
 );
