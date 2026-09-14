@@ -81,7 +81,7 @@ class PantryConsumptionService {
         remainingToDeduct -= deduction;
 
         if (newQuantity <= 0) {
-          await pantrySync.deleteItem(match.id);
+          await pantrySync.deleteItem(match.id, depleted: true);
           depletedItems.add(_DepletedItem(
             name: match.name,
             category: match.category,

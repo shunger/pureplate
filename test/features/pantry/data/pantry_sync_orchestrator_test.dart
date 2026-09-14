@@ -10,6 +10,7 @@ import 'package:pure_pantry/core/database/app_database.dart';
 import 'package:pure_pantry/core/providers/auth_providers.dart';
 import 'package:pure_pantry/core/providers/database_providers.dart';
 import 'package:pure_pantry/features/pantry/data/datasources/pantry_sync_orchestrator.dart';
+import 'package:pure_pantry/features/sharing/data/datasources/firestore_activity_service.dart';
 import 'package:pure_pantry/features/sharing/data/datasources/firestore_pantry_sharing_service.dart';
 import 'package:pure_pantry/features/sharing/data/datasources/remote_doc.dart';
 
@@ -19,6 +20,8 @@ class _MockSharingService extends Mock
     implements FirestorePantrySharingService {}
 
 class _MockUser extends Mock implements User {}
+
+class _MockActivityService extends Mock implements FirestoreActivityService {}
 
 const _me = 'user-me';
 const _client = 'client-under-test';
@@ -45,6 +48,7 @@ void main() {
   late _MockSharingService service;
   late StreamController<List<SharedPantryInfo>> pantries;
   late Map<String, StreamController<List<RemoteDoc>>> itemStreams;
+  late _MockActivityService activity;
   late PantrySyncOrchestrator orchestrator;
 
   Future<void> settle() => pumpEventQueue(times: 100);
@@ -106,10 +110,12 @@ void main() {
       return {for (final localId in items.keys) localId: 'fs-$localId'};
     });
 
+    activity = _MockActivityService();
     orchestrator = PantrySyncOrchestrator(
       pantryDao: db.pantryDao,
       preferencesDao: db.preferencesDao,
       sharingService: service,
+      activityService: activity,
       clientId: _client,
     );
   });
@@ -125,7 +131,7 @@ void main() {
 
   Future<void> startWithHousehold() async {
     await db.preferencesDao.setSharedPantryId('home');
-    orchestrator.startSync(_me);
+    orchestrator.startSync(_me, displayName: 'Me');
     pantries.add([
       _pantry('home', owner: 'someone-else', members: [_me]),
       _pantry('personal', owner: _me),
@@ -321,6 +327,54 @@ void main() {
     });
   });
 
+  group('activity', () {
+    test('logs user changes but not adopting existing items', () async {
+      await insertLocal('eggs', name: 'Eggs');
+
+      await startWithHousehold();
+      verifyNever(() => activity.logPantryActivity(
+            any(),
+            type: any(named: 'type'),
+            actorUid: any(named: 'actorUid'),
+            actorDisplayName: any(named: 'actorDisplayName'),
+            itemName: any(named: 'itemName'),
+            details: any(named: 'details'),
+          ));
+
+      await orchestrator.insertItem(PantryItemsCompanion(
+        id: const Value('milk'),
+        name: const Value('Milk'),
+        createdAt: Value(DateTime(2026)),
+        updatedAt: Value(DateTime(2026)),
+      ));
+
+      verify(() => activity.logPantryActivity(
+            'home',
+            type: 'itemAdded',
+            actorUid: _me,
+            actorDisplayName: 'Me',
+            itemName: 'Milk',
+            details: any(named: 'details'),
+          )).called(1);
+    });
+
+    test('an item used up while cooking is logged as depleted', () async {
+      await insertLocal('local-milk', pantryId: 'home', itemId: 'fs-milk');
+      await startWithHousehold();
+
+      await orchestrator.deleteItem('local-milk', depleted: true);
+
+      verify(() => activity.logPantryActivity(
+            'home',
+            type: 'itemDepleted',
+            actorUid: _me,
+            actorDisplayName: 'Me',
+            itemName: 'Milk',
+            details: any(named: 'details'),
+          )).called(1);
+    });
+  });
+
   test('the provider starts syncing for a user who is already signed in',
       () async {
     final user = _MockUser();
@@ -328,6 +382,7 @@ void main() {
     final container = ProviderContainer(overrides: [
       appDatabaseProvider.overrideWithValue(db),
       firestorePantrySharingServiceProvider.overrideWithValue(service),
+      firestoreActivityServiceProvider.overrideWithValue(activity),
       currentUserProvider.overrideWith((ref) => Stream.value(user)),
     ]);
     addTearDown(container.dispose);

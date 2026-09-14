@@ -8,6 +8,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:pure_pantry/core/database/app_database.dart';
 import 'package:pure_pantry/core/providers/auth_providers.dart';
 import 'package:pure_pantry/core/providers/database_providers.dart';
+import 'package:pure_pantry/features/sharing/data/datasources/firestore_activity_service.dart';
 import 'package:pure_pantry/features/sharing/data/datasources/firestore_list_sharing_service.dart';
 import 'package:pure_pantry/features/sharing/data/datasources/remote_doc.dart';
 import 'package:pure_pantry/features/shopping_list/data/datasources/shopping_list_sync_orchestrator.dart';
@@ -17,6 +18,8 @@ import '../../../helpers/test_database.dart';
 class _MockSharingService extends Mock implements FirestoreListSharingService {}
 
 class _MockUser extends Mock implements User {}
+
+class _MockActivityService extends Mock implements FirestoreActivityService {}
 
 const _me = 'user-me';
 
@@ -35,6 +38,7 @@ void main() {
   late _MockSharingService service;
   late StreamController<List<SharedListInfo>> lists;
   late Map<String, StreamController<List<RemoteDoc>>> itemStreams;
+  late _MockActivityService activity;
   late ShoppingListSyncOrchestrator orchestrator;
 
   Future<void> settle() => pumpEventQueue(times: 100);
@@ -88,9 +92,11 @@ void main() {
     when(() => service.removeCollaborator(any(), any()))
         .thenAnswer((_) async {});
 
+    activity = _MockActivityService();
     orchestrator = ShoppingListSyncOrchestrator(
       dao: db.shoppingListDao,
       sharingService: service,
+      activityService: activity,
       clientId: 'client-under-test',
     );
   });
@@ -184,6 +190,24 @@ void main() {
       expect(await db.shoppingListDao.getItemById('i2'), isNotNull);
     });
 
+    test('checking an item is logged for collaborators; check all is not',
+        () async {
+      await insertItem('i1', firestoreItemId: 'fs-i1');
+
+      await orchestrator.toggleItemCompletion('i1', true);
+      await orchestrator.setAllCompleted('l1', false);
+
+      verify(() => activity.logListActivity(
+            'fs-l1',
+            type: 'itemChecked',
+            actorUid: _me,
+            actorDisplayName: any(named: 'actorDisplayName'),
+            itemName: 'Milk',
+            details: any(named: 'details'),
+          )).called(1);
+      verifyNoMoreInteractions(activity);
+    });
+
     test('adding an item pushes it', () async {
       await orchestrator.insertItem(ShoppingListItemsCompanion(
         id: const Value('new'),
@@ -266,6 +290,29 @@ void main() {
     });
   });
 
+  test('joinList creates the local list and logs the join', () async {
+    when(() => service.joinList(
+          inviteCode: 'ABC234',
+          uid: _me,
+          displayName: 'Me',
+        )).thenAnswer((_) async => 'fs-joined');
+    when(() => service.getList('fs-joined'))
+        .thenAnswer((_) async => _list('fs-joined', owner: 'scanner-user'));
+    orchestrator.startSync(_me);
+
+    await orchestrator.joinList(inviteCode: 'ABC234', displayName: 'Me');
+
+    expect(await db.shoppingListDao.getListByFirestoreId('fs-joined'), isNotNull);
+    verify(() => activity.logListActivity(
+          'fs-joined',
+          type: 'collaboratorJoined',
+          actorUid: _me,
+          actorDisplayName: 'Me',
+          itemName: any(named: 'itemName'),
+          details: any(named: 'details'),
+        )).called(1);
+  });
+
   test('the provider starts syncing for a user who is already signed in',
       () async {
     final user = _MockUser();
@@ -273,6 +320,7 @@ void main() {
     final container = ProviderContainer(overrides: [
       appDatabaseProvider.overrideWithValue(db),
       firestoreListSharingServiceProvider.overrideWithValue(service),
+      firestoreActivityServiceProvider.overrideWithValue(activity),
       currentUserProvider.overrideWith((ref) => Stream.value(user)),
     ]);
     addTearDown(container.dispose);

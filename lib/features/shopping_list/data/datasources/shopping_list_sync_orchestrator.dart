@@ -8,6 +8,7 @@ import '../../../../core/database/app_database.dart';
 import '../../../../core/database/daos/shopping_list_dao.dart';
 import '../../../../core/providers/auth_providers.dart';
 import '../../../../core/providers/database_providers.dart' show appDatabaseProvider;
+import '../../../sharing/data/datasources/firestore_activity_service.dart';
 import '../../../sharing/data/datasources/firestore_list_sharing_service.dart';
 import '../../../sharing/data/datasources/remote_doc.dart';
 import '../../../sharing/data/datasources/sync_tracker.dart';
@@ -20,19 +21,26 @@ import 'shopping_list_wire_mapper.dart';
 ///   list that might be shared goes through this class.
 /// - Per-list sharing: each list can be shared independently. Lists shared
 ///   with the user by others are created locally as they appear.
+/// - Individual user actions are logged as activity events (which notify
+///   collaborators); bulk actions such as check-all are not.
 class ShoppingListSyncOrchestrator {
   ShoppingListSyncOrchestrator({
     required this._dao,
     required this._sharingService,
+    required this._activityService,
     String? clientId,
   }) : _tracker = SyncTracker(clientId: clientId, logTag: 'ListSync');
 
   final ShoppingListDao _dao;
   final FirestoreListSharingService _sharingService;
+  final FirestoreActivityService _activityService;
   final SyncTracker _tracker;
   final _uuid = const Uuid();
 
+  static const _anonymousName = 'Someone';
+
   String? _currentUid;
+  String _displayName = _anonymousName;
   StreamSubscription<List<SharedListInfo>>? _listsSubscription;
   final Map<String, StreamSubscription<List<RemoteDoc>>> _itemListeners = {};
 
@@ -43,8 +51,10 @@ class ShoppingListSyncOrchestrator {
 
   // ── Lifecycle ─────────────────────────────────────────────
 
-  /// Start syncing for [uid]. Calling again with the same user is a no-op.
-  void startSync(String uid) {
+  /// Start syncing for [uid]. Calling again with the same user is a no-op
+  /// apart from refreshing [displayName].
+  void startSync(String uid, {String? displayName}) {
+    _displayName = displayName ?? _anonymousName;
     if (_currentUid == uid) return;
     stopSync();
     _currentUid = uid;
@@ -173,6 +183,33 @@ class ShoppingListSyncOrchestrator {
     return firestoreListId;
   }
 
+  /// Join a shared list by invite code. The local copy is created right away
+  /// and filled in as the list's items arrive. Returns the shared list ID.
+  Future<String> joinList({
+    required String inviteCode,
+    required String displayName,
+  }) async {
+    final uid = _currentUid;
+    if (uid == null) {
+      throw const ListSharingException('Sign in to join a shared list.');
+    }
+    final firestoreListId = await _sharingService.joinList(
+      inviteCode: inviteCode,
+      uid: uid,
+      displayName: displayName,
+    );
+    _departedListIds.remove(firestoreListId);
+    _activityService.logListActivity(
+      firestoreListId,
+      type: 'collaboratorJoined',
+      actorUid: uid,
+      actorDisplayName: displayName,
+    );
+    final info = await _sharingService.getList(firestoreListId);
+    if (info != null) await _tracker.exclusive(() => _ensureLocalList(info));
+    return firestoreListId;
+  }
+
   /// Insert an item. Pushes it if the list is shared.
   Future<void> insertItem(ShoppingListItemsCompanion item) =>
       insertItems([item]);
@@ -197,26 +234,44 @@ class ShoppingListSyncOrchestrator {
         if (row != null) rows.add(row);
       }
       await _pushNewItems(firestoreListId, uid, rows);
+      for (final row in rows) {
+        _logActivity(firestoreListId, 'itemAdded', itemName: row.name);
+      }
     }
   }
 
   /// Update an existing item. Pushes the changed fields.
   Future<void> updateItem(ShoppingListItemsCompanion item) async {
     await _dao.updateItem(item);
-    await _pushFields(item.id.value, ShoppingListWireMapper.fromCompanion(item));
+    final row = await _pushFields(
+        item.id.value, ShoppingListWireMapper.fromCompanion(item));
+    if (row != null && item.quantity.present) {
+      _logActivity(row.firestoreListId!, 'quantityChanged',
+          itemName: row.name, details: {'quantity': item.quantity.value});
+    }
   }
 
   /// Delete an item locally and from its shared list.
   Future<void> deleteItem(String id) async {
     final row = await _dao.getItemById(id);
     await _dao.deleteItem(id);
-    if (row != null) _removeRemote([row]);
+    if (row == null) return;
+    _removeRemote([row]);
+    final firestoreListId = row.firestoreListId;
+    if (firestoreListId != null) {
+      _logActivity(firestoreListId, 'itemRemoved', itemName: row.name);
+    }
   }
 
   /// Check or uncheck an item.
   Future<void> toggleItemCompletion(String id, bool isCompleted) async {
     await _dao.toggleItemCompletion(id, isCompleted);
-    await _pushFields(id, {'isChecked': isCompleted});
+    final row = await _pushFields(id, {'isChecked': isCompleted});
+    if (row != null) {
+      _logActivity(row.firestoreListId!,
+          isCompleted ? 'itemChecked' : 'itemUnchecked',
+          itemName: row.name);
+    }
   }
 
   /// Check or uncheck every item on a list.
@@ -314,19 +369,23 @@ class ShoppingListSyncOrchestrator {
     }
   }
 
-  Future<void> _pushFields(String localId, Map<String, dynamic> fields) async {
+  /// Pushes [fields] for a linked item. Returns the item's row if it was
+  /// pushed, or null if it isn't on a shared list.
+  Future<ShoppingListItem?> _pushFields(
+      String localId, Map<String, dynamic> fields) async {
     final uid = _currentUid;
-    if (uid == null || fields.isEmpty) return;
+    if (uid == null || fields.isEmpty) return null;
     final row = await _dao.getItemById(localId);
     final firestoreListId = row?.firestoreListId;
     final itemId = row?.firestoreItemId;
-    if (firestoreListId == null || itemId == null) return;
+    if (firestoreListId == null || itemId == null) return null;
     _sharingService.updateItem(
       listId: firestoreListId,
       itemId: itemId,
       uid: uid,
       fields: _tracker.stamp(fields),
     );
+    return row;
   }
 
   void _removeRemote(List<ShoppingListItem> rows) {
@@ -342,6 +401,20 @@ class ShoppingListSyncOrchestrator {
       _sharingService.removeItemsBatch(listId: entry.key, itemIds: entry.value);
     }
   }
+
+  void _logActivity(String firestoreListId, String type,
+      {String? itemName, Map<String, dynamic>? details}) {
+    final uid = _currentUid;
+    if (uid == null) return;
+    _activityService.logListActivity(
+      firestoreListId,
+      type: type,
+      actorUid: uid,
+      actorDisplayName: _displayName,
+      itemName: itemName,
+      details: details,
+    );
+  }
 }
 
 // ── Provider ──────────────────────────────────────────────────
@@ -353,14 +426,15 @@ final shoppingListSyncOrchestratorProvider =
   final orchestrator = ShoppingListSyncOrchestrator(
     dao: db.shoppingListDao,
     sharingService: ref.watch(firestoreListSharingServiceProvider),
+    activityService: ref.watch(firestoreActivityServiceProvider),
   );
 
   // fireImmediately: the user is usually already signed in when this provider
   // is first read, and a plain listen only reports later changes.
   ref.listen(currentUserProvider, (_, next) {
-    final uid = next.value?.uid;
-    if (uid != null) {
-      orchestrator.startSync(uid);
+    final user = next.value;
+    if (user != null) {
+      orchestrator.startSync(user.uid, displayName: user.displayName);
     } else {
       orchestrator.stopSync();
     }

@@ -9,6 +9,7 @@ import '../../../../core/database/daos/pantry_dao.dart';
 import '../../../../core/database/daos/preferences_dao.dart';
 import '../../../../core/providers/auth_providers.dart';
 import '../../../../core/providers/database_providers.dart' show appDatabaseProvider;
+import '../../../sharing/data/datasources/firestore_activity_service.dart';
 import '../../../sharing/data/datasources/firestore_pantry_sharing_service.dart';
 import '../../../sharing/data/datasources/remote_doc.dart';
 import '../../../sharing/data/datasources/sync_tracker.dart';
@@ -23,21 +24,28 @@ import 'pantry_wire_mapper.dart';
 /// - The user syncs to one pantry at a time: the active pantry stored in
 ///   preferences (`sharedPantryId`). New items are pushed only there, while
 ///   items from every pantry the user belongs to are still received.
+/// - Individual user actions are logged as activity events (which notify
+///   collaborators); bulk sync work such as adopting or merging items is not.
 class PantrySyncOrchestrator {
   PantrySyncOrchestrator({
     required this._pantryDao,
     required this._preferencesDao,
     required this._sharingService,
+    required this._activityService,
     String? clientId,
   }) : _tracker = SyncTracker(clientId: clientId, logTag: 'PantrySync');
 
   final PantryDao _pantryDao;
   final PreferencesDao _preferencesDao;
   final FirestorePantrySharingService _sharingService;
+  final FirestoreActivityService _activityService;
   final SyncTracker _tracker;
   final _uuid = const Uuid();
 
+  static const _anonymousName = 'Someone';
+
   String? _currentUid;
+  String _displayName = _anonymousName;
   StreamSubscription<List<SharedPantryInfo>>? _pantriesSubscription;
   final Map<String, StreamSubscription<List<RemoteDoc>>> _itemListeners = {};
 
@@ -48,8 +56,10 @@ class PantrySyncOrchestrator {
 
   // ── Lifecycle ───────────────────────────────────────────
 
-  /// Start syncing for [uid]. Calling again with the same user is a no-op.
-  void startSync(String uid) {
+  /// Start syncing for [uid]. Calling again with the same user is a no-op
+  /// apart from refreshing [displayName].
+  void startSync(String uid, {String? displayName}) {
+    _displayName = displayName ?? _anonymousName;
     if (_currentUid == uid) return;
     stopSync();
     _currentUid = uid;
@@ -163,6 +173,7 @@ class PantrySyncOrchestrator {
     final row = await _pantryDao.getItemById(item.id.value);
     if (uid == null || pantryId == null || row == null) return;
     await _pushNewItems(pantryId, uid, [row]);
+    _logActivity(pantryId, 'itemAdded', itemName: row.name);
   }
 
   /// Update an existing pantry item. Pushes the changed fields.
@@ -171,26 +182,36 @@ class PantrySyncOrchestrator {
     await _pushFields(item.id.value, PantryWireMapper.fromCompanion(item));
   }
 
-  /// Delete a pantry item locally and from its shared pantry.
-  Future<void> deleteItem(String id) async {
+  /// Delete a pantry item locally and from its shared pantry. Pass [depleted]
+  /// when the item was used up rather than removed.
+  Future<void> deleteItem(String id, {bool depleted = false}) async {
     final row = await _pantryDao.getItemById(id);
     await _pantryDao.deleteItem(id);
 
     final pantryId = row?.firestorePantryId;
     final itemId = row?.firestoreItemId;
-    if (pantryId == null || itemId == null) return;
+    if (row == null || pantryId == null || itemId == null) return;
     _tracker.markDeleted([itemId]);
     _sharingService.removeItem(pantryId: pantryId, itemId: itemId);
+    _logActivity(pantryId, depleted ? 'itemDepleted' : 'itemRemoved',
+        itemName: row.name);
   }
 
   Future<void> updateQuantity(String id, double quantity) async {
     await _pantryDao.updateQuantity(id, quantity);
-    await _pushFields(id, {'quantity': quantity});
+    final row = await _pushFields(id, {'quantity': quantity});
+    if (row != null && quantity <= 0) {
+      _logActivity(row.firestorePantryId!, 'itemDepleted', itemName: row.name);
+    }
   }
 
   Future<void> updateStatus(String id, String status) async {
     await _pantryDao.updateStatus(id, status);
-    await _pushFields(id, {'status': status});
+    final row = await _pushFields(id, {'status': status});
+    if (row != null) {
+      _logActivity(row.firestorePantryId!, 'statusChanged',
+          itemName: row.name, details: {'status': status});
+    }
   }
 
   Future<void> updateLocation(String id, String location) async {
@@ -234,6 +255,12 @@ class PantrySyncOrchestrator {
       displayName: displayName,
     );
     _departedPantryIds.remove(householdId);
+    _activityService.logPantryActivity(
+      householdId,
+      type: 'collaboratorJoined',
+      actorUid: uid,
+      actorDisplayName: displayName,
+    );
     await _tracker.exclusive(() => _mergeInto(householdId, uid));
     return householdId;
   }
@@ -372,18 +399,36 @@ class PantrySyncOrchestrator {
     }
   }
 
-  Future<void> _pushFields(String localId, Map<String, dynamic> fields) async {
+  /// Pushes [fields] for a linked item. Returns the item's row if it was
+  /// pushed, or null if it isn't in a shared pantry.
+  Future<PantryItem?> _pushFields(
+      String localId, Map<String, dynamic> fields) async {
     final uid = _currentUid;
-    if (uid == null || fields.isEmpty) return;
+    if (uid == null || fields.isEmpty) return null;
     final row = await _pantryDao.getItemById(localId);
     final pantryId = row?.firestorePantryId;
     final itemId = row?.firestoreItemId;
-    if (pantryId == null || itemId == null) return;
+    if (pantryId == null || itemId == null) return null;
     _sharingService.updateItem(
       pantryId: pantryId,
       itemId: itemId,
       uid: uid,
       fields: _tracker.stamp(fields),
+    );
+    return row;
+  }
+
+  void _logActivity(String pantryId, String type,
+      {String? itemName, Map<String, dynamic>? details}) {
+    final uid = _currentUid;
+    if (uid == null) return;
+    _activityService.logPantryActivity(
+      pantryId,
+      type: type,
+      actorUid: uid,
+      actorDisplayName: _displayName,
+      itemName: itemName,
+      details: details,
     );
   }
 }
@@ -421,14 +466,15 @@ final pantrySyncOrchestratorProvider = Provider<PantrySyncOrchestrator>((ref) {
     pantryDao: db.pantryDao,
     preferencesDao: db.preferencesDao,
     sharingService: ref.watch(firestorePantrySharingServiceProvider),
+    activityService: ref.watch(firestoreActivityServiceProvider),
   );
 
   // fireImmediately: the user is usually already signed in when this provider
   // is first read, and a plain listen only reports later changes.
   ref.listen(currentUserProvider, (_, next) {
-    final uid = next.value?.uid;
-    if (uid != null) {
-      orchestrator.startSync(uid);
+    final user = next.value;
+    if (user != null) {
+      orchestrator.startSync(user.uid, displayName: user.displayName);
     } else {
       orchestrator.stopSync();
     }
