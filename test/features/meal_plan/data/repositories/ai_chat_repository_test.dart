@@ -205,9 +205,29 @@ void main() {
         );
       });
 
-      test('invalid-argument maps to request error message', () async {
+      test('invalid-argument shows the server\'s explanation', () async {
         when(() => mockCallable.call(any())).thenThrow(
-          TestFirebaseFunctionsException('invalid-argument'),
+          TestFirebaseFunctionsException('invalid-argument',
+              message: 'Your message is too long. Please keep it under 4000 characters.'),
+        );
+
+        expect(
+          () => repository.sendMessage(
+            userMessage: 'Hi',
+            chatHistory: '',
+            preferenceSummary: {},
+          ),
+          throwsA(isA<AiChatException>()
+              .having((e) => e.code, 'code', 'invalid-argument')
+              .having((e) => e.message, 'message',
+                  'Your message is too long. Please keep it under 4000 characters.')),
+        );
+      });
+
+      test('invalid-argument without an explanation maps to request error message',
+          () async {
+        when(() => mockCallable.call(any())).thenThrow(
+          TestFirebaseFunctionsException('invalid-argument', message: ''),
         );
 
         expect(

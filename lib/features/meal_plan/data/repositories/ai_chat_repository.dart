@@ -74,7 +74,8 @@ class AiChatRepository {
         }
         debugPrint('AiChat FirebaseFunctionsException: code=${e.code}, '
             'message=${e.message}');
-        throw AiChatException(_userFriendlyMessage(e.code), code: e.code);
+        throw AiChatException(_userFriendlyMessage(e.code, e.message),
+            code: e.code);
       } catch (e, stackTrace) {
         debugPrint('AiChatRepository error: $e');
         debugPrint('AiChatRepository stack: $stackTrace');
@@ -159,7 +160,7 @@ class AiChatRepository {
     }).toList();
   }
 
-  String _userFriendlyMessage(String code) {
+  String _userFriendlyMessage(String code, String? serverMessage) {
     switch (code) {
       case 'resource-exhausted':
         return "You've reached your chat limit. Upgrade to Premium for unlimited AI chat!";
@@ -177,7 +178,10 @@ class AiChatRepository {
       case 'not-found':
         return 'This feature is currently unavailable. Please update the app.';
       case 'invalid-argument':
-        return 'Something was wrong with the request. Please try again.';
+        // The server explains what to fix ("Your message is too long…").
+        return (serverMessage != null && serverMessage.isNotEmpty)
+            ? serverMessage
+            : 'Something was wrong with the request. Please try again.';
       default:
         return 'Something went wrong. Please try again.';
     }

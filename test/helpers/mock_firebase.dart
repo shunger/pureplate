@@ -12,6 +12,6 @@ class MockHttpsCallableResult<T> extends Mock
 /// Test helper to construct [FirebaseFunctionsException] since the real
 /// constructor is `@protected`.
 class TestFirebaseFunctionsException extends FirebaseFunctionsException {
-  TestFirebaseFunctionsException(String code)
-      : super(code: code, message: code);
+  TestFirebaseFunctionsException(String code, {String? message})
+      : super(code: code, message: message ?? code);
 }

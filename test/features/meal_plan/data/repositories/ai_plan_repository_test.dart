@@ -235,6 +235,45 @@ void main() {
         );
       });
 
+      test('invalid-argument shows the server\'s explanation', () async {
+        when(() => mockCallable.call(any())).thenThrow(
+          TestFirebaseFunctionsException('invalid-argument',
+              message: 'A meal plan can be 1 to 14 days long.'),
+        );
+
+        expect(
+          () => repository.generatePlan(
+            numDays: 30,
+            dayLabels: [],
+            preferenceSummary: {},
+          ),
+          throwsA(isA<AiPlanException>()
+              .having((e) => e.code, 'code', 'invalid-argument')
+              .having((e) => e.message, 'message',
+                  'A meal plan can be 1 to 14 days long.')),
+        );
+      });
+
+      test('invalid-argument without an explanation maps to generic message',
+          () async {
+        when(() => mockCallable.call(any())).thenThrow(
+          TestFirebaseFunctionsException('invalid-argument', message: ''),
+        );
+
+        expect(
+          () => repository.generatePlan(
+            numDays: 3,
+            dayLabels: [],
+            preferenceSummary: {},
+          ),
+          throwsA(isA<AiPlanException>().having(
+            (e) => e.message,
+            'message',
+            'Something went wrong generating your plan. Try again?',
+          )),
+        );
+      });
+
       test('unknown error maps to generic message', () async {
         when(() => mockCallable.call(any()))
             .thenThrow(Exception('random error'));

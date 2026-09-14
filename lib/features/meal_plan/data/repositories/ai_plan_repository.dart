@@ -51,7 +51,7 @@ class AiPlanRepository {
       return _parseResponse(data, numDays);
     } on FirebaseFunctionsException catch (e) {
       throw AiPlanException(
-        _userFriendlyMessage(e.code),
+        _userFriendlyMessage(e.code, e.message),
         code: e.code,
       );
     } catch (e, stackTrace) {
@@ -195,8 +195,13 @@ class AiPlanRepository {
     return DateTime(from.year, from.month, from.day + daysUntilMonday);
   }
 
-  String _userFriendlyMessage(String code) {
+  String _userFriendlyMessage(String code, String? serverMessage) {
     switch (code) {
+      case 'invalid-argument':
+        // The server explains what to fix ("A meal plan can be 1 to 14 days…").
+        return (serverMessage != null && serverMessage.isNotEmpty)
+            ? serverMessage
+            : 'Something went wrong generating your plan. Try again?';
       case 'resource-exhausted':
         return "You've used all your free plans this week. Upgrade to Premium for unlimited plans!";
       case 'unavailable':
