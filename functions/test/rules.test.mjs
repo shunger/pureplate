@@ -6,14 +6,18 @@ import {
   assertSucceeds,
 } from "@firebase/rules-unit-testing";
 import {
+  arrayUnion,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
   limit,
   query,
+  serverTimestamp,
   setDoc,
+  Timestamp,
   updateDoc,
   where,
 } from "firebase/firestore";
@@ -134,10 +138,10 @@ describe("unauthenticated access", () => {
   });
 });
 
-// ── Smart Shopping Scanner paths ─────────────────────────────────
-// The published scanner app relies on these exact behaviours, including
-// builds that can no longer be updated. A rules change that fails any test
-// below breaks live scanner users — do not deploy it.
+// ── Smart Shopping Scanner / Pure Pantry sharing ─────────────────
+// Payloads below mirror what the apps actually write — including shipped
+// scanner builds, which can't be updated. A rules change that fails a
+// "lets"/"allows" test breaks live users; do not deploy it.
 
 const OWNER = "owner-uid";
 const MEMBER = "member-uid";
@@ -155,8 +159,18 @@ function sharedDoc(inviteCode) {
   };
 }
 
+function activity(actorUid, extra = {}) {
+  return {
+    type: "itemAdded",
+    actorUid,
+    actorDisplayName: "Member",
+    timestamp: serverTimestamp(),
+    ...extra,
+  };
+}
+
 for (const col of ["sharedLists", "sharedPantries"]) {
-  describe(`${col} (scanner)`, () => {
+  describe(`${col}: flows the apps use`, () => {
     it("lets any signed-in user look a doc up by invite code", async () => {
       await seed(`${col}/lookup`, sharedDoc("LOOK01"));
 
@@ -180,16 +194,18 @@ for (const col of ["sharedLists", "sharedPantries"]) {
       await assertSucceeds(
         setDoc(doc(db, `${col}/created`), {
           name: "Mine",
+          storeName: null,
           ownerUid: STRANGER,
           inviteCode: "MINE01",
-          collaborators: {[STRANGER]: {role: "owner", displayName: "Me"}},
+          inviteCodeCreatedAt: serverTimestamp(),
+          inviteCodeExpiresAt: null,
+          collaborators: {
+            [STRANGER]: {role: "owner", displayName: "Me", sourceApp: "scanner"},
+          },
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
         })
       );
-    });
-
-    it("refuses creating a doc owned by someone else", async () => {
-      const db = testEnv.authenticatedContext(STRANGER).firestore();
-      await assertFails(setDoc(doc(db, `${col}/forged`), sharedDoc("FORGE1")));
     });
 
     it("lets a non-member join by adding themselves", async () => {
@@ -199,16 +215,37 @@ for (const col of ["sharedLists", "sharedPantries"]) {
       await assertSucceeds(
         updateDoc(doc(db, `${col}/join`), {
           [`collaborators.${STRANGER}`]: {role: "editor", displayName: "New"},
-          updatedAt: Date.now(),
+          updatedAt: serverTimestamp(),
         })
       );
     });
 
-    it("refuses a non-member edit that doesn't add themselves", async () => {
-      await seed(`${col}/rename`, sharedDoc("RENAM1"));
+    it("lets a scanner pantry join record its source app", async () => {
+      await seed(`${col}/join-source`, sharedDoc("JOIN02"));
 
       const db = testEnv.authenticatedContext(STRANGER).firestore();
-      await assertFails(updateDoc(doc(db, `${col}/rename`), {name: "Hijacked"}));
+      await assertSucceeds(
+        updateDoc(doc(db, `${col}/join-source`), {
+          [`collaborators.${STRANGER}`]: {
+            role: "editor",
+            displayName: "New",
+            sourceApp: "scanner",
+          },
+          updatedAt: serverTimestamp(),
+        })
+      );
+    });
+
+    it("lets an existing member re-join with the invite code", async () => {
+      await seed(`${col}/rejoin`, sharedDoc("JOIN03"));
+
+      const db = testEnv.authenticatedContext(MEMBER).firestore();
+      await assertSucceeds(
+        updateDoc(doc(db, `${col}/rejoin`), {
+          [`collaborators.${MEMBER}`]: {role: "editor", displayName: "Renamed"},
+          updatedAt: serverTimestamp(),
+        })
+      );
     });
 
     it("lets a member find their docs by collaborator role", async () => {
@@ -222,6 +259,64 @@ for (const col of ["sharedLists", "sharedPantries"]) {
             where(`collaborators.${MEMBER}.role`, "in", ["owner", "editor", "viewer"])
           )
         )
+      );
+    });
+
+    it("lets members regenerate and revoke the invite code", async () => {
+      await seed(`${col}/invite`, sharedDoc("CODE01"));
+
+      const db = testEnv.authenticatedContext(MEMBER).firestore();
+      await assertSucceeds(
+        updateDoc(doc(db, `${col}/invite`), {
+          inviteCode: "CODE02",
+          inviteCodeCreatedAt: serverTimestamp(),
+          inviteCodeExpiresAt: Timestamp.fromMillis(Date.now() + 604800000),
+          updatedAt: serverTimestamp(),
+        })
+      );
+      await assertSucceeds(
+        updateDoc(doc(db, `${col}/invite`), {
+          inviteCode: deleteField(),
+          inviteCodeCreatedAt: deleteField(),
+          inviteCodeExpiresAt: deleteField(),
+          updatedAt: serverTimestamp(),
+        })
+      );
+    });
+
+    it("lets members bump updatedAt", async () => {
+      await seed(`${col}/touch`, sharedDoc("TOUCH1"));
+
+      const db = testEnv.authenticatedContext(MEMBER).firestore();
+      await assertSucceeds(
+        updateDoc(doc(db, `${col}/touch`), {updatedAt: serverTimestamp()})
+      );
+    });
+
+    it("lets the owner remove a member and a member leave", async () => {
+      await seed(`${col}/members`, {
+        ...sharedDoc("MEMB01"),
+        collaborators: {
+          [OWNER]: {role: "owner", displayName: "Owner"},
+          [MEMBER]: {role: "editor", displayName: "Member"},
+          [STRANGER]: {role: "editor", displayName: "Other"},
+        },
+      });
+
+      const owner = testEnv.authenticatedContext(OWNER).firestore();
+      await assertSucceeds(
+        updateDoc(doc(owner, `${col}/members`), {
+          [`collaborators.${STRANGER}`]: deleteField(),
+          updatedAt: serverTimestamp(),
+        })
+      );
+
+      const member = testEnv.authenticatedContext(MEMBER).firestore();
+      await assertSucceeds(
+        updateDoc(doc(member, `${col}/members`), {
+          [`collaborators.${MEMBER}`]: deleteField(),
+          updatedAt: serverTimestamp(),
+        })
       );
     });
 
@@ -248,25 +343,33 @@ for (const col of ["sharedLists", "sharedPantries"]) {
       );
     });
 
-    it("lets collaborators append activity but not rewrite it", async () => {
-      await seed(`${col}/activity`, sharedDoc("ACTV01"));
+    it("lets collaborators log activity as themselves, but not rewrite it",
+        async () => {
+          await seed(`${col}/activity`, sharedDoc("ACTV01"));
 
-      const member = testEnv.authenticatedContext(MEMBER).firestore();
-      await assertSucceeds(
-        setDoc(doc(member, `${col}/activity/activity/a1`), {
-          type: "itemAdded",
-          actorUid: MEMBER,
-        })
-      );
-      await assertFails(
-        updateDoc(doc(member, `${col}/activity/activity/a1`), {type: "edited"})
-      );
+          const member = testEnv.authenticatedContext(MEMBER).firestore();
+          await assertSucceeds(
+            setDoc(doc(member, `${col}/activity/activity/a1`), activity(MEMBER))
+          );
+          await assertSucceeds(
+            setDoc(
+              doc(member, `${col}/activity/activity/a2`),
+              activity(MEMBER, {
+                type: "statusChanged",
+                itemName: "Milk",
+                details: {status: "opened"},
+              })
+            )
+          );
+          await assertFails(
+            updateDoc(doc(member, `${col}/activity/activity/a1`), {type: "itemRemoved"})
+          );
 
-      const stranger = testEnv.authenticatedContext(STRANGER).firestore();
-      await assertFails(
-        setDoc(doc(stranger, `${col}/activity/activity/a2`), {type: "itemAdded"})
-      );
-    });
+          const stranger = testEnv.authenticatedContext(STRANGER).firestore();
+          await assertFails(
+            setDoc(doc(stranger, `${col}/activity/activity/a3`), activity(STRANGER))
+          );
+        });
 
     it("only lets the owner delete", async () => {
       await seed(`${col}/delete`, sharedDoc("DELE01"));
@@ -278,42 +381,254 @@ for (const col of ["sharedLists", "sharedPantries"]) {
       await assertSucceeds(deleteDoc(doc(owner, `${col}/delete`)));
     });
   });
+
+  describe(`${col}: attacks the rules must stop`, () => {
+    it("refuses creating a doc owned by someone else", async () => {
+      const db = testEnv.authenticatedContext(STRANGER).firestore();
+      await assertFails(setDoc(doc(db, `${col}/forged`), sharedDoc("FORGE1")));
+    });
+
+    it("refuses creating a doc with other members pre-added", async () => {
+      const db = testEnv.authenticatedContext(STRANGER).firestore();
+      await assertFails(
+        setDoc(doc(db, `${col}/stuffed`), {
+          name: "Mine",
+          ownerUid: STRANGER,
+          collaborators: {
+            [STRANGER]: {role: "owner", displayName: "Me"},
+            [OWNER]: {role: "editor", displayName: "Victim"},
+          },
+        })
+      );
+    });
+
+    it("refuses a non-member edit that doesn't add themselves", async () => {
+      await seed(`${col}/rename`, sharedDoc("RENAM1"));
+
+      const db = testEnv.authenticatedContext(STRANGER).firestore();
+      await assertFails(updateDoc(doc(db, `${col}/rename`), {name: "Hijacked"}));
+    });
+
+    it("refuses a stranger taking over while joining", async () => {
+      await seed(`${col}/takeover`, sharedDoc("TAKE01"));
+
+      const db = testEnv.authenticatedContext(STRANGER).firestore();
+      await assertFails(
+        updateDoc(doc(db, `${col}/takeover`), {
+          ownerUid: STRANGER,
+          collaborators: {[STRANGER]: {role: "owner", displayName: "Thief"}},
+        })
+      );
+      await assertFails(
+        updateDoc(doc(db, `${col}/takeover`), {
+          [`collaborators.${STRANGER}`]: {role: "owner", displayName: "Thief"},
+        })
+      );
+      await assertFails(
+        updateDoc(doc(db, `${col}/takeover`), {
+          [`collaborators.${STRANGER}`]: {role: "editor", displayName: "x"},
+          name: "Hijacked",
+        })
+      );
+      await assertFails(
+        updateDoc(doc(db, `${col}/takeover`), {
+          [`collaborators.${STRANGER}`]: {role: "editor", displayName: "x".repeat(101)},
+        })
+      );
+    });
+
+    it("refuses a member making themselves owner", async () => {
+      await seed(`${col}/promote`, sharedDoc("PROM01"));
+
+      const db = testEnv.authenticatedContext(MEMBER).firestore();
+      await assertFails(updateDoc(doc(db, `${col}/promote`), {ownerUid: MEMBER}));
+      await assertFails(
+        updateDoc(doc(db, `${col}/promote`), {
+          [`collaborators.${MEMBER}`]: {role: "owner", displayName: "Member"},
+        })
+      );
+    });
+
+    it("refuses a member removing someone else, or anyone removing the owner",
+        async () => {
+          await seed(`${col}/evict`, {
+            ...sharedDoc("EVIC01"),
+            collaborators: {
+              [OWNER]: {role: "owner", displayName: "Owner"},
+              [MEMBER]: {role: "editor", displayName: "Member"},
+              [STRANGER]: {role: "editor", displayName: "Other"},
+            },
+          });
+
+          const member = testEnv.authenticatedContext(MEMBER).firestore();
+          await assertFails(
+            updateDoc(doc(member, `${col}/evict`), {
+              [`collaborators.${STRANGER}`]: deleteField(),
+            })
+          );
+          await assertFails(
+            updateDoc(doc(member, `${col}/evict`), {
+              [`collaborators.${OWNER}`]: deleteField(),
+            })
+          );
+
+          const owner = testEnv.authenticatedContext(OWNER).firestore();
+          await assertFails(
+            updateDoc(doc(owner, `${col}/evict`), {
+              [`collaborators.${OWNER}`]: deleteField(),
+            })
+          );
+        });
+
+    it("refuses a member renaming the list or pantry", async () => {
+      await seed(`${col}/member-rename`, sharedDoc("MREN01"));
+
+      const db = testEnv.authenticatedContext(MEMBER).firestore();
+      await assertFails(
+        updateDoc(doc(db, `${col}/member-rename`), {name: "Hijacked"})
+      );
+    });
+
+    it("refuses activity impersonating another user or off-script", async () => {
+      await seed(`${col}/spoof`, sharedDoc("SPOF01"));
+
+      const db = testEnv.authenticatedContext(MEMBER).firestore();
+      const path = (id) => doc(db, `${col}/spoof/activity/${id}`);
+      await assertFails(setDoc(path("s1"), activity(OWNER)));
+      await assertFails(setDoc(path("s2"), activity(MEMBER, {type: "securityAlert"})));
+      await assertFails(
+        setDoc(path("s3"), activity(MEMBER, {actorDisplayName: "x".repeat(101)}))
+      );
+      await assertFails(
+        setDoc(path("s4"), activity(MEMBER, {itemName: "x".repeat(201)}))
+      );
+      await assertFails(setDoc(path("s5"), activity(MEMBER, {link: "https://evil"})));
+      await assertFails(
+        setDoc(path("s6"), activity(MEMBER, {timestamp: Timestamp.fromMillis(0)}))
+      );
+    });
+  });
 }
 
-describe("communityProducts (scanner)", () => {
-  it("lets a user submit a product as themselves", async () => {
+describe("communityProducts", () => {
+  it("lets a user submit a product the way the scanner does", async () => {
     const db = testEnv.authenticatedContext(UID).firestore();
     await assertSucceeds(
       setDoc(doc(db, "communityProducts/0001"), {
         name: "Oat Milk",
+        brand: "Oatly",
+        category: "dairy",
         contributedBy: UID,
+        contributedAt: Timestamp.now(),
+        confirmationCount: 0,
+        confirmedBy: [],
+        flagCount: 0,
+        flaggedBy: [],
+        offSubmitted: false,
       })
     );
   });
 
-  it("refuses a submission attributed to someone else", async () => {
+  it("lets a user submit a product the way Pure Pantry does", async () => {
     const db = testEnv.authenticatedContext(UID).firestore();
-    await assertFails(
-      setDoc(doc(db, "communityProducts/0002"), {
+    await assertSucceeds(
+      setDoc(doc(db, "communityProducts/0005"), {
         name: "Oat Milk",
-        contributedBy: OTHER_UID,
+        contributedBy: UID,
+        contributedAt: serverTimestamp(),
+        confirmationCount: 0,
+        confirmedBy: [],
+        flagCount: 0,
+        flaggedBy: [],
+        offSubmitted: false,
       })
     );
   });
 
-  it("lets signed-in users confirm but never delete", async () => {
+  it("refuses a submission attributed to someone else or with fake votes",
+      async () => {
+        const db = testEnv.authenticatedContext(UID).firestore();
+        const product = {
+          name: "Oat Milk",
+          contributedBy: UID,
+          contributedAt: serverTimestamp(),
+          confirmationCount: 0,
+          confirmedBy: [],
+          flagCount: 0,
+          flaggedBy: [],
+          offSubmitted: false,
+        };
+        await assertFails(
+          setDoc(doc(db, "communityProducts/0002"), {...product, contributedBy: OTHER_UID})
+        );
+        await assertFails(
+          setDoc(doc(db, "communityProducts/0002"), {...product, confirmationCount: 999})
+        );
+        await assertFails(
+          setDoc(doc(db, "communityProducts/0002"), {...product, extra: "field"})
+        );
+      });
+
+  it("lets other users confirm and flag the way the apps do", async () => {
     await seed("communityProducts/0003", {
       name: "Oat Milk",
       contributedBy: OTHER_UID,
-      confirmationCount: 0,
+      confirmationCount: 1,
+      confirmedBy: ["someone"],
+      flagCount: 0,
+      flaggedBy: [],
     });
 
     const db = testEnv.authenticatedContext(UID).firestore();
     await assertSucceeds(getDoc(doc(db, "communityProducts/0003")));
     await assertSucceeds(
-      updateDoc(doc(db, "communityProducts/0003"), {confirmationCount: 1})
+      updateDoc(doc(db, "communityProducts/0003"), {
+        confirmationCount: 2,
+        confirmedBy: arrayUnion(UID),
+      })
+    );
+    await assertSucceeds(
+      updateDoc(doc(db, "communityProducts/0003"), {
+        flagCount: 1,
+        flaggedBy: arrayUnion(UID),
+      })
     );
     await assertFails(deleteDoc(doc(db, "communityProducts/0003")));
+  });
+
+  it("refuses vandalism and vote stuffing", async () => {
+    await seed("communityProducts/0006", {
+      name: "Oat Milk",
+      contributedBy: OTHER_UID,
+      confirmationCount: 0,
+      confirmedBy: [],
+      flagCount: 0,
+      flaggedBy: [],
+    });
+
+    const db = testEnv.authenticatedContext(UID).firestore();
+    const ref = doc(db, "communityProducts/0006");
+    await assertFails(updateDoc(ref, {name: "Poison"}));
+    await assertFails(
+      updateDoc(ref, {confirmationCount: 999, confirmedBy: arrayUnion(UID)})
+    );
+    await assertFails(
+      updateDoc(ref, {confirmationCount: 2, confirmedBy: ["x", UID]})
+    );
+    await assertSucceeds(
+      updateDoc(ref, {confirmationCount: 1, confirmedBy: arrayUnion(UID)})
+    );
+    await assertFails(
+      updateDoc(ref, {confirmationCount: 2, confirmedBy: arrayUnion(UID)})
+    );
+
+    const contributor = testEnv.authenticatedContext(OTHER_UID).firestore();
+    await assertFails(
+      updateDoc(doc(contributor, "communityProducts/0006"), {
+        confirmationCount: 2,
+        confirmedBy: arrayUnion(OTHER_UID),
+      })
+    );
   });
 
   it("denies signed-out reads", async () => {

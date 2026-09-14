@@ -4,32 +4,95 @@ rules_version = '2';
 //
 // This project is shared by the published Smart Shopping Scanner app and
 // Pure Pantry AI. The sharedLists / sharedPantries / communityProducts /
-// users blocks below are the scanner's production rules, kept VERBATIM so
-// every shipped scanner build keeps working. Pure Pantry only ADDS the
-// server-owned subcollections and index it needs (marked "Pure Pantry").
+// users blocks serve every shipped scanner build, so they may only reject
+// writes that no scanner or Pure Pantry build makes. Pure Pantry also has
+// server-owned subcollections (marked "Pure Pantry").
 //
-// If you change anything here, keep the scanner blocks a strict superset of
-// what they are today. This repo is the ONLY place these rules are deployed
-// from; the scanner repo keeps a reference copy. Run `npm run test:rules`
-// (in functions/) before every deploy — it covers the scanner's paths too.
+// This repo is the ONLY place these rules are deployed from; the scanner repo
+// keeps a reference copy. Run `npm run test:rules` (in functions/) before every
+// deploy — it covers every scanner and Pure Pantry write, old builds included.
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ── Shared list / pantry helpers ──────────────────────────────
+
+    // A new shared list or pantry: the creator owns it and is its only member.
+    function isValidNewShared() {
+      let data = request.resource.data;
+      return data.ownerUid == request.auth.uid
+          && data.collaborators is map
+          && data.collaborators.keys().hasOnly([request.auth.uid])
+          && data.collaborators[request.auth.uid].role == 'owner';
+    }
+
+    // The member entry every app writes when joining with an invite code.
+    function isJoinEntry(entry) {
+      return entry is map
+          && entry.keys().hasOnly(['role', 'displayName', 'sourceApp'])
+          && entry.role == 'editor'
+          && (!('displayName' in entry)
+              || (entry.displayName is string && entry.displayName.size() <= 100));
+    }
+
+    // Updates any app legitimately makes to a shared list or pantry:
+    //   members  – regenerate/revoke the invite code, bump updatedAt, re-save
+    //              their own entry (re-joining), leave; the owner may also
+    //              remove other members.
+    //   joiners  – a non-member adds only their own entry.
+    // Ownership and the list/pantry name never change after creation, and
+    // the owner can't be removed.
+    function isValidSharedUpdate() {
+      let before = resource.data;
+      let after = request.resource.data;
+      let uid = request.auth.uid;
+      let changed = after.diff(before).affectedKeys();
+      let members = after.collaborators.diff(before.collaborators);
+      let isOwner = uid == before.ownerUid;
+      return after.collaborators is map
+          && !members.removedKeys().hasAny([before.ownerUid])
+          && (uid in before.collaborators
+              ? changed.hasOnly(['collaborators', 'inviteCode', 'inviteCodeCreatedAt',
+                                 'inviteCodeExpiresAt', 'updatedAt'])
+                  && members.addedKeys().size() == 0
+                  && (isOwner || members.removedKeys().hasOnly([uid]))
+                  && members.changedKeys().hasOnly([uid])
+                  && (!(uid in members.changedKeys()) || isOwner
+                      || isJoinEntry(after.collaborators[uid]))
+              : changed.hasOnly(['collaborators', 'updatedAt'])
+                  && members.addedKeys().hasOnly([uid])
+                  && members.removedKeys().size() == 0
+                  && members.changedKeys().size() == 0
+                  && isJoinEntry(after.collaborators[uid]));
+    }
+
+    // Activity events notify every other member (onListActivity /
+    // onPantryActivity), so they must come from the signed-in user and carry
+    // only the fields and types the apps write.
+    function isValidActivity() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(['type', 'actorUid', 'actorDisplayName',
+                                  'itemName', 'details', 'timestamp'])
+          && data.actorUid == request.auth.uid
+          && data.type in ['itemAdded', 'itemChecked', 'itemUnchecked',
+                           'itemRemoved', 'quantityChanged', 'collaboratorJoined',
+                           'statusChanged', 'itemDepleted']
+          && data.actorDisplayName is string
+          && data.actorDisplayName.size() <= 100
+          && (!('itemName' in data)
+              || (data.itemName is string && data.itemName.size() <= 200))
+          && (!('details' in data) || data.details is map)
+          && data.timestamp == request.time;
+    }
+
     // ── Shared Lists ──────────────────────────────────────────────
     match /sharedLists/{listId} {
-      // Anyone authenticated can read (needed for join-by-invite lookup)
+      // Anyone authenticated can read (needed for join-by-invite lookup by
+      // shipped scanner builds). Closing this needs a server-side join.
       allow read: if request.auth != null;
 
-      // Only the creator (ownerUid) can create a list
-      allow create: if request.auth != null
-                    && request.resource.data.ownerUid == request.auth.uid;
+      allow create: if request.auth != null && isValidNewShared();
 
-      // Owner can update anything; non-collaborators can add themselves
-      // (join flow), collaborators can update collaborators field
-      allow update: if request.auth != null
-                    && (request.auth.uid == resource.data.ownerUid
-                        || request.auth.uid in resource.data.collaborators
-                        || request.auth.uid in request.resource.data.collaborators);
+      allow update: if request.auth != null && isValidSharedUpdate();
 
       // Only owner can delete
       allow delete: if request.auth != null
@@ -43,30 +106,26 @@ service cloud.firestore {
                      && request.auth.uid in get(/databases/$(database)/documents/sharedLists/$(listId)).data.collaborators;
       }
 
-      // Activity subcollection: collaborators can read and create
+      // Activity subcollection: collaborators can read and create their own
       match /activity/{activityId} {
         allow read: if request.auth != null
                     && request.auth.uid in get(/databases/$(database)/documents/sharedLists/$(listId)).data.collaborators;
         allow create: if request.auth != null
-                      && request.auth.uid in get(/databases/$(database)/documents/sharedLists/$(listId)).data.collaborators;
+                      && request.auth.uid in get(/databases/$(database)/documents/sharedLists/$(listId)).data.collaborators
+                      && isValidActivity();
         allow update, delete: if false;
       }
     }
 
     // ── Shared Pantries ───────────────────────────────────────────
     match /sharedPantries/{pantryId} {
-      // Anyone authenticated can read (needed for join-by-invite lookup)
+      // Anyone authenticated can read (needed for join-by-invite lookup by
+      // shipped scanner builds). Closing this needs a server-side join.
       allow read: if request.auth != null;
 
-      // Only the creator can create a pantry
-      allow create: if request.auth != null
-                    && request.resource.data.ownerUid == request.auth.uid;
+      allow create: if request.auth != null && isValidNewShared();
 
-      // Owner and collaborators can update; join flow allows adding self
-      allow update: if request.auth != null
-                    && (request.auth.uid == resource.data.ownerUid
-                        || request.auth.uid in resource.data.collaborators
-                        || request.auth.uid in request.resource.data.collaborators);
+      allow update: if request.auth != null && isValidSharedUpdate();
 
       // Only owner can delete
       allow delete: if request.auth != null
@@ -80,30 +139,65 @@ service cloud.firestore {
                      && request.auth.uid in get(/databases/$(database)/documents/sharedPantries/$(pantryId)).data.collaborators;
       }
 
-      // Activity subcollection: collaborators can read and create
+      // Activity subcollection: collaborators can read and create their own
       match /activity/{activityId} {
         allow read: if request.auth != null
                     && request.auth.uid in get(/databases/$(database)/documents/sharedPantries/$(pantryId)).data.collaborators;
         allow create: if request.auth != null
-                      && request.auth.uid in get(/databases/$(database)/documents/sharedPantries/$(pantryId)).data.collaborators;
+                      && request.auth.uid in get(/databases/$(database)/documents/sharedPantries/$(pantryId)).data.collaborators
+                      && isValidActivity();
         allow update, delete: if false;
       }
     }
 
     // ── Community Products ────────────────────────────────────────
+
+    // Confirming or flagging: someone other than the contributor adds only
+    // themselves to confirmedBy/flaggedBy, and the count matches the list.
+    function isVote(countField, votersField) {
+      let before = resource.data.get(votersField, []);
+      let after = request.resource.data.get(votersField, []);
+      return request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly([countField, votersField])
+          && after is list
+          && !(request.auth.uid in before)
+          && after.size() == before.size() + 1
+          && after.toSet() == before.toSet().union([request.auth.uid].toSet())
+          && request.resource.data[countField] == after.size();
+    }
+
     match /communityProducts/{barcode} {
       // Any authenticated user can read community products
       allow read: if request.auth != null;
 
-      // Any authenticated user can create (submit) a new product,
-      // and must set themselves as the contributor
+      // A new product submitted by the signed-in user, with no votes yet.
       allow create: if request.auth != null
-                    && request.resource.data.contributedBy == request.auth.uid;
+                    && request.resource.data.keys().hasOnly([
+                         'name', 'brand', 'category', 'contributedBy', 'contributedAt',
+                         'confirmationCount', 'confirmedBy', 'flagCount', 'flaggedBy',
+                         'offSubmitted'])
+                    && request.resource.data.contributedBy == request.auth.uid
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() <= 200
+                    && (!('brand' in request.resource.data)
+                        || (request.resource.data.brand is string
+                            && request.resource.data.brand.size() <= 200))
+                    && (!('category' in request.resource.data)
+                        || (request.resource.data.category is string
+                            && request.resource.data.category.size() <= 50))
+                    && request.resource.data.contributedAt is timestamp
+                    && request.resource.data.confirmationCount == 0
+                    && request.resource.data.confirmedBy == []
+                    && request.resource.data.flagCount == 0
+                    && request.resource.data.flaggedBy == []
+                    && request.resource.data.offSubmitted == false;
 
-      // Updates are allowed for confirm/flag operations by authenticated
-      // users. The transaction logic in the app enforces that users
-      // cannot confirm/flag their own submissions or double-count.
-      allow update: if request.auth != null;
+      // Only confirm/flag votes; contributors can't vote on their own product.
+      allow update: if request.auth != null
+                    && resource.data.contributedBy != request.auth.uid
+                    && (isVote('confirmationCount', 'confirmedBy')
+                        || isVote('flagCount', 'flaggedBy'));
 
       // Community products cannot be deleted by clients
       allow delete: if false;
