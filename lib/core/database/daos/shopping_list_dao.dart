@@ -153,6 +153,9 @@ class ShoppingListDao extends DatabaseAccessor<AppDatabase>
           .getSingleOrNull();
 
   /// Upsert by Firestore item ID — used during sync from shared list.
+  ///
+  /// An existing row keeps its local `id` and `addedAt`, so screens holding
+  /// the id stay valid across remote updates.
   Future<void> upsertByFirestoreItemId(
       ShoppingListItemsCompanion item) async {
     final existing = await findItemByFirestoreItemId(
@@ -160,11 +163,32 @@ class ShoppingListDao extends DatabaseAccessor<AppDatabase>
     if (existing != null) {
       await (update(shoppingListItems)
             ..where((i) => i.id.equals(existing.id)))
-          .write(item);
+          .write(item.copyWith(
+              id: const Value.absent(), addedAt: const Value.absent()));
     } else {
       await into(shoppingListItems).insert(item);
     }
   }
+
+  /// Find the local list linked to a Firestore shared list.
+  Future<ShoppingList?> getListByFirestoreId(String firestoreId) =>
+      (select(shoppingLists)
+            ..where((l) => l.firestoreId.equals(firestoreId))
+            ..limit(1))
+          .getSingleOrNull();
+
+  /// Detach a local list and its items from a shared list (after leaving it or
+  /// when it was deleted remotely). The local list and items are kept.
+  Future<void> unlinkList(String localListId) => transaction(() async {
+        await (update(shoppingLists)..where((l) => l.id.equals(localListId)))
+            .write(ShoppingListsCompanion(
+                firestoreId: const Value(null),
+                updatedAt: Value(DateTime.now())));
+        await (update(shoppingListItems)
+              ..where((i) => i.listId.equals(localListId)))
+            .write(const ShoppingListItemsCompanion(
+                firestoreListId: Value(null), firestoreItemId: Value(null)));
+      });
 
   /// Link/unlink a local item to a Firestore shared list and item doc.
   Future<void> updateFirestoreIds(

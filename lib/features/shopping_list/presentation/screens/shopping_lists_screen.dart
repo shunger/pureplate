@@ -7,6 +7,7 @@ import '../../../../core/database/app_database.dart' as db;
 import '../../../../core/providers/database_providers.dart';
 import '../../../../core/routing/route_names.dart';
 import '../../../sharing/presentation/widgets/join_list_sheet.dart';
+import '../../data/datasources/shopping_list_sync_orchestrator.dart';
 import '../../domain/models/shopping_list.dart';
 import '../providers/shopping_list_providers.dart';
 import '../widgets/shopping_list_widgets.dart';
@@ -166,7 +167,7 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen> {
   }
 
   Future<void> _deleteList(String id) async {
-    await ref.read(shoppingListDaoProvider).deleteList(id);
+    await ref.read(shoppingListSyncOrchestratorProvider).deleteList(id);
   }
 }
 

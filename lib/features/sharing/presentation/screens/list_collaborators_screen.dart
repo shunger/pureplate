@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/providers/auth_providers.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../shopping_list/data/datasources/shopping_list_sync_orchestrator.dart';
 import '../../data/datasources/firestore_list_sharing_service.dart';
 import '../providers/sharing_providers.dart';
 
@@ -382,13 +383,9 @@ class ListCollaboratorsScreen extends ConsumerWidget {
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              final user =
-                  ref.read(currentUserProvider).valueOrNull;
-              if (user == null) return;
-              final service =
-                  ref.read(firestoreListSharingServiceProvider);
-              await service.removeCollaborator(
-                  firestoreId, user.uid);
+              await ref
+                  .read(shoppingListSyncOrchestratorProvider)
+                  .leaveList(firestoreId);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(

@@ -114,16 +114,27 @@ class PantryDao extends DatabaseAccessor<AppDatabase> with _$PantryDaoMixin {
               updatedAt: Value(DateTime.now())));
 
   /// Upsert by Firestore item ID — used during sync from shared pantry.
+  ///
+  /// An existing row keeps its local `id` and `createdAt`, so screens holding
+  /// the id stay valid across remote updates.
   Future<void> upsertByFirestoreItemId(PantryItemsCompanion item) async {
     final existing = await findByFirestoreItemId(
         item.firestoreItemId.value ?? '');
     if (existing != null) {
       await (update(pantryItems)..where((i) => i.id.equals(existing.id)))
-          .write(item);
+          .write(item.copyWith(
+              id: const Value.absent(), createdAt: const Value.absent()));
     } else {
       await into(pantryItems).insert(item);
     }
   }
+
+  /// Detach every item from a shared pantry (after leaving it). Items are kept.
+  Future<void> unlinkItemsForPantry(String firestorePantryId) =>
+      (update(pantryItems)
+            ..where((i) => i.firestorePantryId.equals(firestorePantryId)))
+          .write(const PantryItemsCompanion(
+              firestorePantryId: Value(null), firestoreItemId: Value(null)));
 
   /// Remove items deleted by collaborators in a shared pantry.
   Future<void> deleteItemsNotInRemoteSet(

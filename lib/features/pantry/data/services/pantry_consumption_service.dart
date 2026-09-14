@@ -4,8 +4,10 @@ import '../../../../core/database/daos/pantry_dao.dart';
 import '../../../../core/database/daos/shopping_list_dao.dart';
 import '../../../recipes/domain/models/recipe.dart';
 import '../../../shopping_list/data/datasources/shopping_list_mapper.dart';
+import '../../../shopping_list/data/datasources/shopping_list_sync_orchestrator.dart';
 import '../../../shopping_list/domain/models/shopping_list.dart';
 import '../../../../shared/models/product_category.dart';
+import '../datasources/pantry_sync_orchestrator.dart';
 
 /// Result of deducting pantry items after cooking a recipe.
 class ConsumptionResult {
@@ -31,10 +33,15 @@ class PantryConsumptionService {
   /// - Deletes pantry items that reach 0.
   /// - Adds depleted items to the most recent active shopping list,
   ///   or creates a new "Restock" list.
+  ///
+  /// Reads come from the DAOs; writes go through the sync orchestrators so
+  /// shared pantries and lists see the change.
   Future<ConsumptionResult> deductIngredientsForRecipe({
     required Recipe recipe,
     required PantryDao pantryDao,
     required ShoppingListDao shoppingListDao,
+    required PantrySyncOrchestrator pantrySync,
+    required ShoppingListSyncOrchestrator listSync,
   }) async {
     final pantryItems = await pantryDao.getAllItems();
 
@@ -74,14 +81,14 @@ class PantryConsumptionService {
         remainingToDeduct -= deduction;
 
         if (newQuantity <= 0) {
-          await pantryDao.deleteItem(match.id);
+          await pantrySync.deleteItem(match.id);
           depletedItems.add(_DepletedItem(
             name: match.name,
             category: match.category,
             unitType: match.unitType,
           ));
         } else {
-          await pantryDao.updateQuantity(match.id, newQuantity);
+          await pantrySync.updateQuantity(match.id, newQuantity);
         }
 
         match.quantity = newQuantity;
@@ -132,7 +139,7 @@ class PantryConsumptionService {
         return ShoppingListMapper.itemToCompanion(listItem);
       }).toList();
 
-      await shoppingListDao.insertItems(companions);
+      await listSync.insertItems(companions);
       addedToListCount = depletedItems.length;
     }
 

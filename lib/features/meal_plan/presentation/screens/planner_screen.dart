@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/routing/route_names.dart';
 import '../../../../core/providers/database_providers.dart';
+import '../../../pantry/data/datasources/pantry_sync_orchestrator.dart';
 import '../../../pantry/data/services/pantry_consumption_service.dart';
+import '../../../shopping_list/data/datasources/shopping_list_sync_orchestrator.dart';
 import '../../../recipes/data/datasources/recipe_mapper.dart';
 import '../../domain/models/meal_plan.dart';
 import '../providers/meal_plan_providers.dart';
@@ -286,6 +288,10 @@ class _PlannerScreenState extends ConsumerState<PlannerScreen> {
                           pantryDao: ref.read(pantryDaoProvider),
                           shoppingListDao:
                               ref.read(shoppingListDaoProvider),
+                          pantrySync:
+                              ref.read(pantrySyncOrchestratorProvider),
+                          listSync: ref
+                              .read(shoppingListSyncOrchestratorProvider),
                         );
                   }
 

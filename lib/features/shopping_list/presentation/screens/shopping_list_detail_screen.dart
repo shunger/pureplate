@@ -162,21 +162,21 @@ class _DetailBody extends ConsumerWidget {
     WidgetRef ref,
     String action,
   ) async {
-    final dao = ref.read(shoppingListDaoProvider);
+    final sync = ref.read(shoppingListSyncOrchestratorProvider);
     switch (action) {
       case 'check_all':
-        await dao.checkAllItems(list.id);
+        await sync.setAllCompleted(list.id, true);
       case 'uncheck_all':
-        await dao.resetAllItems(list.id);
+        await sync.setAllCompleted(list.id, false);
       case 'clear_completed':
-        await dao.clearCompletedItems(list.id);
+        await sync.clearCompleted(list.id);
       case 'archive':
-        await dao.archiveList(list.id);
+        await ref.read(shoppingListDaoProvider).archiveList(list.id);
         if (context.mounted) Navigator.pop(context);
       case 'delete':
         final confirmed = await _confirmDelete(context);
         if (confirmed) {
-          await dao.deleteList(list.id);
+          await sync.deleteList(list.id);
           if (context.mounted) Navigator.pop(context);
         }
     }
@@ -419,7 +419,7 @@ class _ItemTile extends ConsumerWidget {
       key: Key(item.id),
       direction: DismissDirection.endToStart,
       onDismissed: (_) =>
-          ref.read(shoppingListDaoProvider).deleteItem(item.id),
+          ref.read(shoppingListSyncOrchestratorProvider).deleteItem(item.id),
       background: Container(
         color: AppColors.error,
         alignment: Alignment.centerRight,
@@ -437,11 +437,9 @@ class _ItemTile extends ConsumerWidget {
               children: [
                 Checkbox(
                   value: item.isCompleted,
-                  onChanged: (val) =>
-                      ref.read(shoppingListDaoProvider).toggleItemCompletion(
-                            item.id,
-                            val ?? false,
-                          ),
+                  onChanged: (val) => ref
+                      .read(shoppingListSyncOrchestratorProvider)
+                      .toggleItemCompletion(item.id, val ?? false),
                   activeColor: AppColors.coral,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(4),

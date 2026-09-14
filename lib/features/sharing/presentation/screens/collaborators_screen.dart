@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/providers/auth_providers.dart';
-import '../../../../core/providers/database_providers.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../pantry/data/datasources/pantry_sync_orchestrator.dart';
 import '../../data/datasources/firestore_pantry_sharing_service.dart';
 import '../providers/sharing_providers.dart';
 import '../widgets/join_pantry_sheet.dart';
@@ -376,16 +376,9 @@ class CollaboratorsScreen extends ConsumerWidget {
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              final user =
-                  ref.read(currentUserProvider).valueOrNull;
-              if (user == null) return;
-              final service =
-                  ref.read(firestorePantrySharingServiceProvider);
-              await service.removeCollaborator(
-                  firestoreId, user.uid);
               await ref
-                  .read(preferencesDaoProvider)
-                  .setSharedPantryId(null);
+                  .read(pantrySyncOrchestratorProvider)
+                  .leavePantry(firestoreId);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(

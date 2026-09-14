@@ -9,6 +9,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/voice_input_button.dart';
 import '../../../../shared/models/product_category.dart';
 import '../../data/datasources/shopping_list_mapper.dart';
+import '../../data/datasources/shopping_list_sync_orchestrator.dart';
 import '../../domain/models/shopping_list.dart';
 import '../providers/shopping_list_providers.dart';
 
@@ -317,13 +318,13 @@ class _ShoppingListItemSheetState
     );
 
     try {
-      final dao = ref.read(shoppingListDaoProvider);
+      final sync = ref.read(shoppingListSyncOrchestratorProvider);
       final companion = ShoppingListMapper.itemToCompanion(item);
 
       if (_isEditing) {
-        await dao.updateItem(companion);
+        await sync.updateItem(companion);
       } else {
-        await dao.insertItem(companion);
+        await sync.insertItem(companion);
       }
 
       if (mounted) Navigator.pop(context);

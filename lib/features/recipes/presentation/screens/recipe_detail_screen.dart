@@ -17,11 +17,13 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/database_providers.dart';
 import '../../../../shared/models/product_category.dart';
 import '../../../meal_plan/presentation/providers/meal_plan_providers.dart';
+import '../../../pantry/data/datasources/pantry_sync_orchestrator.dart';
 import '../../../pantry/data/services/pantry_consumption_service.dart';
 import '../../../pantry/domain/models/pantry_item.dart';
 import '../../../settings/presentation/providers/settings_providers.dart';
 import '../../../shopping_list/data/datasources/auto_list_generator.dart';
 import '../../../shopping_list/data/datasources/shopping_list_mapper.dart';
+import '../../../shopping_list/data/datasources/shopping_list_sync_orchestrator.dart';
 import '../../../shopping_list/domain/models/shopping_list.dart';
 import '../../../shopping_list/presentation/providers/shopping_list_providers.dart';
 import '../../data/datasources/recipe_mapper.dart';
@@ -781,6 +783,10 @@ class _BottomCookingBar extends ConsumerWidget {
                               pantryDao: ref.read(pantryDaoProvider),
                               shoppingListDao:
                                   ref.read(shoppingListDaoProvider),
+                              pantrySync: ref
+                                  .read(pantrySyncOrchestratorProvider),
+                              listSync: ref.read(
+                                  shoppingListSyncOrchestratorProvider),
                             );
                       }
 
@@ -1185,7 +1191,8 @@ class _AddToListSheetState extends ConsumerState<_AddToListSheet> {
         return ShoppingListMapper.itemToCompanion(remapped);
       }).toList();
 
-      await dao.insertItems(companions);
+      // The target list may be shared, so insert through the sync layer.
+      await ref.read(shoppingListSyncOrchestratorProvider).insertItems(companions);
 
       if (mounted) {
         Navigator.pop(context);

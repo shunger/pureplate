@@ -1,11 +1,16 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'remote_doc.dart';
 
 /// Firestore service for shopping list sharing between users.
 ///
 /// Uses the `sharedLists` collection with the same schema as
-/// SmartShoppingScanner for cross-app compatibility.
+/// SmartShoppingScanner for cross-app compatibility
+/// (see `ShoppingListWireMapper`).
 ///
 /// Firestore structure:
 ///   sharedLists/{listId}
@@ -14,27 +19,44 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 ///     - collaborators: { uid: { role, displayName } }
 ///     - createdAt, updatedAt
 ///     └── items/{itemId}
-///         - productName, brand, barcode, quantity, price, isChecked,
-///           category, notes, addedBy, updatedBy, createdAt, updatedAt
+///         - productName, brand, quantity, price, isChecked, category, notes,
+///           addedBy, updatedBy, updatedByClient, createdAt, updatedAt
+///
+/// Item writes return without waiting for the server: Firestore queues them
+/// while offline, and failures are logged rather than surfaced.
 class FirestoreListSharingService {
   final FirebaseFirestore _firestore;
 
   FirestoreListSharingService(this._firestore);
 
+  static const _memberRoles = ['owner', 'editor', 'viewer'];
+  static const _batchLimit = 450;
+
   CollectionReference<Map<String, dynamic>> get _lists =>
       _firestore.collection('sharedLists');
 
+  CollectionReference<Map<String, dynamic>> _items(String listId) =>
+      _lists.doc(listId).collection('items');
+
+  Query<Map<String, dynamic>> _listsForUser(String uid) =>
+      _lists.where('collaborators.$uid.role', whereIn: _memberRoles);
+
   // ── List management ─────────────────────────────────────
 
-  /// Share a local shopping list — creates a Firestore doc and returns its ID.
-  Future<String> shareList({
+  /// Reserve a document ID for a list about to be shared, so the local list
+  /// can be linked before the shared list's snapshot arrives.
+  String newListId() => _lists.doc().id;
+
+  /// Create the shared list document for [listId] (from [newListId]).
+  Future<void> shareList({
+    required String listId,
     required String uid,
     required String displayName,
     required String name,
     String? storeName,
   }) async {
     final inviteCode = await _generateUniqueInviteCode();
-    final doc = await _lists.add({
+    await _lists.doc(listId).set({
       'name': name,
       'storeName': storeName,
       'ownerUid': uid,
@@ -48,7 +70,6 @@ class FirestoreListSharingService {
       'createdAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     });
-    return doc.id;
   }
 
   /// Join a shared list using an invite code.
@@ -95,6 +116,12 @@ class FirestoreListSharingService {
     return SharedListInfo.fromFirestore(snap.docs.first);
   }
 
+  /// Fetch a single shared list, or null if it no longer exists.
+  Future<SharedListInfo?> getList(String listId) async {
+    final doc = await _lists.doc(listId).get();
+    return doc.exists ? SharedListInfo.fromFirestore(doc) : null;
+  }
+
   /// Regenerate the invite code for a shared list.
   Future<String> regenerateInviteCode(String listId) async {
     final code = await _generateUniqueInviteCode();
@@ -116,70 +143,144 @@ class FirestoreListSharingService {
     });
   }
 
+  /// Delete a shared list and all of its items. Only the owner may do this.
+  Future<void> deleteSharedList(String listId) async {
+    final items = await _items(listId).get();
+    for (var i = 0; i < items.docs.length; i += _batchLimit) {
+      final batch = _firestore.batch();
+      for (final doc in items.docs.skip(i).take(_batchLimit)) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+    }
+    await _lists.doc(listId).delete();
+  }
+
   // ── Item operations ───────────────────────────────────────
 
-  /// Add an item to a shared list. Returns the Firestore item document ID.
-  Future<String> addItem({
+  /// Add an item to a shared list. Returns the new item document ID.
+  String addItem({
     required String listId,
     required String uid,
     required Map<String, dynamic> itemData,
-  }) async {
-    final doc = await _lists.doc(listId).collection('items').add({
-      ...itemData,
-      'addedBy': uid,
-      'updatedBy': uid,
-      'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-    await _lists.doc(listId).update({
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-    return doc.id;
+  }) {
+    final ref = _items(listId).doc();
+    _queue('addItem', ref.set(_newItem(uid, itemData)));
+    _touch(listId);
+    return ref.id;
+  }
+
+  /// Add several items in batched writes. Returns local ID → item document ID.
+  Map<String, String> addItemsBatch({
+    required String listId,
+    required String uid,
+    required Map<String, Map<String, dynamic>> itemsByLocalId,
+  }) {
+    final ids = <String, String>{};
+    final entries = itemsByLocalId.entries.toList();
+    for (var i = 0; i < entries.length; i += _batchLimit) {
+      final batch = _firestore.batch();
+      for (final entry in entries.skip(i).take(_batchLimit)) {
+        final ref = _items(listId).doc();
+        batch.set(ref, _newItem(uid, entry.value));
+        ids[entry.key] = ref.id;
+      }
+      _queue('addItemsBatch', batch.commit());
+    }
+    if (entries.isNotEmpty) _touch(listId);
+    return ids;
   }
 
   /// Update specific fields on a shared list item.
-  Future<void> updateItem({
+  void updateItem({
     required String listId,
     required String itemId,
     required String uid,
     required Map<String, dynamic> fields,
-  }) async {
-    await _lists.doc(listId).collection('items').doc(itemId).update({
-      ...fields,
-      'updatedBy': uid,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+  }) {
+    updateItemsBatch(listId: listId, uid: uid, fieldsByItemId: {itemId: fields});
+  }
+
+  /// Update several items in batched writes.
+  void updateItemsBatch({
+    required String listId,
+    required String uid,
+    required Map<String, Map<String, dynamic>> fieldsByItemId,
+  }) {
+    final entries = fieldsByItemId.entries.toList();
+    for (var i = 0; i < entries.length; i += _batchLimit) {
+      final batch = _firestore.batch();
+      for (final entry in entries.skip(i).take(_batchLimit)) {
+        batch.update(_items(listId).doc(entry.key), {
+          ...entry.value,
+          'updatedBy': uid,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+      _queue('updateItems', batch.commit());
+    }
   }
 
   /// Remove an item from a shared list.
-  Future<void> removeItem({
+  void removeItem({
     required String listId,
     required String itemId,
-  }) async {
-    await _lists.doc(listId).collection('items').doc(itemId).delete();
-    await _lists.doc(listId).update({
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+  }) {
+    removeItemsBatch(listId: listId, itemIds: [itemId]);
+  }
+
+  /// Remove several items in batched writes.
+  void removeItemsBatch({
+    required String listId,
+    required List<String> itemIds,
+  }) {
+    for (var i = 0; i < itemIds.length; i += _batchLimit) {
+      final batch = _firestore.batch();
+      for (final itemId in itemIds.skip(i).take(_batchLimit)) {
+        batch.delete(_items(listId).doc(itemId));
+      }
+      _queue('removeItems', batch.commit());
+    }
+    if (itemIds.isNotEmpty) _touch(listId);
+  }
+
+  Map<String, dynamic> _newItem(String uid, Map<String, dynamic> itemData) => {
+        ...itemData,
+        'addedBy': uid,
+        'updatedBy': uid,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+  void _touch(String listId) => _queue(
+        'touchList',
+        _lists.doc(listId).update({'updatedAt': FieldValue.serverTimestamp()}),
+      );
+
+  void _queue(String operation, Future<void> write) {
+    unawaited(write.then((_) {}, onError: (Object e) {
+      debugPrint('[ListSharing] $operation failed: $e');
+    }));
   }
 
   // ── Streams ───────────────────────────────────────────────
 
   /// Watch all items in a shared list.
   Stream<List<SharedListItem>> watchSharedListItems(String listId) {
-    return _lists.doc(listId).collection('items').snapshots().map(
+    return _items(listId).snapshots().map(
         (snap) => snap.docs.map((d) => SharedListItem.fromFirestore(d)).toList());
+  }
+
+  /// Watch the raw item documents in a shared list (for sync).
+  Stream<List<RemoteDoc>> watchItemDocs(String listId) {
+    return _items(listId).snapshots().map(
+        (snap) => [for (final d in snap.docs) RemoteDoc(d.id, d.data())]);
   }
 
   /// Watch all shared lists the user belongs to.
   Stream<List<SharedListInfo>> watchSharedListsForUser(String uid) {
-    return _lists.snapshots().map((snap) => snap.docs
-        .where((d) {
-          final collabs =
-              (d.data()['collaborators'] as Map<String, dynamic>?) ?? {};
-          return collabs.containsKey(uid);
-        })
-        .map((d) => SharedListInfo.fromFirestore(d))
-        .toList());
+    return _listsForUser(uid).snapshots().map((snap) =>
+        snap.docs.map((d) => SharedListInfo.fromFirestore(d)).toList());
   }
 
   // ── Invite code generation ────────────────────────────────

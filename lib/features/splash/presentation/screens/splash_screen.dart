@@ -8,6 +8,7 @@ import '../../../../core/providers/database_providers.dart';
 import '../../../../core/services/bundled_recipe_service.dart';
 import '../../../../core/services/migration_service.dart';
 import '../../../pantry/data/datasources/pantry_sync_orchestrator.dart';
+import '../../../shopping_list/data/datasources/shopping_list_sync_orchestrator.dart';
 
 /// Splash screen — app logo, brief fade-in animation, then navigate to
 /// Home (if onboarding completed) or Onboarding Welcome.
@@ -78,9 +79,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       final recipeDao = ref.read(recipeDaoProvider);
       await BundledRecipeService(recipeDao).loadIfNeeded();
 
-      // Eagerly read the pantry sync orchestrator so its auth listener
-      // starts observing — sync begins automatically when authenticated.
+      // Eagerly read the sync orchestrators so their auth listeners start
+      // observing — sync begins automatically when authenticated, and lists
+      // shared with this user appear without them sharing one first.
       ref.read(pantrySyncOrchestratorProvider);
+      ref.read(shoppingListSyncOrchestratorProvider);
 
       if (!mounted) return;
 

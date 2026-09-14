@@ -12,8 +12,10 @@ import '../../../../shared/models/product_category.dart';
 import '../../../meal_plan/data/datasources/meal_plan_mapper.dart';
 import '../../../meal_plan/data/datasources/preference_summary_builder.dart';
 import '../../../meal_plan/domain/models/family_profile.dart';
+import '../../../pantry/data/datasources/pantry_sync_orchestrator.dart';
 import '../../../pantry/data/services/pantry_consumption_service.dart';
 import '../../../pantry/domain/models/pantry_item.dart';
+import '../../../shopping_list/data/datasources/shopping_list_sync_orchestrator.dart';
 import '../../data/datasources/recipe_mapper.dart';
 import '../../data/services/local_command_matcher.dart';
 import '../../data/services/voice_loop_service.dart';
@@ -364,6 +366,8 @@ class _VoiceCookingScreenState extends ConsumerState<VoiceCookingScreen> {
             recipe: recipe,
             pantryDao: ref.read(pantryDaoProvider),
             shoppingListDao: ref.read(shoppingListDaoProvider),
+            pantrySync: ref.read(pantrySyncOrchestratorProvider),
+            listSync: ref.read(shoppingListSyncOrchestratorProvider),
           );
     }
 

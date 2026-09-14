@@ -129,8 +129,13 @@ class AuthService {
 
     final existing = await _sharingService.getSharedPantriesForUser(user.uid);
     if (existing.isNotEmpty) {
-      // Use the first pantry found (restore scenario).
-      await _preferencesDao.setSharedPantryId(existing.first.firestoreId);
+      // Restore scenario. Prefer a household someone else owns over the
+      // user's own personal pantry (mirrors PantrySyncOrchestrator).
+      final preferred = existing.firstWhere(
+        (p) => p.ownerUid != user.uid,
+        orElse: () => existing.first,
+      );
+      await _preferencesDao.setSharedPantryId(preferred.firestoreId);
       return;
     }
 

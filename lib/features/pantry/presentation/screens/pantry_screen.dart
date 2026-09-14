@@ -14,6 +14,7 @@ import '../../../../shared/widgets/sign_in_bottom_sheet.dart';
 import '../../../settings/presentation/providers/settings_providers.dart';
 import '../../../sharing/presentation/providers/sharing_providers.dart';
 import '../../../shopping_list/data/datasources/shopping_list_mapper.dart';
+import '../../../shopping_list/data/datasources/shopping_list_sync_orchestrator.dart';
 import '../../../shopping_list/domain/models/shopping_list.dart'
     as shopping_domain;
 import '../../../shopping_list/presentation/providers/shopping_list_providers.dart';
@@ -856,7 +857,9 @@ class _AddToShoppingListSheetState
         addedAt: DateTime.now(),
       );
 
-      await dao.insertItem(ShoppingListMapper.itemToCompanion(shoppingItem));
+      await ref
+          .read(shoppingListSyncOrchestratorProvider)
+          .insertItem(ShoppingListMapper.itemToCompanion(shoppingItem));
 
       if (mounted) {
         Navigator.pop(context);
