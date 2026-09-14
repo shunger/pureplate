@@ -5,7 +5,7 @@ import {checkKillSwitch} from "../middleware/killSwitch";
 import {checkRateLimit} from "../middleware/rateLimiter";
 import {buildChatSystemPrompt, buildChatUserPrompt} from "../prompts/chatPrompt";
 import {extractJson, validateChatResponse} from "../utils/responseParser";
-import {ChatRequest} from "../types";
+import {validateChatRequest} from "../utils/requestLimits";
 
 if (getApps().length === 0) initializeApp();
 
@@ -26,30 +26,14 @@ export const chatWithChef = onCall(
     // Kill switch
     checkKillSwitch();
 
+    // Validate and bound the input (message length, history, image type and
+    // size) before charging quota, so a rejected request is free.
+    const data = validateChatRequest(request.data);
+    const hasImage = data.imageBase64 !== undefined;
+
     // Rate limit (skip in emulator without auth)
     const uid = request.auth?.uid ?? "emulator-test-user";
     const quota = await checkRateLimit(uid, "chat");
-
-    // Validate input
-    const data = request.data as ChatRequest;
-    if (!data.userMessage || !data.preferenceSummary) {
-      throw new HttpsError(
-        "invalid-argument",
-        "Missing required fields: userMessage, preferenceSummary"
-      );
-    }
-
-    // Validate image size if present (reject base64 > ~5MB)
-    const hasImage = !!data.imageBase64 && !!data.imageMediaType;
-    if (hasImage) {
-      const maxBase64Chars = Math.ceil(5 * 1024 * 1024 * 4 / 3);
-      if (data.imageBase64!.length > maxBase64Chars) {
-        throw new HttpsError(
-          "invalid-argument",
-          "Image is too large. Please use a smaller image (max 5MB)."
-        );
-      }
-    }
 
     const systemPrompt = buildChatSystemPrompt();
     const userPrompt = buildChatUserPrompt(data);

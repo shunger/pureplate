@@ -6,7 +6,8 @@ import {checkRateLimit} from "../middleware/rateLimiter";
 import {buildPlanSystemPrompt, buildPlanUserPrompt} from "../prompts/planPrompt";
 import {extractJson, validatePlanResponse} from "../utils/responseParser";
 import {diffShoppingList} from "../utils/shoppingListDiffer";
-import {GeneratePlanRequest, Ingredient} from "../types";
+import {validatePlanRequest} from "../utils/requestLimits";
+import {Ingredient} from "../types";
 
 if (getApps().length === 0) initializeApp();
 
@@ -28,20 +29,15 @@ export const generatePlan = onCall(
     console.log("generatePlan: checking kill switch");
     checkKillSwitch();
 
+    // Validate and bound the input before charging quota, so a malformed or
+    // oversized request doesn't use up the user's allowance.
+    const data = validatePlanRequest(request.data);
+    console.log("generatePlan: input days:", data.days);
+
     // Rate limit (skip in emulator without auth)
     const uid = request.auth?.uid ?? "emulator-test-user";
     console.log("generatePlan: checking rate limit for uid:", uid);
     const quota = await checkRateLimit(uid, "plan");
-
-    // Validate input
-    const data = request.data as GeneratePlanRequest;
-    console.log("generatePlan: input days:", data.days, "has preferenceSummary:", !!data.preferenceSummary);
-    if (!data.days || !data.preferenceSummary) {
-      throw new HttpsError(
-        "invalid-argument",
-        "Missing required fields: days, preferenceSummary"
-      );
-    }
 
     const systemPrompt = buildPlanSystemPrompt();
     const userPrompt = buildPlanUserPrompt(data);
