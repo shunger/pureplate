@@ -49,13 +49,9 @@ android {
 
     buildTypes {
         release {
-            // Falls back to the debug key if android/key.properties is missing,
-            // so `flutter run --release` still works on a fresh checkout.
-            signingConfig = if (keystorePropertiesFile.exists()) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
-            }
+            // Requires android/key.properties; see the check at the end of
+            // this file. There's deliberately no debug-key fallback.
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
@@ -72,4 +68,17 @@ dependencies {
 
 flutter {
     source = "../.."
+}
+
+// A release build without the upload key fails here with instructions. It used
+// to fall back to the debug key silently, producing a build Play would reject.
+gradle.taskGraph.whenReady {
+    val buildsRelease = allTasks.any { it.project == project && it.name.contains("Release") }
+    if (buildsRelease && !keystorePropertiesFile.exists()) {
+        throw GradleException(
+            "Release signing isn't configured. Create android/key.properties with " +
+                "storeFile, storePassword, keyAlias and keyPassword for the upload " +
+                "keystore (see RELEASE_MIGRATION_PLAN.md)."
+        )
+    }
 }

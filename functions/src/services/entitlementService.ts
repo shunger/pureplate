@@ -124,10 +124,13 @@ export async function linkSubscription(params: {
     const storedReceipt =
       receipt ?? (existing?.receipt as string | undefined);
 
-    // A full set() also drops the single `uid` field older documents used.
+    // `uid` (the single account older function versions read) is kept as the
+    // most recently linked account, so rolling the functions back doesn't
+    // strand renewal notifications for subscriptions linked since.
     tx.set(ref, {
       source,
       accounts,
+      uid,
       ...(storedReceipt ? {receipt: storedReceipt} : {}),
       updatedAt: now,
     });

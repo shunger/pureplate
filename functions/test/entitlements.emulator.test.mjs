@@ -98,8 +98,9 @@ describe("linkSubscription", () => {
 
     await linkSubscription({uid: "second", source: "google", id: "token-1"});
     const migrated = (await doc.ref.get()).data();
-    assert.equal(migrated.uid, undefined);
     assert.deepEqual(Object.keys(migrated.accounts).sort(), ["legacy", "second"]);
+    // Still readable by the previous function version, in case of rollback.
+    assert.equal(migrated.uid, "second");
   });
 });
 
