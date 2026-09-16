@@ -54,7 +54,9 @@ interface AppleTransactionInfo {
  * Notifications (both production and sandbox).
  */
 export const appleSubscriptionNotifications = onRequest(
-  {secrets: [appleSharedSecret]},
+  // The cap matches what the live function already runs with; pinned in the
+  // source so a deploy can't silently drop it.
+  {secrets: [appleSharedSecret], maxInstances: 20},
   async (req, res) => {
     if (req.method !== "POST") {
       res.status(405).send("Method not allowed");
@@ -131,7 +133,9 @@ interface PlayNotification {
  * re-read from the Play Developer API.
  */
 export const googleSubscriptionNotifications = onMessagePublished(
-  {topic: PLAY_RTDN_TOPIC},
+  // maxInstances was set outside the source until 2026-09-16, when a deploy
+  // dropped it. Pinned here so it survives every deploy.
+  {topic: PLAY_RTDN_TOPIC, maxInstances: 20},
   async (event) => {
     const notification = event.data.message.json as PlayNotification | undefined;
     const purchaseToken = notification?.subscriptionNotification?.purchaseToken;

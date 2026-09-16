@@ -42,7 +42,9 @@ async function reserveInviteCode(
  * why the Firestore rules can't enforce it instead.
  */
 export const createSharedSpace = onCall(
-  {enforceAppCheck: true},
+  // The instance cap matches the other purepantry functions, so a burst of
+  // calls can't run up the bill.
+  {enforceAppCheck: true, maxInstances: 20},
   async (request): Promise<{id: string; inviteCode: string}> => {
     // Auth check (skipped in emulator when no Auth emulator is running)
     const isEmulator = process.env.FUNCTIONS_EMULATOR === "true";
