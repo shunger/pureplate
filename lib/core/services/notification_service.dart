@@ -60,9 +60,12 @@ class NotificationService {
     // Handle foreground FCM messages as local notifications.
     FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
 
-    // Log FCM token for debugging.
-    final token = await _messaging.getToken();
-    debugPrint('FCM Token: $token');
+    // Log the FCM token in debug builds only. debugPrint still writes to the
+    // system log in release, and the token identifies this install.
+    if (kDebugMode) {
+      final token = await _messaging.getToken();
+      debugPrint('FCM Token: $token');
+    }
   }
 
   Future<void> _createChannels() async {

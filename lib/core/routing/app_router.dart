@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -39,7 +40,9 @@ import '../../features/sharing/presentation/screens/activity_feed_screen.dart';
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: Routes.splash,
-    debugLogDiagnostics: true,
+    // Debug builds only: these logs include route params such as pantry and
+    // shopping list Firestore ids, and they reach the system log in release.
+    debugLogDiagnostics: kDebugMode,
     routes: [
       // Splash
       GoRoute(

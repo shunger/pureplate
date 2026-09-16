@@ -109,20 +109,33 @@ class PurchaseService {
     final raw = prefs.getString(_pendingKey);
     if (raw == null) return;
 
-    late final Map<String, dynamic> pending;
+    // A malformed or incomplete blob is dropped rather than thrown from: this
+    // runs fire-and-forget at startup, where an exception goes unhandled.
+    final String? receipt;
+    final String? source;
+    final String? productId;
+    final String? purchaseId;
     try {
-      pending = jsonDecode(raw) as Map<String, dynamic>;
+      final pending = jsonDecode(raw) as Map<String, dynamic>;
+      receipt = pending['receipt'] as String?;
+      source = pending['source'] as String?;
+      productId = pending['productId'] as String?;
+      purchaseId = pending['purchaseId'] as String?;
     } catch (_) {
+      await prefs.remove(_pendingKey);
+      return;
+    }
+    if (receipt == null || source == null || productId == null) {
       await prefs.remove(_pendingKey);
       return;
     }
 
     debugPrint('Retrying pending purchase verification');
     await _verifyReceipt(
-      receipt: pending['receipt'] as String,
-      source: pending['source'] as String,
-      productId: pending['productId'] as String,
-      purchaseId: pending['purchaseId'] as String?,
+      receipt: receipt,
+      source: source,
+      productId: productId,
+      purchaseId: purchaseId,
       announce: false,
     );
   }
