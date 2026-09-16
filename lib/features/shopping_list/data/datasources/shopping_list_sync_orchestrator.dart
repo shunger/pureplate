@@ -168,7 +168,6 @@ class ShoppingListSyncOrchestrator {
     try {
       await _sharingService.shareList(
         listId: firestoreListId,
-        uid: uid,
         displayName: displayName,
         name: list.name,
         storeName: list.storeName,

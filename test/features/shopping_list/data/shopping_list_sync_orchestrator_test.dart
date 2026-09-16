@@ -118,7 +118,6 @@ void main() {
       String? linkedWhenShared;
       when(() => service.shareList(
             listId: any(named: 'listId'),
-            uid: any(named: 'uid'),
             displayName: any(named: 'displayName'),
             name: any(named: 'name'),
             storeName: any(named: 'storeName'),

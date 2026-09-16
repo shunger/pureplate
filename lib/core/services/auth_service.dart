@@ -141,7 +141,6 @@ class AuthService {
 
     // Create a personal pantry.
     final pantryId = await _sharingService.createSharedPantry(
-      uid: user.uid,
       displayName: user.displayName ?? 'Me',
       name: 'My Pantry',
     );

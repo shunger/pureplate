@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -26,8 +27,10 @@ import 'remote_doc.dart';
 /// while offline, and failures are logged rather than surfaced.
 class FirestoreListSharingService {
   final FirebaseFirestore _firestore;
+  final FirebaseFunctions _functions;
 
-  FirestoreListSharingService(this._firestore);
+  FirestoreListSharingService(this._firestore, [FirebaseFunctions? functions])
+      : _functions = functions ?? FirebaseFunctions.instance;
 
   static const _memberRoles = ['owner', 'editor', 'viewer'];
   static const _batchLimit = 450;
@@ -48,28 +51,40 @@ class FirestoreListSharingService {
   String newListId() => _lists.doc().id;
 
   /// Create the shared list document for [listId] (from [newListId]).
+  ///
+  /// Goes through the `createSharedSpace` function rather than writing the
+  /// document here: sharing is a Premium feature, and only the server can
+  /// check the entitlement (the paywall in the UI is skippable in a modified
+  /// build).
   Future<void> shareList({
     required String listId,
-    required String uid,
     required String displayName,
     required String name,
     String? storeName,
   }) async {
-    final inviteCode = await _generateUniqueInviteCode();
-    await _lists.doc(listId).set({
-      'name': name,
-      'storeName': storeName,
-      'ownerUid': uid,
-      'inviteCode': inviteCode,
-      'inviteCodeCreatedAt': FieldValue.serverTimestamp(),
-      'inviteCodeExpiresAt':
-          Timestamp.fromDate(DateTime.now().add(const Duration(days: 7))),
-      'collaborators': {
-        uid: {'role': 'owner', 'displayName': displayName},
-      },
-      'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    try {
+      await _functions.httpsCallable('createSharedSpace').call({
+        'kind': 'list',
+        'id': listId,
+        'name': name,
+        if (storeName != null) 'storeName': storeName,
+        'displayName': displayName,
+      });
+    } on FirebaseFunctionsException catch (e) {
+      throw ListSharingException(_sharingErrorMessage(e));
+    }
+  }
+
+  /// A user-facing message for a failed `createSharedSpace` call.
+  String _sharingErrorMessage(FirebaseFunctionsException e) {
+    if (e.code == 'permission-denied') {
+      return e.message ??
+          'Sharing is a Premium feature. Subscribe to share your lists.';
+    }
+    if (e.code == 'unavailable' || e.code == 'deadline-exceeded') {
+      return 'Could not reach the server. Check your connection and try again.';
+    }
+    return e.message ?? 'Could not share this list.';
   }
 
   /// Join a shared list using an invite code.

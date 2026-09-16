@@ -8,7 +8,7 @@
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
-    "test": "npm run build && node --test test/subscriptionLinks.test.mjs test/requestLimits.test.mjs",
+    "test": "npm run build && node --test test/subscriptionLinks.test.mjs test/requestLimits.test.mjs test/sharedSpaces.test.mjs",
     "test:entitlements": "npm run build && cd .. && firebase emulators:exec --only firestore --project pure-pantry-entitlement-test \"node --test functions/test/entitlements.emulator.test.mjs\"",
     "test:rules": "cd .. && firebase emulators:exec --only firestore --project pure-pantry-rules-test \"node --test functions/test/rules.test.mjs\""
   },

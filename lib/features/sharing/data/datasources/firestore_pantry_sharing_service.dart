@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -25,8 +26,10 @@ import 'remote_doc.dart';
 /// while offline, and failures are logged rather than surfaced.
 class FirestorePantrySharingService {
   final FirebaseFirestore _firestore;
+  final FirebaseFunctions _functions;
 
-  FirestorePantrySharingService(this._firestore);
+  FirestorePantrySharingService(this._firestore, [FirebaseFunctions? functions])
+      : _functions = functions ?? FirebaseFunctions.instance;
 
   static const _memberRoles = ['owner', 'editor', 'viewer'];
   static const _batchLimit = 450;
@@ -42,26 +45,39 @@ class FirestorePantrySharingService {
 
   // ── Pantry management ───────────────────────────────────
 
-  /// Create a new shared pantry owned by [uid].
+  /// Create a new shared pantry owned by the signed-in user.
+  ///
+  /// Goes through the `createSharedSpace` function rather than writing the
+  /// document here: sharing is a Premium feature, and only the server can
+  /// check the entitlement (the paywall in the UI is skippable in a modified
+  /// build). Returns the new pantry's id.
   Future<String> createSharedPantry({
-    required String uid,
     required String displayName,
     String name = 'Family Pantry',
   }) async {
-    final inviteCode = await _generateUniqueInviteCode();
-    final doc = await _pantries.add({
-      'name': name,
-      'ownerUid': uid,
-      'inviteCode': inviteCode,
-      'inviteCodeExpiresAt':
-          Timestamp.fromDate(DateTime.now().add(const Duration(days: 7))),
-      'collaborators': {
-        uid: {'role': 'owner', 'displayName': displayName},
-      },
-      'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
-    return doc.id;
+    try {
+      final result = await _functions.httpsCallable('createSharedSpace').call({
+        'kind': 'pantry',
+        'name': name,
+        'displayName': displayName,
+      });
+      final data = Map<String, dynamic>.from(result.data as Map);
+      return data['id'] as String;
+    } on FirebaseFunctionsException catch (e) {
+      throw PantrySharingException(_sharingErrorMessage(e));
+    }
+  }
+
+  /// A user-facing message for a failed `createSharedSpace` call.
+  String _sharingErrorMessage(FirebaseFunctionsException e) {
+    if (e.code == 'permission-denied') {
+      return e.message ??
+          'Sharing is a Premium feature. Subscribe to share with your family.';
+    }
+    if (e.code == 'unavailable' || e.code == 'deadline-exceeded') {
+      return 'Could not reach the server. Check your connection and try again.';
+    }
+    return e.message ?? 'Could not create the shared pantry.';
   }
 
   /// Join a shared pantry using an invite code.
