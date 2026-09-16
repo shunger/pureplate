@@ -122,6 +122,12 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
+  # Build iOS plugins with CocoaPods. Swift Package Manager (the default in
+  # newer Flutter) pulls in file_picker's DKCamera, whose location API
+  # references make App Store Connect demand a location purpose string.
+  config:
+    enable-swift-package-manager: false
+
   assets:
     - assets/data/
     - assets/images/
