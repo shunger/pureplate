@@ -34,6 +34,26 @@ service cloud.firestore {
               || (entry.displayName is string && entry.displayName.size() <= 100));
     }
 
+    // Joining is only possible while the list or pantry has an invite code
+    // that hasn't expired. The rules can't check the code itself, but every
+    // app looks the doc up by its code and refuses expired ones before
+    // joining, so this only stops joins the apps never make — including
+    // joins after the code was revoked.
+    function hasActiveInviteCode(data) {
+      return data.get('inviteCode', null) is string
+          && (data.get('inviteCodeExpiresAt', null) == null
+              || data.inviteCodeExpiresAt > request.time);
+    }
+
+    // The only two queries any app runs on these collections: an invite-code
+    // lookup (one result), and "the ones I'm a member of". Anything else —
+    // such as listing every list or pantry — is refused.
+    function isAllowedSharedQuery() {
+      return (resource.data.inviteCode is string && request.query.limit <= 1)
+          || resource.data.collaborators[request.auth.uid].role
+                 in ['owner', 'editor', 'viewer'];
+    }
+
     // Updates any app legitimately makes to a shared list or pantry:
     //   members  – regenerate/revoke the invite code, bump updatedAt, re-save
     //              their own entry (re-joining), leave; the owner may also
@@ -59,6 +79,7 @@ service cloud.firestore {
                   && (!(uid in members.changedKeys()) || isOwner
                       || isJoinEntry(after.collaborators[uid]))
               : changed.hasOnly(['collaborators', 'updatedAt'])
+                  && hasActiveInviteCode(before)
                   && members.addedKeys().hasOnly([uid])
                   && members.removedKeys().size() == 0
                   && members.changedKeys().size() == 0
@@ -86,9 +107,12 @@ service cloud.firestore {
 
     // ── Shared Lists ──────────────────────────────────────────────
     match /sharedLists/{listId} {
-      // Anyone authenticated can read (needed for join-by-invite lookup by
-      // shipped scanner builds). Closing this needs a server-side join.
-      allow read: if request.auth != null;
+      // Any signed-in user can open one by its (random) id, which shipped
+      // scanner builds do. Queries are limited to an invite-code lookup and
+      // the user's own memberships. Hiding the doc from non-members entirely
+      // needs a server-side join.
+      allow get: if request.auth != null;
+      allow list: if request.auth != null && isAllowedSharedQuery();
 
       allow create: if request.auth != null && isValidNewShared();
 
@@ -119,9 +143,12 @@ service cloud.firestore {
 
     // ── Shared Pantries ───────────────────────────────────────────
     match /sharedPantries/{pantryId} {
-      // Anyone authenticated can read (needed for join-by-invite lookup by
-      // shipped scanner builds). Closing this needs a server-side join.
-      allow read: if request.auth != null;
+      // Any signed-in user can open one by its (random) id, which shipped
+      // scanner builds do. Queries are limited to an invite-code lookup and
+      // the user's own memberships. Hiding the doc from non-members entirely
+      // needs a server-side join.
+      allow get: if request.auth != null;
+      allow list: if request.auth != null && isAllowedSharedQuery();
 
       allow create: if request.auth != null && isValidNewShared();
 

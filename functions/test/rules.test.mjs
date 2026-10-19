@@ -182,6 +182,70 @@ for (const col of ["sharedLists", "sharedPantries"]) {
       );
     });
 
+    it("lets the invite-code uniqueness check find nothing", async () => {
+      // Every app does this before creating a doc or regenerating a code.
+      const db = testEnv.authenticatedContext(STRANGER).firestore();
+      await assertSucceeds(
+        getDocs(
+          query(collection(db, col), where("inviteCode", "==", "NONE99"), limit(1))
+        )
+      );
+    });
+
+    it("lets any signed-in user open a doc by its id", async () => {
+      // Shipped scanner builds re-read the doc after joining, and check a
+      // linked doc still exists.
+      await seed(`${col}/by-id`, sharedDoc("BYID01"));
+
+      const db = testEnv.authenticatedContext(STRANGER).firestore();
+      await assertSucceeds(getDoc(doc(db, `${col}/by-id`)));
+    });
+
+    it("lets a user join while the invite code is unexpired", async () => {
+      await seed(`${col}/join-dated`, {
+        ...sharedDoc("JOIN04"),
+        inviteCodeExpiresAt: Timestamp.fromMillis(Date.now() + 86400000),
+      });
+
+      const db = testEnv.authenticatedContext(STRANGER).firestore();
+      await assertSucceeds(
+        updateDoc(doc(db, `${col}/join-dated`), {
+          [`collaborators.${STRANGER}`]: {role: "editor", displayName: "New"},
+          updatedAt: serverTimestamp(),
+        })
+      );
+    });
+
+    it("lets a user join when the code never expires", async () => {
+      await seed(`${col}/join-forever`, {
+        ...sharedDoc("JOIN05"),
+        inviteCodeExpiresAt: null,
+      });
+
+      const db = testEnv.authenticatedContext(STRANGER).firestore();
+      await assertSucceeds(
+        updateDoc(doc(db, `${col}/join-forever`), {
+          [`collaborators.${STRANGER}`]: {role: "editor", displayName: "New"},
+          updatedAt: serverTimestamp(),
+        })
+      );
+    });
+
+    it("lets the owner list the docs they own",
+        async () => {
+          await seed(`${col}/mine-only`, sharedDoc("ROLE02"));
+
+          const db = testEnv.authenticatedContext(OWNER).firestore();
+          await assertSucceeds(
+            getDocs(
+              query(
+                collection(db, col),
+                where(`collaborators.${OWNER}.role`, "in", ["owner", "editor", "viewer"])
+              )
+            )
+          );
+        });
+
     it("denies signed-out reads", async () => {
       await seed(`${col}/signed-out`, sharedDoc("OUT001"));
 
@@ -486,6 +550,74 @@ for (const col of ["sharedLists", "sharedPantries"]) {
       const db = testEnv.authenticatedContext(MEMBER).firestore();
       await assertFails(
         updateDoc(doc(db, `${col}/member-rename`), {name: "Hijacked"})
+      );
+    });
+
+    it("refuses listing every doc in the collection", async () => {
+      await seed(`${col}/listed`, sharedDoc("LIST01"));
+
+      const db = testEnv.authenticatedContext(STRANGER).firestore();
+      await assertFails(getDocs(collection(db, col)));
+      await assertFails(getDocs(query(collection(db, col), limit(1))));
+    });
+
+    it("refuses invite-code queries that could return many docs", async () => {
+      const db = testEnv.authenticatedContext(STRANGER).firestore();
+      await assertFails(
+        getDocs(query(collection(db, col), where("inviteCode", "==", "LOOK01")))
+      );
+      await assertFails(
+        getDocs(
+          query(collection(db, col), where("inviteCode", "==", "LOOK01"), limit(50))
+        )
+      );
+      await assertFails(
+        getDocs(query(collection(db, col), where("inviteCode", "!=", ""), limit(1)))
+      );
+    });
+
+    it("refuses querying by owner or by someone else's membership", async () => {
+      await seed(`${col}/snoop`, sharedDoc("SNOP01"));
+
+      const db = testEnv.authenticatedContext(STRANGER).firestore();
+      await assertFails(
+        getDocs(query(collection(db, col), where("ownerUid", "==", OWNER)))
+      );
+      await assertFails(
+        getDocs(
+          query(
+            collection(db, col),
+            where(`collaborators.${OWNER}.role`, "in", ["owner", "editor", "viewer"])
+          )
+        )
+      );
+    });
+
+    it("refuses joining after the invite code was revoked", async () => {
+      const {inviteCode, ...noCode} = sharedDoc("UNUSED");
+      await seed(`${col}/revoked`, noCode);
+
+      const db = testEnv.authenticatedContext(STRANGER).firestore();
+      await assertFails(
+        updateDoc(doc(db, `${col}/revoked`), {
+          [`collaborators.${STRANGER}`]: {role: "editor", displayName: "New"},
+          updatedAt: serverTimestamp(),
+        })
+      );
+    });
+
+    it("refuses joining with an expired invite code", async () => {
+      await seed(`${col}/expired`, {
+        ...sharedDoc("EXPI01"),
+        inviteCodeExpiresAt: Timestamp.fromMillis(Date.now() - 60000),
+      });
+
+      const db = testEnv.authenticatedContext(STRANGER).firestore();
+      await assertFails(
+        updateDoc(doc(db, `${col}/expired`), {
+          [`collaborators.${STRANGER}`]: {role: "editor", displayName: "New"},
+          updatedAt: serverTimestamp(),
+        })
       );
     });
 
