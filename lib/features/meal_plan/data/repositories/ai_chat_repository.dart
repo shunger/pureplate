@@ -10,6 +10,9 @@ import '../../../recipes/domain/models/ingredient.dart';
 import '../../../recipes/domain/models/instruction_step.dart';
 import '../../../recipes/domain/models/nutrition_info.dart';
 
+/// A photo sent to the chef, e.g. one page of a recipe.
+typedef ChatImage = ({String base64, String mediaType});
+
 /// Repository for the chat-based meal planning AI.
 ///
 /// Calls the `chatWithChef` Cloud Function with the user's message,
@@ -25,21 +28,27 @@ class AiChatRepository {
   /// [chatHistory] — formatted string of prior conversation turns.
   /// [preferenceSummary] — structured family/pantry/preference context.
   /// [activePlan] — optional current meal plan summary for context.
+  /// [images] — photos in order, such as the pages of one recipe.
+  /// [mode] — 'voice' when the reply will be spoken aloud while cooking.
   Future<ChatResponse> sendMessage({
     required String userMessage,
     required String chatHistory,
     required Map<String, dynamic> preferenceSummary,
     String? activePlan,
-    String? imageBase64,
-    String? imageMediaType,
+    List<ChatImage> images = const [],
+    String? mode,
   }) async {
     final params = {
       'userMessage': userMessage,
       'chatHistory': chatHistory,
       'preferenceSummary': preferenceSummary,
       if (activePlan != null) 'activePlan': activePlan,
-      if (imageBase64 != null) 'imageBase64': imageBase64,
-      if (imageMediaType != null) 'imageMediaType': imageMediaType,
+      if (images.isNotEmpty)
+        'images': [
+          for (final image in images)
+            {'base64': image.base64, 'mediaType': image.mediaType},
+        ],
+      if (mode != null) 'mode': mode,
     };
 
     for (var attempt = 0; attempt < 2; attempt++) {
@@ -95,10 +104,22 @@ class AiChatRepository {
 
   Recipe _parseRecipe(Map<String, dynamic> m) {
     final rawId = m['id'] as String?;
+    // Copied from the user's photo of a written recipe: it's theirs.
+    final fromPhoto = m['from_photo'] == true;
+    // Who the recipe is from, as printed on the card or cookbook page.
+    final credit = (m['credit'] as String?)?.trim();
+    final aiDescription = m['description'] as String?;
+    final description = credit == null || credit.isEmpty
+        ? aiDescription
+        : [
+            'Recipe from $credit.',
+            if (aiDescription != null && aiDescription.isNotEmpty)
+              aiDescription,
+          ].join(' ');
     return Recipe(
       id: (rawId != null && rawId.isNotEmpty) ? rawId : const Uuid().v4(),
       name: m['name'] as String? ?? 'Untitled Recipe',
-      description: m['description'] as String?,
+      description: description,
       cuisine: m['cuisine'] as String?,
       prepTimeMinutes: m['prep_time'] as int? ?? 0,
       cookTimeMinutes: m['cook_time'] as int? ?? 0,
@@ -108,7 +129,8 @@ class AiChatRepository {
       nutrition: m['nutrition'] != null
           ? NutritionInfo.fromJson(m['nutrition'] as Map<String, dynamic>)
           : null,
-      source: RecipeSource.aiGenerated,
+      source: fromPhoto ? RecipeSource.userCreated : RecipeSource.aiGenerated,
+      isMine: fromPhoto,
       createdAt: DateTime.now(),
     );
   }

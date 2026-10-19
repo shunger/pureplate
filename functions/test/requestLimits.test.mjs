@@ -106,6 +106,12 @@ describe("validateChatRequest", () => {
     assert.equal(request.imageBase64, undefined);
   });
 
+  it("keeps voice mode and drops unknown modes", () => {
+    assert.equal(validateChatRequest({...valid, mode: "voice"}).mode, "voice");
+    assert.equal(validateChatRequest({...valid, mode: "shout"}).mode, undefined);
+    assert.equal(validateChatRequest(valid).mode, undefined);
+  });
+
   it("requires a message and a preference summary", () => {
     rejects(() => validateChatRequest({...valid, userMessage: "  "}), /Missing required fields/);
     rejects(() => validateChatRequest({...valid, preferenceSummary: undefined}), /Missing required fields/);

@@ -316,6 +316,7 @@ class _CookingModeScreenState extends ConsumerState<CookingModeScreen> {
 
   Future<void> _finishCooking(BuildContext context) async {
     // Try to mark today's meal as cooked if this recipe is in a plan
+    await ref.read(recipeDaoProvider).markMine(widget.recipeId);
     final meal = await ref.read(mealPlanDaoProvider).getTodaysMeal();
     if (meal != null && meal.recipeId == widget.recipeId) {
       await ref.read(mealPlanDaoProvider).markCooked(meal.id, true);

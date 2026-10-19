@@ -41,6 +41,9 @@ abstract class Recipe with _$Recipe {
     /// Favorite.
     @Default(false) bool isFavorite,
 
+    /// One the user chose to keep (favorited, imported, cooked, photographed).
+    @Default(false) bool isMine,
+
     /// Source tracking.
     @Default(RecipeSource.bundled) RecipeSource source,
     Map<String, dynamic>? aiMetadata,

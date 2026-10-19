@@ -1,6 +1,6 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {initializeApp, getApps} from "firebase-admin/app";
-import {verifyAppleReceipt, appleSharedSecret} from "../services/appleVerifier";
+import {verifyAppleTransaction} from "../services/appleVerifier";
 import {verifyGooglePurchase} from "../services/googleVerifier";
 import {
   applyEntitlement,
@@ -16,7 +16,6 @@ if (getApps().length === 0) initializeApp();
 export const verifyReceipt = onCall(
   {
     enforceAppCheck: true,
-    secrets: [appleSharedSecret],
   },
   async (request): Promise<VerifyReceiptResponse> => {
     // Auth check (skipped in emulator when no Auth emulator is running)
@@ -45,11 +44,12 @@ export const verifyReceipt = onCall(
 
     const uid = request.auth?.uid ?? "emulator-test-user";
 
+    // For Apple, `receipt` is the StoreKit 2 signed transaction (JWS).
     let verified;
     try {
       verified =
         data.source === "apple" ?
-          await verifyAppleReceipt(data.receipt) :
+          await verifyAppleTransaction(data.receipt) :
           await verifyGooglePurchase(data.receipt);
     } catch (err: any) {
       // Could not reach the store, or it errored. This is NOT a rejection —
@@ -86,7 +86,6 @@ export const verifyReceipt = onCall(
         uid,
         source: data.source,
         id: subscriptionId,
-        receipt: data.source === "apple" ? data.receipt : undefined,
       });
       for (const droppedUid of dropped) {
         await revokeIfFromSubscription(droppedUid, data.source, subscriptionId);

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/services/local_image_path.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/models/recipe.dart';
 import '../../domain/models/ingredient.dart';
@@ -39,7 +40,7 @@ class RecipeImage extends StatelessWidget {
     final fallbackError = errorWidget ?? fallbackPlaceholder;
 
     if (imageUrl.startsWith('/')) {
-      final file = File(imageUrl);
+      final file = File(LocalImagePath.resolve(imageUrl));
       return Image.file(
         file,
         width: width,
@@ -95,21 +96,27 @@ class RecipeCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image or placeholder
-            Container(
-              height: 120,
-              width: double.infinity,
-              color: AppColors.coral.withValues(alpha: 0.1),
-              child: recipe.imageUrl != null
-                  ? RecipeImage(
-                      imageUrl: recipe.imageUrl!,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: 120,
-                      placeholder: _imagePlaceholder(),
-                      errorWidget: _imagePlaceholder(),
-                    )
-                  : _imagePlaceholder(),
+            // Image or placeholder, with a "Mine" badge for the user's own.
+            Stack(
+              children: [
+                Container(
+                  height: 120,
+                  width: double.infinity,
+                  color: AppColors.coral.withValues(alpha: 0.1),
+                  child: recipe.imageUrl != null
+                      ? RecipeImage(
+                          imageUrl: recipe.imageUrl!,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: 120,
+                          placeholder: _imagePlaceholder(),
+                          errorWidget: _imagePlaceholder(),
+                        )
+                      : _imagePlaceholder(),
+                ),
+                if (recipe.isMine)
+                  const Positioned(top: 8, left: 8, child: MineBadge()),
+              ],
             ),
             Padding(
               padding: const EdgeInsets.all(12),
@@ -177,6 +184,37 @@ class RecipeCard extends StatelessWidget {
   Widget _imagePlaceholder() {
     return const Center(
       child: Icon(Icons.restaurant, size: 36, color: AppColors.coralLight),
+    );
+  }
+}
+
+/// Small "Mine" label for recipes the user chose to keep.
+class MineBadge extends StatelessWidget {
+  const MineBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.coral,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.person, size: 12, color: Colors.white),
+          SizedBox(width: 3),
+          Text(
+            'Mine',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

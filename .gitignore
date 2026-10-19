@@ -61,3 +61,6 @@ functions/node_modules/
 
 # Claude Code
 .claude/
+
+# Android signing secrets
+key.properties

@@ -113,7 +113,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -138,8 +138,22 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(shoppingListItems, shoppingListItems.firestoreListId);
             await m.addColumn(shoppingListItems, shoppingListItems.firestoreItemId);
           }
+          if (from < 5) {
+            await _addColumnIfMissing(m, recipes, recipes.isMine);
+          }
         },
       );
+
+  /// Adds [column] unless it's already there. A migration interrupted after
+  /// its ALTER TABLE but before the new version was saved (app killed during
+  /// launch) would otherwise fail with "duplicate column" on every launch.
+  Future<void> _addColumnIfMissing(
+      Migrator m, TableInfo table, GeneratedColumn column) async {
+    final columns =
+        await customSelect('PRAGMA table_info("${table.actualTableName}")').get();
+    if (columns.any((c) => c.read<String>('name') == column.name)) return;
+    await m.addColumn(table, column);
+  }
 }
 
 LazyDatabase _openConnection() {

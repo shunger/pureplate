@@ -5,6 +5,7 @@ import {
   GeneratePlanRequest,
   PantryItem,
   PreferenceSummary,
+  VoiceScriptRequest,
 } from "../types";
 
 /**
@@ -30,6 +31,12 @@ export const LIMITS = {
   cuisineEntries: 40,
   familyMembers: 30,
   imageBase64Chars: Math.ceil((5 * 1024 * 1024 * 4) / 3),
+  /** Pages of a recipe sent together; all photos stay under the 10MB call limit. */
+  images: 4,
+  imagesTotalBase64Chars: 9 * 1024 * 1024,
+  voiceScriptIngredients: 60,
+  voiceScriptSteps: 40,
+  voiceScriptStepChars: 1500,
 } as const;
 
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
@@ -202,20 +209,44 @@ export function validateChatRequest(data: unknown): ChatRequest {
   if (typeof raw.activePlan === "string") {
     request.activePlan = raw.activePlan.slice(0, LIMITS.activePlanChars);
   }
+  if (raw.mode === "voice") {
+    request.mode = "voice";
+  }
 
-  if (raw.imageBase64 != null && raw.imageMediaType != null) {
-    const mediaType = raw.imageMediaType;
+  const rawImages: {base64: unknown; mediaType: unknown}[] = [];
+  if (Array.isArray(raw.images)) {
+    if (raw.images.length > LIMITS.images) {
+      reject(`Please send at most ${LIMITS.images} photos at a time.`);
+    }
+    for (const image of raw.images) {
+      const record = asRecord(image) ?? {};
+      rawImages.push({base64: record.base64, mediaType: record.mediaType});
+    }
+  } else if (raw.imageBase64 != null && raw.imageMediaType != null) {
+    rawImages.push({base64: raw.imageBase64, mediaType: raw.imageMediaType});
+  }
+
+  let totalChars = 0;
+  const images = rawImages.map(({base64, mediaType}) => {
     if (
-      typeof raw.imageBase64 !== "string" ||
+      typeof base64 !== "string" ||
       !IMAGE_TYPES.includes(mediaType as (typeof IMAGE_TYPES)[number])
     ) {
       reject("Unsupported image. Please use a JPEG, PNG or WebP photo.");
     }
-    if (raw.imageBase64.length > LIMITS.imageBase64Chars) {
+    if (base64.length > LIMITS.imageBase64Chars) {
       reject("Image is too large. Please use a smaller image (max 5MB).");
     }
-    request.imageBase64 = raw.imageBase64;
-    request.imageMediaType = mediaType as (typeof IMAGE_TYPES)[number];
+    totalChars += base64.length;
+    return {base64, mediaType: mediaType as (typeof IMAGE_TYPES)[number]};
+  });
+  if (totalChars > LIMITS.imagesTotalBase64Chars) {
+    reject("Those photos are too large together. Please send fewer at a time.");
+  }
+  if (images.length > 0) {
+    request.images = images;
+    request.imageBase64 = images[0].base64;
+    request.imageMediaType = images[0].mediaType;
   }
   return request;
 }
@@ -238,5 +269,36 @@ export function validatePlanRequest(data: unknown): GeneratePlanRequest {
     dayLabels: textList(raw.dayLabels, days, LIMITS.shortTextChars),
     mealType: text(raw.mealType, LIMITS.shortTextChars) || "dinner",
     preferenceSummary,
+  };
+}
+
+/** Validates and bounds a buildVoiceScript request (one recipe). */
+export function validateVoiceScriptRequest(data: unknown): VoiceScriptRequest {
+  const raw = asRecord(data) ?? {};
+  const name = text(raw.name);
+  const ingredients = Array.isArray(raw.ingredients) ? raw.ingredients : [];
+  const instructions = Array.isArray(raw.instructions) ? raw.instructions : [];
+  if (!name || instructions.length === 0) {
+    reject("Missing required fields: name, instructions");
+  }
+  if (
+    ingredients.length > LIMITS.voiceScriptIngredients ||
+    instructions.length > LIMITS.voiceScriptSteps
+  ) {
+    reject("This recipe is too long for voice cooking.");
+  }
+
+  return {
+    name,
+    ingredients: ingredients.map(asRecord).filter((i) => i !== undefined).map((i) => ({
+      name: text(i.name),
+      quantity: text(i.quantity, LIMITS.shortTextChars),
+      unit: text(i.unit, LIMITS.shortTextChars),
+      optional: i.optional === true,
+    })).filter((i) => i.name !== ""),
+    instructions: instructions.map(asRecord).filter((i) => i !== undefined).map((i, index) => ({
+      step_number: typeof i.step_number === "number" ? i.step_number : index + 1,
+      instruction: text(i.instruction, LIMITS.voiceScriptStepChars),
+    })).filter((i) => i.instruction !== ""),
   };
 }

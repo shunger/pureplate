@@ -103,17 +103,13 @@ export async function isEntitled(uid: string): Promise<boolean> {
  * account using it. Up to `MAX_LINKED_ACCOUNTS` stay linked; returns the uids
  * dropped to make room, whose Premium from this subscription the caller
  * should revoke.
- *
- * The Apple receipt is stored alongside because Apple's notifications are only
- * a trigger: we re-verify from the receipt rather than trusting the payload.
  */
 export async function linkSubscription(params: {
   uid: string;
   source: PurchaseSource;
   id: string;
-  receipt?: string;
 }): Promise<string[]> {
-  const {uid, source, id, receipt} = params;
+  const {uid, source, id} = params;
   const ref = indexRef(source, id);
   return getFirestore().runTransaction(async (tx) => {
     const snap = await tx.get(ref);
@@ -121,8 +117,6 @@ export async function linkSubscription(params: {
     const now = Date.now();
     const {accounts, dropped} =
       linkAccount(readLinkedAccounts(existing), uid, now);
-    const storedReceipt =
-      receipt ?? (existing?.receipt as string | undefined);
 
     // `uid` (the single account older function versions read) is kept as the
     // most recently linked account, so rolling the functions back doesn't
@@ -131,7 +125,6 @@ export async function linkSubscription(params: {
       source,
       accounts,
       uid,
-      ...(storedReceipt ? {receipt: storedReceipt} : {}),
       updatedAt: now,
     });
     return dropped;
@@ -166,19 +159,18 @@ export async function revokeIfFromSubscription(
 }
 
 /**
- * Looks up the accounts (most recently linked first) and stored receipt
- * behind a store notification.
+ * Looks up the accounts (most recently linked first) behind a store
+ * notification.
  */
 export async function lookupSubscription(
   source: PurchaseSource,
   id: string
-): Promise<{uids: string[]; receipt?: string} | null> {
+): Promise<{uids: string[]} | null> {
   const snap = await indexRef(source, id).get();
   if (!snap.exists) return null;
 
-  const data = snap.data() as {receipt?: string};
-  const uids = linkedUids(readLinkedAccounts(data));
+  const uids = linkedUids(readLinkedAccounts(snap.data()));
   if (uids.length === 0) return null;
 
-  return {uids, receipt: data.receipt};
+  return {uids};
 }

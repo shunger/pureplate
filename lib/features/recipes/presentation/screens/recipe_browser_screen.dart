@@ -60,7 +60,7 @@ class _RecipeBrowserScreenState extends ConsumerState<RecipeBrowserScreen> {
           await ref.read(recipeShareServiceProvider).importFromFile(path);
       await ref
           .read(recipeDaoProvider)
-          .insertRecipe(RecipeMapper.toCompanion(recipe));
+          .insertRecipe(RecipeMapper.toCompanion(recipe.copyWith(isMine: true)));
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -122,6 +122,7 @@ class _RecipeBrowserScreenState extends ConsumerState<RecipeBrowserScreen> {
     final cuisinesAsync = ref.watch(availableCuisinesProvider);
     final selectedCuisine = ref.watch(recipeCuisineFilterProvider);
     final favoritesOnly = ref.watch(recipeFavoritesOnlyProvider);
+    final mineOnly = ref.watch(recipeMineOnlyProvider);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -201,12 +202,36 @@ class _RecipeBrowserScreenState extends ConsumerState<RecipeBrowserScreen> {
                     Padding(
                       padding: const EdgeInsets.only(right: 8),
                       child: FilterChip(
+                        avatar: Icon(
+                          Icons.person,
+                          size: 16,
+                          color: mineOnly ? Colors.white : AppColors.coral,
+                        ),
+                        label: const Text('Mine'),
+                        selected: mineOnly,
+                        selectedColor: AppColors.coral,
+                        labelStyle: TextStyle(
+                          color: mineOnly ? Colors.white : null,
+                        ),
+                        onSelected: (selected) {
+                          ref.read(recipeMineOnlyProvider.notifier).state =
+                              selected;
+                        },
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
                         label: const Text('All'),
-                        selected: selectedCuisine == null && !favoritesOnly,
+                        selected: selectedCuisine == null &&
+                            !favoritesOnly &&
+                            !mineOnly,
                         onSelected: (_) {
                           ref.read(recipeCuisineFilterProvider.notifier).state =
                               null;
                           ref.read(recipeFavoritesOnlyProvider.notifier).state =
+                              false;
+                          ref.read(recipeMineOnlyProvider.notifier).state =
                               false;
                         },
                       ),

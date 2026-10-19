@@ -62,8 +62,8 @@ class BundledRecipeService {
     await _recipeDao.insertRecipes(companions);
   }
 
-  /// Backfill image URLs for bundled recipes that were inserted before
-  /// image URLs were added to the JSON asset.
+  /// Keeps bundled recipes' stock photos in step with the JSON asset: fills
+  /// in missing ones and replaces ones the asset has since corrected.
   Future<void> _updateBundledImages() async {
     final jsonString =
         await rootBundle.loadString('assets/data/bundled_recipes.json');
@@ -75,9 +75,13 @@ class BundledRecipeService {
       if (imageUrl == null) continue;
 
       final existing = await _recipeDao.getRecipeById(id);
+      // Also replaces a stock photo the asset has since changed, but never a
+      // photo the user took (a local file path rather than a web URL).
+      final current = existing?.imageUrl;
       if (existing != null &&
           existing.source == 'bundled' &&
-          existing.imageUrl == null) {
+          current != imageUrl &&
+          (current == null || current.startsWith('http'))) {
         await _recipeDao.updateRecipe(RecipesCompanion(
           id: Value(id),
           imageUrl: Value(imageUrl),

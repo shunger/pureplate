@@ -37,6 +37,7 @@ class RecipeMapper {
       isDairyFree: _dietaryFlagContains(row.dietaryFlagsJson, 'dairy_free'),
       isNutFree: _dietaryFlagContains(row.dietaryFlagsJson, 'nut_free'),
       isFavorite: row.isFavorite,
+      isMine: row.isMine,
       source: _parseSource(row.source),
       aiMetadata: _parseJsonMap(row.aiMetadataJson),
       createdAt: row.createdAt,
@@ -74,6 +75,8 @@ class RecipeMapper {
       tagsJson: Value('[]'),
       dietaryFlagsJson: Value(jsonEncode(dietaryFlags)),
       isFavorite: Value(recipe.isFavorite),
+      // Only ever set: re-saving a recipe (insert-or-update) mustn't clear it.
+      isMine: recipe.isMine ? const Value(true) : const Value.absent(),
       source: Value(_sourceToString(recipe.source)),
       aiMetadataJson: Value(
           recipe.aiMetadata != null ? jsonEncode(recipe.aiMetadata) : null),

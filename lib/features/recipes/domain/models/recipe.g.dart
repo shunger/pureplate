@@ -35,6 +35,7 @@ _Recipe _$RecipeFromJson(Map<String, dynamic> json) => _Recipe(
   isDairyFree: json['isDairyFree'] as bool? ?? false,
   isNutFree: json['isNutFree'] as bool? ?? false,
   isFavorite: json['isFavorite'] as bool? ?? false,
+  isMine: json['isMine'] as bool? ?? false,
   source:
       $enumDecodeNullable(_$RecipeSourceEnumMap, json['source']) ??
       RecipeSource.bundled,
@@ -64,6 +65,7 @@ Map<String, dynamic> _$RecipeToJson(_Recipe instance) => <String, dynamic>{
   'isDairyFree': instance.isDairyFree,
   'isNutFree': instance.isNutFree,
   'isFavorite': instance.isFavorite,
+  'isMine': instance.isMine,
   'source': _$RecipeSourceEnumMap[instance.source]!,
   'aiMetadata': instance.aiMetadata,
   'createdAt': instance.createdAt.toIso8601String(),

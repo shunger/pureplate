@@ -3,11 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/routing/last_location.dart';
+import '../../../../core/routing/app_router.dart';
 import '../../../../core/routing/route_names.dart';
 import '../../../../core/providers/database_providers.dart';
 import '../../../../core/services/bundled_recipe_service.dart';
+import '../../../../core/services/local_image_path.dart';
 import '../../../../core/services/migration_service.dart';
 import '../../../pantry/data/datasources/pantry_sync_orchestrator.dart';
+import '../../../recipes/presentation/providers/recipe_providers.dart';
 import '../../../shopping_list/data/datasources/shopping_list_sync_orchestrator.dart';
 
 /// Splash screen — app logo, brief fade-in animation, then navigate to
@@ -79,6 +83,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       final recipeDao = ref.read(recipeDaoProvider);
       await BundledRecipeService(recipeDao).loadIfNeeded();
 
+      await LocalImagePath.init();
+      // Tag recipes the user has already shown they want as "Mine".
+      await recipeDao.backfillMine();
+      // Draw photos for recipes that have none, in the background.
+      ref.read(recipeImageServiceProvider).start();
+
       // Eagerly read the sync orchestrators so their auth listeners start
       // observing — sync begins automatically when authenticated, and lists
       // shared with this user appear without them sharing one first.
@@ -93,7 +103,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       if (!mounted) return;
 
       if (prefs.onboardingCompleted) {
-        context.go(Routes.home);
+        await LastLocation.restore(ref.read(routerProvider));
       } else {
         context.go(Routes.onboardingWelcome);
       }

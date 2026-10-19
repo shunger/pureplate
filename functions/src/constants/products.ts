@@ -21,3 +21,13 @@ export function isPremiumProductId(
 
 /** Android applicationId, from android/app/build.gradle.kts. */
 export const ANDROID_PACKAGE_NAME = "com.purehungerlabs.purepantryai";
+
+/** iOS bundle ID, from ios/Runner.xcodeproj. Checked on every Apple JWS. */
+export const IOS_BUNDLE_ID = "com.purehungerlabs.purepantry";
+
+/**
+ * The app's numeric Apple ID (App Store Connect → App Information → Apple ID).
+ * Apple requires it to verify Production transactions; Sandbox and TestFlight
+ * work without it. Production purchases stay pending (and retry) until set.
+ */
+export const APPLE_APP_ID: number | null = null;

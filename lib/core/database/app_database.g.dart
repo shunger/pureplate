@@ -6379,6 +6379,19 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _isMineMeta = const VerificationMeta('isMine');
+  @override
+  late final GeneratedColumn<bool> isMine = GeneratedColumn<bool>(
+    'is_mine',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_mine" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -6421,6 +6434,7 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
     source,
     aiMetadataJson,
     isFavorite,
+    isMine,
     createdAt,
     updatedAt,
   ];
@@ -6572,6 +6586,12 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
         isFavorite.isAcceptableOrUnknown(data['is_favorite']!, _isFavoriteMeta),
       );
     }
+    if (data.containsKey('is_mine')) {
+      context.handle(
+        _isMineMeta,
+        isMine.isAcceptableOrUnknown(data['is_mine']!, _isMineMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -6669,6 +6689,10 @@ class $RecipesTable extends Recipes with TableInfo<$RecipesTable, Recipe> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_favorite'],
       )!,
+      isMine: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_mine'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -6705,6 +6729,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
   final String source;
   final String? aiMetadataJson;
   final bool isFavorite;
+  final bool isMine;
   final DateTime createdAt;
   final DateTime updatedAt;
   const Recipe({
@@ -6726,6 +6751,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     required this.source,
     this.aiMetadataJson,
     required this.isFavorite,
+    required this.isMine,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -6756,6 +6782,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       map['ai_metadata_json'] = Variable<String>(aiMetadataJson);
     }
     map['is_favorite'] = Variable<bool>(isFavorite);
+    map['is_mine'] = Variable<bool>(isMine);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -6787,6 +6814,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
           ? const Value.absent()
           : Value(aiMetadataJson),
       isFavorite: Value(isFavorite),
+      isMine: Value(isMine),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -6816,6 +6844,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       source: serializer.fromJson<String>(json['source']),
       aiMetadataJson: serializer.fromJson<String?>(json['aiMetadataJson']),
       isFavorite: serializer.fromJson<bool>(json['isFavorite']),
+      isMine: serializer.fromJson<bool>(json['isMine']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -6842,6 +6871,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       'source': serializer.toJson<String>(source),
       'aiMetadataJson': serializer.toJson<String?>(aiMetadataJson),
       'isFavorite': serializer.toJson<bool>(isFavorite),
+      'isMine': serializer.toJson<bool>(isMine),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -6866,6 +6896,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     String? source,
     Value<String?> aiMetadataJson = const Value.absent(),
     bool? isFavorite,
+    bool? isMine,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => Recipe(
@@ -6891,6 +6922,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
         ? aiMetadataJson.value
         : this.aiMetadataJson,
     isFavorite: isFavorite ?? this.isFavorite,
+    isMine: isMine ?? this.isMine,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -6936,6 +6968,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
       isFavorite: data.isFavorite.present
           ? data.isFavorite.value
           : this.isFavorite,
+      isMine: data.isMine.present ? data.isMine.value : this.isMine,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -6962,6 +6995,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
           ..write('source: $source, ')
           ..write('aiMetadataJson: $aiMetadataJson, ')
           ..write('isFavorite: $isFavorite, ')
+          ..write('isMine: $isMine, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -6969,7 +7003,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     name,
     description,
@@ -6988,9 +7022,10 @@ class Recipe extends DataClass implements Insertable<Recipe> {
     source,
     aiMetadataJson,
     isFavorite,
+    isMine,
     createdAt,
     updatedAt,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -7013,6 +7048,7 @@ class Recipe extends DataClass implements Insertable<Recipe> {
           other.source == this.source &&
           other.aiMetadataJson == this.aiMetadataJson &&
           other.isFavorite == this.isFavorite &&
+          other.isMine == this.isMine &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -7036,6 +7072,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
   final Value<String> source;
   final Value<String?> aiMetadataJson;
   final Value<bool> isFavorite;
+  final Value<bool> isMine;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -7058,6 +7095,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     this.source = const Value.absent(),
     this.aiMetadataJson = const Value.absent(),
     this.isFavorite = const Value.absent(),
+    this.isMine = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -7081,6 +7119,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     this.source = const Value.absent(),
     this.aiMetadataJson = const Value.absent(),
     this.isFavorite = const Value.absent(),
+    this.isMine = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
@@ -7107,6 +7146,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     Expression<String>? source,
     Expression<String>? aiMetadataJson,
     Expression<bool>? isFavorite,
+    Expression<bool>? isMine,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -7130,6 +7170,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
       if (source != null) 'source': source,
       if (aiMetadataJson != null) 'ai_metadata_json': aiMetadataJson,
       if (isFavorite != null) 'is_favorite': isFavorite,
+      if (isMine != null) 'is_mine': isMine,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -7155,6 +7196,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     Value<String>? source,
     Value<String?>? aiMetadataJson,
     Value<bool>? isFavorite,
+    Value<bool>? isMine,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -7178,6 +7220,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
       source: source ?? this.source,
       aiMetadataJson: aiMetadataJson ?? this.aiMetadataJson,
       isFavorite: isFavorite ?? this.isFavorite,
+      isMine: isMine ?? this.isMine,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -7241,6 +7284,9 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
     if (isFavorite.present) {
       map['is_favorite'] = Variable<bool>(isFavorite.value);
     }
+    if (isMine.present) {
+      map['is_mine'] = Variable<bool>(isMine.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -7274,6 +7320,7 @@ class RecipesCompanion extends UpdateCompanion<Recipe> {
           ..write('source: $source, ')
           ..write('aiMetadataJson: $aiMetadataJson, ')
           ..write('isFavorite: $isFavorite, ')
+          ..write('isMine: $isMine, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -18049,6 +18096,7 @@ typedef $$RecipesTableCreateCompanionBuilder =
       Value<String> source,
       Value<String?> aiMetadataJson,
       Value<bool> isFavorite,
+      Value<bool> isMine,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<int> rowid,
@@ -18073,6 +18121,7 @@ typedef $$RecipesTableUpdateCompanionBuilder =
       Value<String> source,
       Value<String?> aiMetadataJson,
       Value<bool> isFavorite,
+      Value<bool> isMine,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -18215,6 +18264,11 @@ class $$RecipesTableFilterComposer
 
   ColumnFilters<bool> get isFavorite => $composableBuilder(
     column: $table.isFavorite,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isMine => $composableBuilder(
+    column: $table.isMine,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -18378,6 +18432,11 @@ class $$RecipesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isMine => $composableBuilder(
+    column: $table.isMine,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -18473,6 +18532,9 @@ class $$RecipesTableAnnotationComposer
     column: $table.isFavorite,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get isMine =>
+      $composableBuilder(column: $table.isMine, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -18580,6 +18642,7 @@ class $$RecipesTableTableManager
                 Value<String> source = const Value.absent(),
                 Value<String?> aiMetadataJson = const Value.absent(),
                 Value<bool> isFavorite = const Value.absent(),
+                Value<bool> isMine = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -18602,6 +18665,7 @@ class $$RecipesTableTableManager
                 source: source,
                 aiMetadataJson: aiMetadataJson,
                 isFavorite: isFavorite,
+                isMine: isMine,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -18626,6 +18690,7 @@ class $$RecipesTableTableManager
                 Value<String> source = const Value.absent(),
                 Value<String?> aiMetadataJson = const Value.absent(),
                 Value<bool> isFavorite = const Value.absent(),
+                Value<bool> isMine = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<int> rowid = const Value.absent(),
@@ -18648,6 +18713,7 @@ class $$RecipesTableTableManager
                 source: source,
                 aiMetadataJson: aiMetadataJson,
                 isFavorite: isFavorite,
+                isMine: isMine,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,

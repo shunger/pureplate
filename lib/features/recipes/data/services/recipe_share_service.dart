@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../domain/models/recipe.dart';
+import '../../../../core/services/local_image_path.dart';
 
 /// Handles exporting recipes to `.purepantry` JSON files and importing them
 /// back into the app.
@@ -23,7 +24,7 @@ class RecipeShareService {
     String? imageBase64;
     final imagePath = recipe.imageUrl;
     if (imagePath != null) {
-      final imageFile = File(imagePath);
+      final imageFile = File(LocalImagePath.resolve(imagePath));
       if (await imageFile.exists()) {
         imageBase64 = base64Encode(await imageFile.readAsBytes());
       }

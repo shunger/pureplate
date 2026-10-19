@@ -47,7 +47,13 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
   final _imagePicker = ImagePicker();
   final _messages = <_ChatMessage>[];
   bool _isLoading = false;
-  File? _selectedImage;
+  /// Photos to send with the next message, e.g. the pages of one recipe.
+  final _selectedImages = <File>[];
+  static const _maxImages = 4;
+
+  /// The last photos sent, re-sent with follow-ups ("the first one") so the
+  /// chef can still see them; the chat history it gets is text only.
+  List<File> _lastImages = const [];
   bool _pantryOnly = false;
   // Track feedback state per recipe: recipeId → 'loved' | 'disliked' | null.
   final _feedbackState = <String, String>{};
@@ -172,9 +178,10 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
             ),
           ),
 
-          // Image preview
-          if (_selectedImage != null)
+          // Photo previews
+          if (_selectedImages.isNotEmpty)
             Container(
+              height: 88,
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
@@ -182,14 +189,16 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
                   top: BorderSide(color: Theme.of(context).colorScheme.outline, width: 0.5),
                 ),
               ),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Stack(
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _selectedImages.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (context, i) => Stack(
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: Image.file(
-                        _selectedImage!,
+                        _selectedImages[i],
                         height: 80,
                         width: 80,
                         fit: BoxFit.cover,
@@ -200,9 +209,10 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
                       right: 2,
                       child: Semantics(
                         button: true,
-                        label: 'Remove attached photo',
+                        label: 'Remove photo ${i + 1}',
                         child: GestureDetector(
-                          onTap: () => setState(() => _selectedImage = null),
+                          onTap: () =>
+                              setState(() => _selectedImages.removeAt(i)),
                           child: Container(
                             decoration: const BoxDecoration(
                               color: Colors.black54,
@@ -226,7 +236,7 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
                 16, 8, 16, MediaQuery.of(context).viewPadding.bottom + 8),
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
-              border: _selectedImage == null
+              border: _selectedImages.isEmpty
                   ? Border(
                       top: BorderSide(color: Theme.of(context).colorScheme.outline, width: 0.5),
                     )
@@ -242,10 +252,14 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
                 Row(
               children: [
                 IconButton(
-                  onPressed: _isLoading ? null : _showImageSourceSheet,
+                  onPressed: _isLoading || _selectedImages.length >= _maxImages
+                      ? null
+                      : _showImageSourceSheet,
                   icon: const Icon(Icons.camera_alt_outlined, size: 24),
                   color: AppColors.coral,
-                  tooltip: 'Attach photo',
+                  tooltip: _selectedImages.isEmpty
+                      ? 'Attach photo'
+                      : 'Add another page',
                 ),
                 const SizedBox(width: 4),
                 Expanded(
@@ -324,16 +338,25 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (message.imageFile != null)
+                  if (message.imageFiles.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxHeight: 200),
-                          child: Image.file(message.imageFile!,
-                              fit: BoxFit.cover),
-                        ),
+                      child: Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          for (final file in message.imageFiles)
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxHeight:
+                                      message.imageFiles.length == 1 ? 200 : 110,
+                                ),
+                                child: Image.file(file, fit: BoxFit.cover),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   if (message.text.isNotEmpty)
@@ -527,42 +550,60 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    final picked = await _imagePicker.pickImage(
-      source: source,
-      maxWidth: 1024,
-      maxHeight: 1024,
-      imageQuality: 80,
-    );
-    if (picked != null) {
-      setState(() => _selectedImage = File(picked.path));
+    final room = _maxImages - _selectedImages.length;
+    if (room <= 0) return;
+    // Large enough to read the small print on a recipe card.
+    const maxSide = 1600.0;
+    const quality = 85;
+    final List<XFile> picked;
+    if (source == ImageSource.gallery && room > 1) {
+      picked = await _imagePicker.pickMultiImage(
+        maxWidth: maxSide,
+        maxHeight: maxSide,
+        imageQuality: quality,
+        limit: room,
+      );
+    } else {
+      final one = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: maxSide,
+        maxHeight: maxSide,
+        imageQuality: quality,
+      );
+      picked = one == null ? const [] : [one];
     }
+    if (picked.isEmpty || !mounted) return;
+    setState(() => _selectedImages
+        .addAll(picked.take(room).map((x) => File(x.path))));
   }
 
   Future<void> _sendMessage() async {
     final text = _controller.text.trim();
-    final imageFile = _selectedImage;
-    if (text.isEmpty && imageFile == null) return;
+    final imageFiles = List<File>.of(_selectedImages);
+    if (text.isEmpty && imageFiles.isEmpty) return;
+    if (imageFiles.isNotEmpty) _lastImages = imageFiles;
 
     // Prepare image data before clearing state.
-    String? imageBase64;
-    String? imageMediaType;
-    if (imageFile != null) {
-      final bytes = await imageFile.readAsBytes();
-      imageBase64 = base64Encode(bytes);
-      final ext = imageFile.path.split('.').last.toLowerCase();
-      imageMediaType = ext == 'png' ? 'image/png'
-          : ext == 'webp' ? 'image/webp'
-          : 'image/jpeg';
+    final images = <ChatImage>[];
+    for (final file in imageFiles.isNotEmpty ? imageFiles : _lastImages) {
+      if (!await file.exists()) continue;
+      final ext = file.path.split('.').last.toLowerCase();
+      images.add((
+        base64: base64Encode(await file.readAsBytes()),
+        mediaType: ext == 'png' ? 'image/png'
+            : ext == 'webp' ? 'image/webp'
+            : 'image/jpeg',
+      ));
     }
 
     setState(() {
       _messages.add(_ChatMessage(
         text: text,
         isUser: true,
-        imageFile: imageFile,
+        imageFiles: imageFiles,
       ));
       _controller.clear();
-      _selectedImage = null;
+      _selectedImages.clear();
       _isLoading = true;
     });
     _scrollToBottom();
@@ -652,7 +693,8 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
       // Use a default message when the user sends only an image.
       final userMessage = text.isNotEmpty
           ? text
-          : 'What dish is this? Can you give me the recipe?';
+          : 'If this is a written recipe, save it as a recipe card. '
+              'Otherwise, what dish is this, and can you give me the recipe?';
 
       // Call the AI chat Cloud Function.
       final chatRepo = ref.read(aiChatRepositoryProvider);
@@ -660,13 +702,16 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
         userMessage: userMessage,
         chatHistory: historyBuffer.toString(),
         preferenceSummary: summary,
-        imageBase64: imageBase64,
-        imageMediaType: imageMediaType,
+        images: images,
       );
 
       ref.read(chatQuotaProvider.notifier).update(response.quota);
 
       // Persist returned recipes to local DB so detail screen can find them.
+      if (response.recipes.any((r) => r.isMine)) {
+        // The photo's recipe is saved; follow-ups needn't carry it.
+        _lastImages = const [];
+      }
       if (response.recipes.isNotEmpty) {
         final recipeDao = ref.read(recipeDaoProvider);
         final companions =
@@ -844,13 +889,13 @@ class _FeedbackButton extends StatelessWidget {
 class _ChatMessage {
   final String text;
   final bool isUser;
-  final File? imageFile;
+  final List<File> imageFiles;
   final List<Recipe> recipes;
 
   const _ChatMessage({
     required this.text,
     required this.isUser,
-    this.imageFile,
+    this.imageFiles = const [],
     this.recipes = const [],
   });
 }

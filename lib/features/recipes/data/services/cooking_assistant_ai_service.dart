@@ -1,5 +1,6 @@
 import '../../../meal_plan/data/repositories/ai_chat_repository.dart';
 import '../../domain/models/recipe.dart';
+import 'spoken_text.dart';
 
 /// AI service for the voice cooking assistant.
 ///
@@ -19,11 +20,13 @@ class CookingAssistantAiService {
   /// [question] — the user's spoken question.
   /// [recipe] — the full recipe being cooked.
   /// [currentStep] — 0-indexed current step number.
+  /// [currentLine] — what the voice assistant last told them to do.
   /// [preferenceSummary] — pre-built preference context.
   Future<String> askQuestion({
     required String question,
     required Recipe recipe,
     required int currentStep,
+    String? currentLine,
     required Map<String, dynamic> preferenceSummary,
   }) async {
     // Build recipe context block.
@@ -54,8 +57,14 @@ class CookingAssistantAiService {
     recipeContext.writeln(
       'The user is currently on step ${currentStep + 1} of ${recipe.instructions.length}.',
     );
+    if (currentLine != null) {
+      recipeContext.writeln('You just told them: "$currentLine"');
+    }
+    // The backend's voice prompt covers this too; kept for older backends.
     recipeContext.writeln(
-      'Keep responses concise (2-3 sentences max) since they will be read aloud by text-to-speech.',
+      'Your reply is spoken aloud while they cook: 1-3 short, casual '
+      'sentences, no lists or formatting. You cannot set timers; if they '
+      'ask for one, tell them to say "set a timer for" and the time.',
     );
     recipeContext.writeln();
 
@@ -72,16 +81,17 @@ class CookingAssistantAiService {
         userMessage: question,
         chatHistory: recipeContext.toString(),
         preferenceSummary: preferenceSummary,
+        mode: 'voice',
       );
 
-      final answer = response.responseText;
+      final answer = SpokenText.forSpeech(response.responseText);
       _conversationHistory.add((role: 'Chef', text: answer));
 
       return answer;
     } on AiChatException {
       rethrow;
     } catch (_) {
-      return "Sorry, I couldn't process that question. Try again or say a command like next or repeat.";
+      return "Hmm, I didn't quite get that one. Mind asking again?";
     }
   }
 

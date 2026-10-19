@@ -28,6 +28,11 @@ class Recipes extends Table {
 
   BoolColumn get isFavorite => boolean().withDefault(const Constant(false))();
 
+  // "Mine": a recipe the user chose to keep (favorited, imported, cooked, or
+  // photographed), as opposed to one a meal plan or chat saved on its own.
+  // Only ever set, never cleared.
+  BoolColumn get isMine => boolean().withDefault(const Constant(false))();
+
   // Timestamps.
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();

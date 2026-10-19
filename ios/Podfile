@@ -38,5 +38,10 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    target.build_configurations.each do |config|
+      # Xcode's module verifier rejects some plugins' headers (wakelock_plus)
+      # in Debug device builds. It only lints headers, so skip it for pods.
+      config.build_settings['ENABLE_MODULE_VERIFIER'] = 'NO'
+    end
   end
 end

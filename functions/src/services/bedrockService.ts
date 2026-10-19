@@ -1,6 +1,7 @@
 import {
   BedrockRuntimeClient,
   ConverseCommand,
+  type ContentBlock,
   type Message,
 } from "@aws-sdk/client-bedrock-runtime";
 import {defineSecret} from "firebase-functions/params";
@@ -81,6 +82,21 @@ export async function callBedrockVision(
   imageMediaType: "image/jpeg" | "image/png" | "image/webp",
   options: BedrockOptions = {}
 ): Promise<string> {
+  return callBedrockVisionImages(
+    systemPrompt,
+    userMessage,
+    [{base64: imageBase64, mediaType: imageMediaType}],
+    options
+  );
+}
+
+/** Like callBedrockVision, with several images in order (e.g. book pages). */
+export async function callBedrockVisionImages(
+  systemPrompt: string,
+  userMessage: string,
+  images: {base64: string; mediaType: "image/jpeg" | "image/png" | "image/webp"}[],
+  options: BedrockOptions = {}
+): Promise<string> {
   const {temperature = 0.3, maxTokens = 4096, modelId} = options;
 
   const client = new BedrockRuntimeClient({
@@ -91,27 +107,22 @@ export async function callBedrockVision(
     },
   });
 
-  const format = imageMediaType.replace("image/", "") as "jpeg" | "png" | "webp";
-
-  const messages: Message[] = [
-    {
-      role: "user",
-      content: [
-        {
-          image: {
-            format,
-            source: {bytes: Buffer.from(imageBase64, "base64")},
-          },
-        },
-        {text: userMessage},
-      ],
-    },
-  ];
+  const content: ContentBlock[] = [];
+  images.forEach((image, i) => {
+    if (images.length > 1) content.push({text: `Photo ${i + 1} of ${images.length}:`});
+    content.push({
+      image: {
+        format: image.mediaType.replace("image/", "") as "jpeg" | "png" | "webp",
+        source: {bytes: Buffer.from(image.base64, "base64")},
+      },
+    });
+  });
+  content.push({text: userMessage});
 
   const command = new ConverseCommand({
     modelId: modelId || VISION_MODEL_ID,
     system: [{text: systemPrompt}],
-    messages,
+    messages: [{role: "user", content}],
     inferenceConfig: {
       temperature,
       maxTokens,
@@ -138,3 +149,14 @@ export {HAIKU_MODEL_ID};
 
 /** Export secrets so functions can declare them in runWith config */
 export const bedrockSecrets = [awsAccessKeyId, awsSecretAccessKey, awsRegion];
+
+/** Region and credentials for other AWS clients (Polly) on the same account. */
+export function awsClientConfig() {
+  return {
+    region: awsRegion.value() || "us-east-1",
+    credentials: {
+      accessKeyId: awsAccessKeyId.value(),
+      secretAccessKey: awsSecretAccessKey.value(),
+    },
+  };
+}

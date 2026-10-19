@@ -110,9 +110,20 @@ class MealPlanDao extends DatabaseAccessor<AppDatabase>
         await (delete(mealPlans)..where((p) => p.id.equals(id))).go();
       });
 
-  Future<void> markCooked(String dayId, bool isCooked) =>
-      (update(mealPlanDays)..where((d) => d.id.equals(dayId)))
-          .write(MealPlanDaysCompanion(isCooked: Value(isCooked)));
+  /// Cooking a planned meal also marks its recipe as one of the user's own.
+  Future<void> markCooked(String dayId, bool isCooked) async {
+    await (update(mealPlanDays)..where((d) => d.id.equals(dayId)))
+        .write(MealPlanDaysCompanion(isCooked: Value(isCooked)));
+    if (isCooked) {
+      await customUpdate(
+        'UPDATE recipes SET is_mine = 1 '
+        'WHERE id = (SELECT recipe_id FROM meal_plan_days WHERE id = ?)',
+        variables: [Variable.withString(dayId)],
+        updates: {attachedDatabase.recipes},
+        updateKind: UpdateKind.update,
+      );
+    }
+  }
 
   Future<void> updateDayRecipe(
           String dayId, String recipeId, String recipeName) =>

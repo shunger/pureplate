@@ -55,15 +55,18 @@ sign-in fails in release builds.
 
 ## 1. Secrets
 
-Both are read via `defineSecret` and must live in Secret Manager. Never commit
-them.
+### Apple — no secret required
 
-### `APPLE_SHARED_SECRET`
-App Store Connect → your app → App Information → **App-Specific Shared Secret**.
+The app uses StoreKit 2, which hands over transactions signed by Apple (JWS).
+`appleVerifier.ts` checks those signatures, and the ones on App Store Server
+Notifications V2, against Apple's root certificates in `functions/certs`
+using `@apple/app-store-server-library`. No shared secret or API key is used.
 
-```bash
-firebase functions:secrets:set APPLE_SHARED_SECRET
-```
+Before launch, set `APPLE_APP_ID` in `functions/src/constants/products.ts` to
+the app's numeric Apple ID (App Store Connect → App Information → Apple ID).
+Apple requires it to verify **Production** transactions; Sandbox and
+TestFlight work without it. Until it is set, Production purchases are held as
+"confirming with the store" and retried, never granted or rejected.
 
 ### Google Play — no secret required
 
@@ -256,6 +259,6 @@ Then, in the store sandboxes, walk each of:
 - second device, same account → premium present without restoring
 
 The one path that cannot be exercised in a sandbox is a backend outage during
-verification. To test it, point `verifyReceipt` at a bad `APPLE_SHARED_SECRET`
-in a test project: the purchase should report "we're confirming it with the
-store", grant nothing, and unlock on the next launch once the secret is fixed.
+verification. To test it, deploy a test project with `verifyReceipt` throwing
+before the store lookup: the purchase should report "we're confirming it with
+the store", grant nothing, and unlock on the next launch once it is fixed.

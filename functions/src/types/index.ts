@@ -100,6 +100,11 @@ export interface ShoppingListItem {
 
 // ─── chatWithChef ───
 
+export interface ChatImage {
+  base64: string;
+  mediaType: "image/jpeg" | "image/png" | "image/webp";
+}
+
 export interface ChatRequest {
   userMessage: string;
   chatHistory: string;
@@ -107,11 +112,28 @@ export interface ChatRequest {
   activePlan?: string;
   imageBase64?: string;
   imageMediaType?: "image/jpeg" | "image/png" | "image/webp";
+  /** Photos in order, e.g. the pages of one recipe. Includes imageBase64. */
+  images?: ChatImage[];
+  /** "voice" when the reply will be spoken by the hands-free cooking assistant. */
+  mode?: "voice";
 }
 
 export interface ChatResponse {
   responseText: string;
   recipes: Recipe[];
+}
+
+// ─── buildVoiceScript ───
+
+export interface VoiceScriptRequest {
+  name: string;
+  ingredients: {name: string; quantity: string; unit: string; optional: boolean}[];
+  instructions: {step_number: number; instruction: string}[];
+}
+
+/** Spoken lines for each written step, said one at a time. */
+export interface VoiceScript {
+  steps: {step_number: number; lines: string[]}[];
 }
 
 // ─── verifyReceipt ───

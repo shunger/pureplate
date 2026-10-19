@@ -8,7 +8,7 @@
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
-    "test": "npm run build && node --test test/subscriptionLinks.test.mjs test/requestLimits.test.mjs test/sharedSpaces.test.mjs",
+    "test": "npm run build && node --test test/subscriptionLinks.test.mjs test/requestLimits.test.mjs test/sharedSpaces.test.mjs test/appleVerifier.test.mjs test/voiceScript.test.mjs test/recipePhotoReader.test.mjs",
     "test:entitlements": "npm run build && cd .. && firebase emulators:exec --only firestore --project pure-pantry-entitlement-test \"node --test functions/test/entitlements.emulator.test.mjs\"",
     "test:rules": "cd .. && firebase emulators:exec --only firestore --project pure-pantry-rules-test \"node --test functions/test/rules.test.mjs\""
   },
@@ -17,10 +17,13 @@
   },
   "main": "lib/index.js",
   "dependencies": {
+    "@apple/app-store-server-library": "^3.1.0",
     "@aws-sdk/client-bedrock-runtime": "^3.600.0",
+    "@aws-sdk/client-polly": "^3.600.0",
     "firebase-admin": "^12.0.0",
     "firebase-functions": "^6.0.0",
-    "googleapis": "^178.0.0"
+    "googleapis": "^178.0.0",
+    "sharp": "^0.33.5"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",

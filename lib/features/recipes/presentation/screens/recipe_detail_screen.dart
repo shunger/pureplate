@@ -28,6 +28,7 @@ import '../../../shopping_list/domain/models/shopping_list.dart';
 import '../../../shopping_list/presentation/providers/shopping_list_providers.dart';
 import '../../data/datasources/recipe_mapper.dart';
 import '../../domain/models/recipe.dart';
+import '../../data/services/recipe_image_service.dart';
 import '../providers/recipe_providers.dart';
 import '../widgets/recipe_widgets.dart';
 
@@ -45,13 +46,25 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
   final _checkedIngredients = <int>{};
   final _picker = ImagePicker();
 
-  Future<void> _showImageSourceSheet() async {
-    final source = await showModalBottomSheet<ImageSource>(
+  Future<void> _showImageSourceSheet(Recipe recipe) async {
+    final canRedraw =
+        recipe.imageUrl == null ||
+        RecipeImageService.isAiPhoto(recipe.imageUrl);
+    final source = await showModalBottomSheet<Object>(
       context: context,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (canRedraw)
+              ListTile(
+                leading: const Icon(Icons.auto_awesome),
+                title: Text(
+                  recipe.imageUrl == null ? 'Draw a photo' : 'Redraw photo',
+                ),
+                subtitle: const Text('AI picture of the finished dish'),
+                onTap: () => Navigator.pop(ctx, _redraw),
+              ),
             ListTile(
               leading: const Icon(Icons.camera_alt),
               title: const Text('Camera'),
@@ -66,8 +79,39 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
         ),
       ),
     );
-    if (source == null) return;
-    await _pickImage(source);
+    if (source == _redraw) {
+      await _redrawPhoto();
+    } else if (source is ImageSource) {
+      await _pickImage(source);
+    }
+  }
+
+  static const _redraw = 'redraw';
+
+  /// True while an AI photo is being drawn; shows a spinner over the photo.
+  bool _drawingPhoto = false;
+
+  Future<void> _redrawPhoto() async {
+    if (_drawingPhoto) return;
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _drawingPhoto = true);
+    final ok = await ref
+        .read(recipeImageServiceProvider)
+        .redraw(widget.recipeId);
+    if (!mounted) return;
+    setState(() => _drawingPhoto = false);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            ok
+                ? 'New photo added.'
+                : "Couldn't draw a photo right now. Please try again later.",
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -88,7 +132,9 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     final destPath = p.join(imgDir.path, '${widget.recipeId}.jpg');
     await File(xFile.path).copy(destPath);
 
-    ref.read(recipeDaoProvider).updateImageUrl(widget.recipeId, destPath);
+    final dao = ref.read(recipeDaoProvider);
+    await dao.updateImageUrl(widget.recipeId, destPath);
+    await dao.markMine(widget.recipeId);
   }
 
   Future<void> _shareAsFile(BuildContext context, Recipe recipe) async {
@@ -106,13 +152,13 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
         : Rect.fromLTWH(0, 0, 100, 100);
 
     try {
-      final file =
-          await ref.read(recipeShareServiceProvider).exportToFile(recipe);
+      final file = await ref
+          .read(recipeShareServiceProvider)
+          .exportToFile(recipe);
 
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        sharePositionOrigin: shareOrigin,
-      );
+      await Share.shareXFiles([
+        XFile(file.path),
+      ], sharePositionOrigin: shareOrigin);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(this.context).showSnackBar(
@@ -149,19 +195,20 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     );
 
     try {
-      final pdfBytes =
-          await ref.read(recipePdfServiceProvider).generatePdf(recipe);
+      final pdfBytes = await ref
+          .read(recipePdfServiceProvider)
+          .generatePdf(recipe);
 
       final tempDir = await getTemporaryDirectory();
-      final safeName =
-          recipe.name.replaceAll(RegExp(r'[^\w\s-]'), '').replaceAll(' ', '_');
+      final safeName = recipe.name
+          .replaceAll(RegExp(r'[^\w\s-]'), '')
+          .replaceAll(' ', '_');
       final file = File(p.join(tempDir.path, '$safeName.pdf'));
       await file.writeAsBytes(pdfBytes);
 
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        sharePositionOrigin: shareOrigin,
-      );
+      await Share.shareXFiles([
+        XFile(file.path),
+      ], sharePositionOrigin: shareOrigin);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(this.context).showSnackBar(
@@ -192,17 +239,19 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     final pantryDao = ref.read(pantryDaoProvider);
     final dbPantryItems = await pantryDao.getAllItems();
     final domainPantryItems = dbPantryItems
-        .map((item) => PantryItem(
-              id: item.id,
-              name: item.name,
-              category: ProductCategory.values.firstWhere(
-                (c) => c.name == item.category,
-                orElse: () => ProductCategory.other,
-              ),
-              quantity: item.quantity,
-              unitType: item.unitType,
-              createdAt: item.createdAt,
-            ))
+        .map(
+          (item) => PantryItem(
+            id: item.id,
+            name: item.name,
+            category: ProductCategory.values.firstWhere(
+              (c) => c.name == item.category,
+              orElse: () => ProductCategory.other,
+            ),
+            quantity: item.quantity,
+            unitType: item.unitType,
+            createdAt: item.createdAt,
+          ),
+        )
         .toList();
 
     final generator = ref.read(autoListGeneratorProvider);
@@ -260,140 +309,169 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
           body: CustomScrollView(
             slivers: [
               // Hero app bar
-              SliverAppBar(
-                expandedHeight: recipe.imageUrl != null ? 250 : 180,
-                pinned: true,
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.auto_awesome),
-                    tooltip: 'Modify with AI',
-                    onPressed: () {
-                      final isPremium = ref.read(isPremiumProvider);
-                      final premium =
-                          isPremium.whenOrNull(data: (v) => v) ?? false;
-                      if (!premium) {
-                        context.push(Routes.premium);
-                      } else {
-                        context.push('/recipes/${recipe.id}/chat');
-                      }
-                    },
+              // Each button sits on its own round backing, so it stays
+              // visible over any photo, light or dark.
+              Theme(
+                data: Theme.of(context).copyWith(
+                  iconButtonTheme: IconButtonThemeData(
+                    style: IconButton.styleFrom(
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.surface.withValues(alpha: 0.85),
+                      foregroundColor: Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
-                  Builder(
-                    builder: (btnContext) => PopupMenuButton<String>(
-                      icon: const Icon(Icons.share_outlined),
-                      tooltip: 'Share',
-                      onSelected: (value) {
-                        switch (value) {
-                          case 'pdf':
-                            _shareAsPdf(btnContext, recipe);
-                          case 'file':
-                            _shareAsFile(btnContext, recipe);
+                ),
+                child: SliverAppBar(
+                  expandedHeight: recipe.imageUrl != null ? 250 : 180,
+                  pinned: true,
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.auto_awesome),
+                      tooltip: 'Modify with AI',
+                      onPressed: () {
+                        final isPremium = ref.read(isPremiumProvider);
+                        final premium =
+                            isPremium.whenOrNull(data: (v) => v) ?? false;
+                        if (!premium) {
+                          context.push(Routes.premium);
+                        } else {
+                          context.push('/recipes/${recipe.id}/chat');
                         }
                       },
-                      itemBuilder: (_) => const [
-                        PopupMenuItem(
-                          value: 'pdf',
-                          child: ListTile(
-                            leading: Icon(Icons.picture_as_pdf),
-                            title: Text('Share as PDF'),
-                            dense: true,
-                            contentPadding: EdgeInsets.zero,
+                    ),
+                    Builder(
+                      builder: (btnContext) => PopupMenuButton<String>(
+                        icon: const Icon(Icons.share_outlined),
+                        tooltip: 'Share',
+                        onSelected: (value) {
+                          switch (value) {
+                            case 'pdf':
+                              _shareAsPdf(btnContext, recipe);
+                            case 'file':
+                              _shareAsFile(btnContext, recipe);
+                          }
+                        },
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(
+                            value: 'pdf',
+                            child: ListTile(
+                              leading: Icon(Icons.picture_as_pdf),
+                              title: Text('Share as PDF'),
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                            ),
                           ),
-                        ),
-                        PopupMenuItem(
-                          value: 'file',
-                          child: ListTile(
-                            leading: Icon(Icons.upload_file),
-                            title: Text('Export Recipe'),
-                            dense: true,
-                            contentPadding: EdgeInsets.zero,
+                          PopupMenuItem(
+                            value: 'file',
+                            child: ListTile(
+                              leading: Icon(Icons.upload_file),
+                              title: Text('Export Recipe'),
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                            ),
                           ),
-                        ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.calendar_month_outlined),
+                      tooltip: 'Add to meal plan',
+                      onPressed: () => _showAssignToMealPlanSheet(recipe),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add_shopping_cart),
+                      tooltip: 'Add to shopping list',
+                      onPressed: () => _showAddToListSheet(recipe),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.camera_alt_outlined),
+                      tooltip: 'Add photo',
+                      onPressed: () => _showImageSourceSheet(recipe),
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        recipe.isFavorite
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        color: recipe.isFavorite ? AppColors.coral : null,
+                      ),
+                      tooltip: recipe.isFavorite
+                          ? 'Remove from favorites'
+                          : 'Add to favorites',
+                      onPressed: () {
+                        ref
+                            .read(recipeDaoProvider)
+                            .toggleFavorite(recipe.id, !recipe.isFavorite);
+                      },
+                    ),
+                  ],
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        recipe.imageUrl != null
+                            ? RecipeImage(
+                                imageUrl: recipe.imageUrl!,
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: 250,
+                                placeholder: Container(
+                                  color: AppColors.coral.withValues(alpha: 0.1),
+                                  child: const Center(
+                                    child: CircularProgressIndicator(
+                                      color: AppColors.coralLight,
+                                    ),
+                                  ),
+                                ),
+                                errorWidget: Container(
+                                  color: AppColors.coral.withValues(alpha: 0.1),
+                                  child: const Center(
+                                    child: Icon(
+                                      Icons.restaurant,
+                                      size: 64,
+                                      color: AppColors.coralLight,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : GestureDetector(
+                                onTap: () => _showImageSourceSheet(recipe),
+                                child: Container(
+                                  color: AppColors.coral.withValues(
+                                    alpha: 0.08,
+                                  ),
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.camera_alt,
+                                          size: 40,
+                                          color: AppColors.coral.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Add your photo',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: AppColors.coral.withValues(
+                                              alpha: 0.7,
+                                            ),
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                        if (_drawingPhoto) const _DrawingPhotoOverlay(),
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.calendar_month_outlined),
-                    tooltip: 'Add to meal plan',
-                    onPressed: () => _showAssignToMealPlanSheet(recipe),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.add_shopping_cart),
-                    tooltip: 'Add to shopping list',
-                    onPressed: () => _showAddToListSheet(recipe),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.camera_alt_outlined),
-                    tooltip: 'Add photo',
-                    onPressed: _showImageSourceSheet,
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      recipe.isFavorite
-                          ? Icons.favorite
-                          : Icons.favorite_border,
-                      color: recipe.isFavorite ? AppColors.coral : null,
-                    ),
-                    tooltip: recipe.isFavorite
-                        ? 'Remove from favorites'
-                        : 'Add to favorites',
-                    onPressed: () {
-                      ref
-                          .read(recipeDaoProvider)
-                          .toggleFavorite(
-                              recipe.id, !recipe.isFavorite);
-                    },
-                  ),
-                ],
-                flexibleSpace: FlexibleSpaceBar(
-                  background: recipe.imageUrl != null
-                      ? RecipeImage(
-                          imageUrl: recipe.imageUrl!,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: 250,
-                          placeholder: Container(
-                            color: AppColors.coral.withValues(alpha: 0.1),
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                  color: AppColors.coralLight),
-                            ),
-                          ),
-                          errorWidget: Container(
-                            color: AppColors.coral.withValues(alpha: 0.1),
-                            child: const Center(
-                              child: Icon(Icons.restaurant,
-                                  size: 64, color: AppColors.coralLight),
-                            ),
-                          ),
-                        )
-                      : GestureDetector(
-                          onTap: _showImageSourceSheet,
-                          child: Container(
-                            color: AppColors.coral.withValues(alpha: 0.08),
-                            child: Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.camera_alt,
-                                      size: 40,
-                                      color: AppColors.coral
-                                          .withValues(alpha: 0.5)),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Add your photo',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: AppColors.coral
-                                          .withValues(alpha: 0.7),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
                 ),
               ),
 
@@ -406,9 +484,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     children: [
                       Text(
                         recipe.name,
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineSmall
+                        style: Theme.of(context).textTheme.headlineSmall
                             ?.copyWith(
                               fontWeight: FontWeight.w700,
                               color: Theme.of(context).colorScheme.onSurface,
@@ -419,7 +495,9 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                         Text(
                           recipe.description!,
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
                             fontSize: 14,
                             height: 1.5,
                           ),
@@ -487,9 +565,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     children: [
                       Text(
                         'Ingredients',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
+                        style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 8),
@@ -524,14 +600,13 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     children: [
                       Text(
                         'Instructions',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
+                        style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 8),
-                      ...recipe.instructions.map((step) =>
-                          InstructionStepTile(step: step)),
+                      ...recipe.instructions.map(
+                        (step) => InstructionStepTile(step: step),
+                      ),
                     ],
                   ),
                 ),
@@ -550,9 +625,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                           children: [
                             Text(
                               'Nutrition (per serving)',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleSmall
+                              style: Theme.of(context).textTheme.titleSmall
                                   ?.copyWith(fontWeight: FontWeight.w600),
                             ),
                             const SizedBox(height: 12),
@@ -560,20 +633,22 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: [
                                 _NutrientValue(
-                                    label: 'Calories',
-                                    value: '${recipe.nutrition!.calories}'),
+                                  label: 'Calories',
+                                  value: '${recipe.nutrition!.calories}',
+                                ),
                                 _NutrientValue(
-                                    label: 'Protein',
-                                    value:
-                                        '${recipe.nutrition!.proteinG.round()}g'),
+                                  label: 'Protein',
+                                  value:
+                                      '${recipe.nutrition!.proteinG.round()}g',
+                                ),
                                 _NutrientValue(
-                                    label: 'Carbs',
-                                    value:
-                                        '${recipe.nutrition!.carbsG.round()}g'),
+                                  label: 'Carbs',
+                                  value: '${recipe.nutrition!.carbsG.round()}g',
+                                ),
                                 _NutrientValue(
-                                    label: 'Fat',
-                                    value:
-                                        '${recipe.nutrition!.fatG.round()}g'),
+                                  label: 'Fat',
+                                  value: '${recipe.nutrition!.fatG.round()}g',
+                                ),
                               ],
                             ),
                           ],
@@ -586,9 +661,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               const SliverToBoxAdapter(child: SizedBox(height: 20)),
             ],
           ),
-          bottomNavigationBar: _BottomCookingBar(
-            recipeId: widget.recipeId,
-          ),
+          bottomNavigationBar: _BottomCookingBar(recipeId: widget.recipeId),
         );
       },
     );
@@ -606,11 +679,19 @@ class _MetaChip extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+        Icon(
+          icon,
+          size: 16,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
         const SizedBox(width: 4),
-        Text(label,
-            style: TextStyle(
-                fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
       ],
     );
   }
@@ -705,10 +786,8 @@ class _BottomCookingBar extends ConsumerWidget {
           loading: () => _cookingRow(context, ref),
           error: (_, _) => _cookingRow(context, ref),
           data: (days) {
-            final uncookedDays =
-                days.where((d) => !d.isCooked).toList();
-            final allCooked =
-                days.isNotEmpty && uncookedDays.isEmpty;
+            final uncookedDays = days.where((d) => !d.isCooked).toList();
+            final allCooked = days.isNotEmpty && uncookedDays.isEmpty;
 
             // Not in any plan — just "Start Cooking" + voice
             if (days.isEmpty) {
@@ -723,8 +802,11 @@ class _BottomCookingBar extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Expanded(child: _startCookingButton(context)),
                   const SizedBox(width: 12),
-                  const Icon(Icons.check_circle,
-                      color: AppColors.sage, size: 28),
+                  const Icon(
+                    Icons.check_circle,
+                    color: AppColors.sage,
+                    size: 28,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     'Cooked',
@@ -745,15 +827,13 @@ class _BottomCookingBar extends ConsumerWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () =>
-                        context.push('/cooking/$recipeId'),
+                    onPressed: () => context.push('/cooking/$recipeId'),
                     icon: const Icon(Icons.restaurant),
                     label: const Text('Start Cooking'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.coral,
                       side: const BorderSide(color: AppColors.coral),
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(28),
                       ),
@@ -781,20 +861,20 @@ class _BottomCookingBar extends ConsumerWidget {
                             .deductIngredientsForRecipe(
                               recipe: recipe,
                               pantryDao: ref.read(pantryDaoProvider),
-                              shoppingListDao:
-                                  ref.read(shoppingListDaoProvider),
-                              pantrySync: ref
-                                  .read(pantrySyncOrchestratorProvider),
+                              shoppingListDao: ref.read(
+                                shoppingListDaoProvider,
+                              ),
+                              pantrySync: ref.read(
+                                pantrySyncOrchestratorProvider,
+                              ),
                               listSync: ref.read(
-                                  shoppingListSyncOrchestratorProvider),
+                                shoppingListSyncOrchestratorProvider,
+                              ),
                             );
                       }
 
                       if (context.mounted) {
-                        final msg = _consumptionMessage(
-                          day.recipeName,
-                          result,
-                        );
+                        final msg = _consumptionMessage(day.recipeName, result);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(msg),
@@ -808,8 +888,7 @@ class _BottomCookingBar extends ConsumerWidget {
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.sage,
                       foregroundColor: Colors.white,
-                      padding:
-                          const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(28),
                       ),
@@ -844,9 +923,7 @@ class _BottomCookingBar extends ConsumerWidget {
         backgroundColor: AppColors.coral,
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(vertical: 14),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       ),
     );
   }
@@ -868,9 +945,7 @@ class _BottomCookingBar extends ConsumerWidget {
         backgroundColor: AppColors.coral.withValues(alpha: 0.12),
         foregroundColor: AppColors.coral,
         padding: const EdgeInsets.all(14),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(28),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       ),
     );
   }
@@ -928,13 +1003,15 @@ class _AssignToMealPlanSheetState
       if (_selectedPlanId == _kNewPlanId) {
         targetPlanId = uuid.v4();
         final now = DateTime.now();
-        await dao.insertPlan(db.MealPlansCompanion(
-          id: Value(targetPlanId),
-          createdAt: Value(now),
-          startDate: Value(dateOnly),
-          endDate: Value(dateOnly),
-          planType: const Value('quick'),
-        ));
+        await dao.insertPlan(
+          db.MealPlansCompanion(
+            id: Value(targetPlanId),
+            createdAt: Value(now),
+            startDate: Value(dateOnly),
+            endDate: Value(dateOnly),
+            planType: const Value('quick'),
+          ),
+        );
       } else {
         targetPlanId = _selectedPlanId;
       }
@@ -986,8 +1063,9 @@ class _AssignToMealPlanSheetState
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurfaceVariant
-                    .withValues(alpha: 0.3),
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.3,
+                ),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -999,8 +1077,9 @@ class _AssignToMealPlanSheetState
               alignment: Alignment.centerLeft,
               child: Text(
                 'Add to Meal Plan',
-                style: theme.textTheme.titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w700),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),
@@ -1034,17 +1113,17 @@ class _AssignToMealPlanSheetState
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             child: SegmentedButton<String>(
               segments: _mealTypes
-                  .map((t) => ButtonSegment(
-                        value: t,
-                        label: Text(t[0].toUpperCase() + t.substring(1)),
-                      ))
+                  .map(
+                    (t) => ButtonSegment(
+                      value: t,
+                      label: Text(t[0].toUpperCase() + t.substring(1)),
+                    ),
+                  )
                   .toList(),
               selected: {_selectedMealType},
               onSelectionChanged: (v) =>
                   setState(() => _selectedMealType = v.first),
-              style: ButtonStyle(
-                visualDensity: VisualDensity.compact,
-              ),
+              style: ButtonStyle(visualDensity: VisualDensity.compact),
             ),
           ),
           // Plan picker
@@ -1059,14 +1138,16 @@ class _AssignToMealPlanSheetState
                     value: _kNewPlanId,
                     child: Text('New plan'),
                   ),
-                  ...plans.map((plan) => DropdownMenuItem(
-                        value: plan.id,
-                        child: Text(
-                          '${DateFormat.MMMd().format(plan.startDate)}'
-                          ' – ${DateFormat.MMMd().format(plan.endDate)}',
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      )),
+                  ...plans.map(
+                    (plan) => DropdownMenuItem(
+                      value: plan.id,
+                      child: Text(
+                        '${DateFormat.MMMd().format(plan.startDate)}'
+                        ' – ${DateFormat.MMMd().format(plan.endDate)}',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
                 ];
 
                 return DropdownButtonFormField<String>(
@@ -1121,7 +1202,6 @@ class _AssignToMealPlanSheetState
       ),
     );
   }
-
 }
 
 // ── Add to Shopping List Bottom Sheet ──────────────────────
@@ -1133,10 +1213,7 @@ class _AddToListSheet extends ConsumerStatefulWidget {
   final List<ShoppingListItem> missingItems;
   final String recipeName;
 
-  const _AddToListSheet({
-    required this.missingItems,
-    required this.recipeName,
-  });
+  const _AddToListSheet({required this.missingItems, required this.recipeName});
 
   @override
   ConsumerState<_AddToListSheet> createState() => _AddToListSheetState();
@@ -1184,15 +1261,14 @@ class _AddToListSheetState extends ConsumerState<_AddToListSheet> {
 
       // Re-map items to target list with new IDs.
       final companions = selectedItems.map((item) {
-        final remapped = item.copyWith(
-          id: uuid.v4(),
-          listId: targetListId,
-        );
+        final remapped = item.copyWith(id: uuid.v4(), listId: targetListId);
         return ShoppingListMapper.itemToCompanion(remapped);
       }).toList();
 
       // The target list may be shared, so insert through the sync layer.
-      await ref.read(shoppingListSyncOrchestratorProvider).insertItems(companions);
+      await ref
+          .read(shoppingListSyncOrchestratorProvider)
+          .insertItems(companions);
 
       if (mounted) {
         Navigator.pop(context);
@@ -1222,13 +1298,13 @@ class _AddToListSheetState extends ConsumerState<_AddToListSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle_outline,
-                size: 56, color: AppColors.sage),
+            Icon(Icons.check_circle_outline, size: 56, color: AppColors.sage),
             const SizedBox(height: 16),
             Text(
               'You have everything!',
-              style: theme.textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w600),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -1267,7 +1343,9 @@ class _AddToListSheetState extends ConsumerState<_AddToListSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.3,
+                ),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -1280,8 +1358,9 @@ class _AddToListSheetState extends ConsumerState<_AddToListSheet> {
                 Expanded(
                   child: Text(
                     'Add to Shopping List',
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w700),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 TextButton(
@@ -1319,8 +1398,9 @@ class _AddToListSheetState extends ConsumerState<_AddToListSheet> {
                 final qtyDisplay = item.quantityNeeded % 1 == 0
                     ? item.quantityNeeded.toInt().toString()
                     : item.quantityNeeded.toStringAsFixed(1);
-                final unitDisplay =
-                    item.unitType == 'count' ? '' : ' ${item.unitType}';
+                final unitDisplay = item.unitType == 'count'
+                    ? ''
+                    : ' ${item.unitType}';
 
                 return CheckboxListTile(
                   value: checked,
@@ -1367,13 +1447,12 @@ class _AddToListSheetState extends ConsumerState<_AddToListSheet> {
                         value: _kNewListId,
                         child: Text('New list'),
                       ),
-                      ...lists.map((l) => DropdownMenuItem(
-                            value: l.id,
-                            child: Text(
-                              l.name,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          )),
+                      ...lists.map(
+                        (l) => DropdownMenuItem(
+                          value: l.id,
+                          child: Text(l.name, overflow: TextOverflow.ellipsis),
+                        ),
+                      ),
                     ];
 
                     return DropdownButtonFormField<String>(
@@ -1384,11 +1463,12 @@ class _AddToListSheetState extends ConsumerState<_AddToListSheet> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                       ),
                       items: items,
-                      onChanged: (v) =>
-                          setState(() => _selectedListId = v),
+                      onChanged: (v) => setState(() => _selectedListId = v),
                     );
                   },
                 ),
@@ -1425,6 +1505,39 @@ class _AddToListSheetState extends ConsumerState<_AddToListSheet> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Covers the recipe photo while a new one is drawn.
+class _DrawingPhotoOverlay extends StatelessWidget {
+  const _DrawingPhotoOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      liveRegion: true,
+      label: 'Drawing a new photo',
+      child: Container(
+        color: Colors.black.withValues(alpha: 0.45),
+        child: const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(color: Colors.white),
+              SizedBox(height: 12),
+              Text(
+                'Drawing a new photo…',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

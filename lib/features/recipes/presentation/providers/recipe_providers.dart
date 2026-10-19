@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/database_providers.dart';
 import '../../data/datasources/recipe_mapper.dart';
+import '../../data/services/recipe_image_service.dart';
 import '../../data/services/recipe_pdf_service.dart';
 import '../../data/services/recipe_share_service.dart';
 import '../../domain/models/recipe.dart';
@@ -37,6 +38,14 @@ final favoriteRecipesProvider = StreamProvider<List<Recipe>>((ref) {
 final recipeSearchQueryProvider = StateProvider<String>((ref) => '');
 final recipeCuisineFilterProvider = StateProvider<String?>((ref) => null);
 final recipeFavoritesOnlyProvider = StateProvider<bool>((ref) => false);
+final recipeMineOnlyProvider = StateProvider<bool>((ref) => false);
+
+/// Draws photos for recipes that have none. Started once at launch.
+final recipeImageServiceProvider = Provider<RecipeImageService>((ref) {
+  final service = RecipeImageService(ref.watch(recipeDaoProvider));
+  ref.onDispose(service.dispose);
+  return service;
+});
 
 /// Filtered recipes based on search query and cuisine filter.
 final filteredRecipesProvider = Provider<AsyncValue<List<Recipe>>>((ref) {
@@ -45,12 +54,17 @@ final filteredRecipesProvider = Provider<AsyncValue<List<Recipe>>>((ref) {
   final cuisine = ref.watch(recipeCuisineFilterProvider);
 
   final favoritesOnly = ref.watch(recipeFavoritesOnlyProvider);
+  final mineOnly = ref.watch(recipeMineOnlyProvider);
 
   return recipesAsync.whenData((recipes) {
     var filtered = recipes;
 
     if (favoritesOnly) {
       filtered = filtered.where((r) => r.isFavorite).toList();
+    }
+
+    if (mineOnly) {
+      filtered = filtered.where((r) => r.isMine).toList();
     }
 
     if (query.isNotEmpty) {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'last_location.dart';
 import 'route_names.dart';
 import 'navigation_shell.dart';
 
@@ -38,7 +39,7 @@ import '../../features/sharing/presentation/screens/list_collaborators_screen.da
 import '../../features/sharing/presentation/screens/activity_feed_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
-  return GoRouter(
+  final router = GoRouter(
     initialLocation: Routes.splash,
     // Debug builds only: these logs include route params such as pantry and
     // shopping list Firestore ids, and they reach the system log in release.
@@ -210,4 +211,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+  LastLocation.track(router);
+  return router;
 });

@@ -1,7 +1,7 @@
 import {onRequest} from "firebase-functions/v2/https";
 import {onMessagePublished} from "firebase-functions/v2/pubsub";
 import {initializeApp, getApps} from "firebase-admin/app";
-import {verifyAppleReceipt, appleSharedSecret} from "../services/appleVerifier";
+import {verifyAppleNotification} from "../services/appleVerifier";
 import {verifyGooglePurchase} from "../services/googleVerifier";
 import {
   applyToLinkedAccounts,
@@ -17,37 +17,6 @@ if (getApps().length === 0) initializeApp();
 const PLAY_RTDN_TOPIC = "play-store-notifications";
 
 /**
- * Decodes the payload segment of a JWS **without** verifying its signature.
- *
- * That is safe here only because nothing in the payload is trusted: it is used
- * solely to learn *which* subscription changed, after which the state is
- * re-fetched from the store. A forged notification can therefore do no more
- * than make us re-confirm the truth for a subscription we already know about.
- */
-function decodeJwsPayload<T>(jws: string): T {
-  const parts = jws.split(".");
-  if (parts.length !== 3) {
-    throw new Error("Malformed JWS");
-  }
-  return JSON.parse(
-    Buffer.from(parts[1], "base64url").toString("utf8")
-  ) as T;
-}
-
-interface AppleNotificationPayload {
-  notificationType?: string;
-  subtype?: string;
-  data?: {
-    signedTransactionInfo?: string;
-  };
-}
-
-interface AppleTransactionInfo {
-  originalTransactionId?: string;
-  productId?: string;
-}
-
-/**
  * App Store Server Notifications V2 endpoint.
  *
  * Set the URL in App Store Connect → App Information → App Store Server
@@ -56,7 +25,7 @@ interface AppleTransactionInfo {
 export const appleSubscriptionNotifications = onRequest(
   // The cap matches what the live function already runs with; pinned in the
   // source so a deploy can't silently drop it.
-  {secrets: [appleSharedSecret], maxInstances: 20},
+  {maxInstances: 20},
   async (req, res) => {
     if (req.method !== "POST") {
       res.status(405).send("Method not allowed");
@@ -70,42 +39,40 @@ export const appleSubscriptionNotifications = onRequest(
         return;
       }
 
-      const payload = decodeJwsPayload<AppleNotificationPayload>(signedPayload);
-      const signedTx = payload.data?.signedTransactionInfo;
-      if (!signedTx) {
-        console.warn(
-          `[appleNotifications] ${payload.notificationType} carried no transaction`
-        );
+      // Apple signs the notification and the transaction inside it, so once
+      // verified the subscription state can be applied as-is.
+      const notification = await verifyAppleNotification(signedPayload);
+      if (!notification) {
+        // Not signed by Apple for this app. 200 so nothing retries it.
         res.status(200).send("OK");
         return;
       }
 
-      const tx = decodeJwsPayload<AppleTransactionInfo>(signedTx);
-      const originalTransactionId = tx.originalTransactionId;
-      if (!originalTransactionId) {
+      const verified = notification.subscription;
+      const originalTransactionId = verified?.originalTransactionId;
+      if (!verified || !originalTransactionId) {
+        console.warn(
+          `[appleNotifications] ${notification.notificationType} carried no subscription`
+        );
         res.status(200).send("OK");
         return;
       }
 
       const link = await lookupSubscription("apple", originalTransactionId);
-      if (!link?.receipt) {
-        // Either a subscription bought before this indexing existed, or one
-        // that never completed verifyReceipt. Nothing to re-verify against;
-        // the client's own launch sync will repair it on next open.
+      if (!link || link.uids.length === 0) {
+        // A subscription that never completed verifyReceipt. The client's
+        // stored retry or Restore Purchases links it.
         console.warn(
-          `[appleNotifications] no indexed receipt for ${originalTransactionId}`
+          `[appleNotifications] no linked account for ${originalTransactionId}`
         );
         res.status(200).send("OK");
         return;
       }
 
-      // Re-verify from Apple rather than trusting the notification body, then
-      // update every account the subscription is linked to.
-      const verified = await verifyAppleReceipt(link.receipt);
       await applyToLinkedAccounts(link.uids, "apple", verified);
 
       console.log(
-        `[appleNotifications] ${payload.notificationType}/${payload.subtype ?? "-"} ` +
+        `[appleNotifications] ${notification.notificationType}/${notification.subtype ?? "-"} ` +
           `accounts=${link.uids.length} valid=${verified.valid} expires=${verified.expiresAt}`
       );
 

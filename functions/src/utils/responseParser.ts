@@ -87,6 +87,10 @@ export function validateChatResponse(data: any): any {
   for (const recipe of data.recipes) {
     recipe.id = recipe.id ?? "";
     recipe.name = recipe.name ?? "Untitled Recipe";
+    recipe.from_photo = recipe.from_photo === true;
+    recipe.credit = typeof recipe.credit === "string" && recipe.credit.trim() ?
+      recipe.credit.trim().slice(0, 80) :
+      null;
     recipe.prep_time = recipe.prep_time ?? 0;
     recipe.cook_time = recipe.cook_time ?? 0;
     recipe.servings = recipe.servings ?? 4;

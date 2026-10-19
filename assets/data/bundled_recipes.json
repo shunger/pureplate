@@ -37,7 +37,7 @@
   {
     "id": "bundled_002",
     "name": "Chicken Stir-Fry with Vegetables",
-    "image_url": "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=800&q=80",
+    "image_url": "https://images.unsplash.com/photo-1783196736260-dd788dff4132?w=800&q=80",
     "description": "Quick and healthy chicken stir-fry loaded with colorful vegetables in a savory sauce.",
     "cuisine": "Asian",
     "servings": 4,
@@ -105,7 +105,7 @@
   {
     "id": "bundled_004",
     "name": "Sheet Pan Salmon with Roasted Vegetables",
-    "image_url": "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800&q=80",
+    "image_url": "https://images.unsplash.com/photo-1539136788836-5699e78bfc75?w=800&q=80",
     "description": "Flaky salmon and seasonal vegetables roasted together on one pan. Healthy and effortless.",
     "cuisine": "American",
     "servings": 4,
@@ -205,7 +205,7 @@
   {
     "id": "bundled_007",
     "name": "Greek Salad with Grilled Chicken",
-    "image_url": "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=800&q=80",
+    "image_url": "https://images.unsplash.com/photo-1690573313202-4493a7d02e9c?w=800&q=80",
     "description": "Crisp Mediterranean salad topped with juicy grilled chicken. Light, fresh, and satisfying.",
     "cuisine": "Greek",
     "servings": 4,
@@ -239,7 +239,7 @@
   {
     "id": "bundled_008",
     "name": "Beef and Broccoli",
-    "image_url": "https://images.unsplash.com/photo-1603360946369-dc9bb6258143?w=800&q=80",
+    "image_url": "https://images.unsplash.com/photo-1783375175952-705a0600e05c?w=800&q=80",
     "description": "Better than takeout — tender beef strips with broccoli in a glossy garlic-soy sauce.",
     "cuisine": "Chinese",
     "servings": 4,
@@ -274,7 +274,7 @@
   {
     "id": "bundled_009",
     "name": "Vegetable Fried Rice",
-    "image_url": "https://images.unsplash.com/photo-1512058564366-18510be2db19?w=800&q=80",
+    "image_url": "https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=800&q=80",
     "description": "A great way to use leftover rice and whatever vegetables you have on hand.",
     "cuisine": "Asian",
     "servings": 4,

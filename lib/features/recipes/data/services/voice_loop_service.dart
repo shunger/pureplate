@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 import '../../../../core/services/tts_service.dart';
@@ -11,7 +12,7 @@ enum VoiceLoopState { idle, listening, processing, speaking }
 ///
 /// State machine: idle -> speaking -> listening -> processing -> speaking -> ...
 class VoiceLoopService extends ChangeNotifier {
-  final TtsService _tts;
+  final Speaker _tts;
   final SpeechToText _stt;
 
   /// Callback invoked when speech recognition produces a final result.
@@ -34,8 +35,26 @@ class VoiceLoopService extends ChangeNotifier {
 
   Timer? _safetyTimer;
 
+  /// The one pending "start listening again"; a new one replaces it, so the
+  /// error and status handlers can't both restart the mic at once.
+  Timer? _restartTimer;
+
+  /// Mic starts that failed in a row (e.g. another app has the mic).
+  int _listenFailures = 0;
+  static const _maxListenFailures = 5;
+
+  bool _sttReady = false;
+
+  /// The iPhone's on-device recognizer starts faster, so fewer first words
+  /// are lost between listening sessions. Turned off if the device lacks it.
+  bool _onDevice = true;
+
+  /// Set by [pauseListening] and cleared only by [resumeListening], so a line
+  /// that finishes after a pause doesn't quietly start the mic again.
+  bool _paused = false;
+
   VoiceLoopService({
-    required TtsService tts,
+    required Speaker tts,
     required SpeechToText stt,
     this.onResult,
     this.onError,
@@ -89,6 +108,7 @@ class VoiceLoopService extends ChangeNotifier {
   Future<void> stopLoop() async {
     _loopActive = false;
     _processing = false;
+    _restartTimer?.cancel();
     _safetyTimer?.cancel();
     _safetyTimer = null;
     await _tts.stop();
@@ -98,7 +118,9 @@ class VoiceLoopService extends ChangeNotifier {
 
   /// Pause listening (user said "pause" or tapped mic).
   Future<void> pauseListening() async {
+    _paused = true;
     _processing = false;
+    _restartTimer?.cancel();
     _safetyTimer?.cancel();
     await _tts.stop();
     await _stt.stop();
@@ -110,45 +132,89 @@ class VoiceLoopService extends ChangeNotifier {
     if (!_loopActive) {
       _loopActive = true;
     }
+    _paused = false;
+    _processing = false;
+    _listenFailures = 0;
+    _setState(VoiceLoopState.idle);
     await _startListening();
   }
 
-  Future<void> _startListening() async {
+  /// Go back to listening without saying anything, e.g. after "okay".
+  Future<void> listenAgain() async {
     if (!_loopActive) return;
+    _processing = false;
+    _setState(VoiceLoopState.idle);
+    await _startListening();
+  }
+
+  /// Restarts listening after [delay], replacing any restart already pending.
+  void _scheduleListen(Duration delay) {
+    _restartTimer?.cancel();
+    _restartTimer = Timer(delay, () {
+      if (_loopActive && !_processing && _state != VoiceLoopState.speaking) {
+        _startListening();
+      }
+    });
+  }
+
+  void _onSttError(SpeechRecognitionError error) {
+    debugPrint('VoiceLoopService STT error: ${error.errorMsg}');
+    _safetyTimer?.cancel();
+    if (!_loopActive || _processing || _state != VoiceLoopState.listening) {
+      return;
+    }
+    if (error.errorMsg == 'error_no_match' ||
+        error.errorMsg == 'error_speech_timeout') {
+      // Just silence; listen again straight away. Words said while the mic
+      // restarts are lost, so the gap must be as short as possible.
+      _scheduleListen(Duration.zero);
+      return;
+    }
+    // The mic itself failed. Back off, and stop after a few tries rather
+    // than hammering it (which crashed the speech plugin).
+    _listenFailures++;
+    if (_listenFailures >= _maxListenFailures) {
+      debugPrint('VoiceLoopService: mic keeps failing, pausing');
+      _restartTimer?.cancel();
+      _setState(VoiceLoopState.idle);
+      onError?.call('Microphone unavailable. Tap the mic to try again.');
+      return;
+    }
+    _scheduleListen(Duration(seconds: 1 << (_listenFailures - 1)));
+  }
+
+  void _onSttStatus(String status) {
+    if (status != 'done' && status != 'notListening') return;
+    _safetyTimer?.cancel();
+    // Ended without a result: listen again (unless an error already
+    // scheduled a restart, which this replaces with the same thing).
+    if (_loopActive && !_processing && _state == VoiceLoopState.listening) {
+      if (!(_restartTimer?.isActive ?? false)) {
+        _scheduleListen(Duration.zero);
+      }
+    }
+  }
+
+  Future<void> _startListening() async {
+    if (!_loopActive || _paused) return;
     // Don't restart if we're currently processing a result or speaking.
     if (_processing || _state == VoiceLoopState.speaking) return;
 
     _setState(VoiceLoopState.listening);
 
-    final available = await _stt.initialize(
-      onError: (error) {
-        debugPrint('VoiceLoopService STT error: ${error.errorMsg}');
-        _safetyTimer?.cancel();
-        // Auto-retry after a brief delay, but only if we're not processing
-        // or speaking (which means speakThenListen will handle restart).
-        if (_loopActive && !_processing && _state == VoiceLoopState.listening) {
-          Future.delayed(const Duration(seconds: 1), () {
-            if (_loopActive && !_processing) _startListening();
-          });
-        }
-      },
-      onStatus: (status) {
-        if (status == 'done' || status == 'notListening') {
-          _safetyTimer?.cancel();
-          // If STT ended without a result and we're still supposed to listen,
-          // restart. But don't if we're processing or speaking.
-          if (_loopActive && !_processing && _state == VoiceLoopState.listening) {
-            Future.delayed(const Duration(milliseconds: 500), () {
-              if (_loopActive && !_processing && _state != VoiceLoopState.speaking) {
-                _startListening();
-              }
-            });
-          }
-        }
-      },
-    );
+    // Initialize once; re-initializing on every restart tore down the speech
+    // engine underneath itself. The recognizer is shared with other screens,
+    // so (re)attach this loop's listeners each time.
+    if (!_sttReady) {
+      _sttReady = await _stt.initialize(
+        onError: _onSttError,
+        onStatus: _onSttStatus,
+      );
+    }
+    _stt.errorListener = _onSttError;
+    _stt.statusListener = _onSttStatus;
 
-    if (!available) {
+    if (!_sttReady) {
       onError?.call('Speech recognition is not available');
       _setState(VoiceLoopState.idle);
       return;
@@ -160,27 +226,36 @@ class VoiceLoopService extends ChangeNotifier {
       if (_loopActive && _state == VoiceLoopState.listening && !_processing) {
         _stt.stop();
         // Restart listening after a brief gap.
-        Future.delayed(const Duration(milliseconds: 300), () {
-          if (_loopActive && !_processing) _startListening();
-        });
+        _scheduleListen(const Duration(milliseconds: 300));
       }
     });
 
-    _stt.listen(
+    try {
+      await _listen();
+    } catch (e) {
+      debugPrint('VoiceLoopService listen threw: $e');
+      if (_onDevice && '$e'.contains('on device')) {
+        _onDevice = false;
+        _scheduleListen(Duration.zero);
+        return;
+      }
+      _onSttError(SpeechRecognitionError('error_listen_failed', true));
+    }
+  }
+
+  Future<void> _listen() {
+    return _stt.listen(
       onResult: (result) {
         if (result.finalResult) {
           _safetyTimer?.cancel();
           final text = result.recognizedWords.trim();
           _lastHeardText = text;
+          _listenFailures = 0;
           notifyListeners();
 
           if (text.isEmpty) {
             // Empty result — silently restart listening.
-            if (_loopActive && !_processing) {
-              Future.delayed(const Duration(milliseconds: 500), () {
-                if (_loopActive && !_processing) _startListening();
-              });
-            }
+            _scheduleListen(Duration.zero);
             return;
           }
 
@@ -194,6 +269,7 @@ class VoiceLoopService extends ChangeNotifier {
       listenOptions: SpeechListenOptions(
         pauseFor: const Duration(seconds: 3),
         listenMode: ListenMode.dictation,
+        onDevice: _onDevice,
       ),
     );
   }
@@ -206,6 +282,7 @@ class VoiceLoopService extends ChangeNotifier {
 
   @override
   void dispose() {
+    _restartTimer?.cancel();
     _safetyTimer?.cancel();
     _tts.stop();
     _stt.stop();
