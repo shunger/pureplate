@@ -2,7 +2,7 @@
 
 **Pure Pantry AI**
 **Operated by:** Pure Hunger Labs
-**Effective Date:** August 22, 2026
+**Effective Date:** October 20, 2026
 **Contact:** support@purehungerlabs.com
 
 ---
@@ -53,7 +53,7 @@ Pure Pantry AI stores your data primarily on your device in a local SQLite datab
 
 ### Cloud Storage
 
-If you sign in and use sharing features (e.g., family pantry sharing), your shared data is stored in Firebase Firestore (operated by Google). Only data relevant to shared pantries is synced to the cloud.
+If you sign in and use sharing features (e.g., family pantry sharing), your shared data is stored in Firebase Firestore (operated by Google). Only data in the pantries and shopping lists you share is synced to the cloud.
 
 ### Data Retention
 
@@ -89,7 +89,7 @@ We do **not** share your data for advertising purposes.
 
 Data is shared only in these circumstances:
 
-- **User-initiated sharing:** When you invite family members to a shared pantry via invite codes, shared pantry data is accessible to invited members.
+- **User-initiated sharing:** When you share a pantry or shopping list, or join one with an invite code, its contents and activity feed are visible to all of its members. Members see your display name next to your membership and the changes you make. If you signed in with Google or Apple, this is the name on that account, but your email address is never shown. Members may be using Pure Pantry AI or Smart Shopping Scanner, our companion app, which can open the same shared pantries and lists.
 - **Third-party service providers:** As listed above, strictly for app functionality.
 - **Legal requirements:** If required by law, regulation, or legal process.
 
