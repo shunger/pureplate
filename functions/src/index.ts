@@ -6,6 +6,10 @@ export {generateRecipeImage} from "./functions/generateRecipeImage";
 export {verifyReceipt} from "./functions/verifyReceipt";
 export {createSharedSpace} from "./functions/createSharedSpace";
 export {
+  lookupInviteCode,
+  joinByInviteCode,
+} from "./functions/inviteCodeRedemption";
+export {
   appleSubscriptionNotifications,
   googleSubscriptionNotifications,
 } from "./functions/storeNotifications";
