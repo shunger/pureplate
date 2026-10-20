@@ -18,7 +18,7 @@ When you use Pure Pantry AI, you may provide:
 - **Shopping lists:** Items, quantities, stores, purchase history, budget data
 - **Meal plans:** Planned meals, schedules, preferences
 - **Family profiles:** Household size, children's ages, dietary preferences and restrictions
-- **Account information:** If you sign in with Google or Apple, we receive your name and email address. Sign-in is optional.
+- **Account information:** If you sign in with Google or Apple, we receive your name and email address. Sign-in is optional, except that sharing your pantry with others requires it.
 
 ### Information Collected Automatically
 
