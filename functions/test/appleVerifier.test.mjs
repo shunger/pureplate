@@ -55,6 +55,23 @@ describe("toVerifiedSubscription", () => {
       "production"
     );
   });
+
+  it("keeps Premium through a billing grace period", () => {
+    const lapsed = {...tx, expiresDate: now - 86_400_000};
+    const graceEnd = now + 15 * 86_400_000;
+    const inGrace = toVerifiedSubscription(
+      lapsed, {autoRenewStatus: 1, gracePeriodExpiresDate: graceEnd}, now);
+    assert.equal(inGrace.valid, true);
+    assert.equal(inGrace.expiresAt, new Date(graceEnd).toISOString());
+
+    const graceOver = toVerifiedSubscription(
+      lapsed, {autoRenewStatus: 1, gracePeriodExpiresDate: now - 1}, now);
+    assert.equal(graceOver.valid, false);
+
+    const revokedInGrace = toVerifiedSubscription(
+      {...lapsed, revocationDate: now - 5}, {gracePeriodExpiresDate: graceEnd}, now);
+    assert.equal(revokedInGrace.valid, false);
+  });
 });
 
 describe("claimedEnvironment", () => {

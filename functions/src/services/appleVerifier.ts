@@ -106,7 +106,10 @@ export function toVerifiedSubscription(
   if (!tx.expiresDate) return invalid("no_expiry");
 
   const revoked = tx.revocationDate != null;
-  const active = !revoked && tx.expiresDate > now;
+  // During a billing grace period Apple keeps the subscriber entitled while it
+  // retries the payment; the renewal info then carries the grace end date.
+  const expiresDate = Math.max(tx.expiresDate, renewal?.gracePeriodExpiresDate ?? 0);
+  const active = !revoked && expiresDate > now;
   const autoRenewing = renewal ?
     renewal.autoRenewStatus === AutoRenewStatus.ON :
     active;
@@ -114,7 +117,7 @@ export function toVerifiedSubscription(
   return {
     valid: active,
     productId: tx.productId,
-    expiresAt: new Date(tx.expiresDate).toISOString(),
+    expiresAt: new Date(expiresDate).toISOString(),
     originalTransactionId: tx.originalTransactionId ?? null,
     environment: tx.environment === Environment.SANDBOX ? "sandbox" : "production",
     autoRenewing: active && autoRenewing,
