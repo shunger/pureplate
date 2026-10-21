@@ -7,7 +7,9 @@ import '../../../../core/providers/auth_providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../pantry/data/datasources/pantry_sync_orchestrator.dart';
 import '../../data/datasources/firestore_pantry_sharing_service.dart';
+import '../../domain/invite_link.dart';
 import '../providers/sharing_providers.dart';
+import '../widgets/invite_qr_code.dart';
 import '../widgets/join_pantry_sheet.dart';
 
 /// Shows shared pantry info, collaborator list, and invite code management.
@@ -103,6 +105,26 @@ class CollaboratorsScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
+                      if (pantryInfo?.inviteCode != null) ...[
+                        const SizedBox(height: 16),
+                        Center(
+                          child: InviteQrCode(
+                            link: InviteLink.build(
+                                'purepantry', InviteKind.pantry, inviteCode),
+                            size: 160,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Center(
+                          child: Text(
+                            'Scan with the camera, or with Scan QR Code when joining',
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                fontSize: 12),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
                       // Expiry status
                       if (pantryInfo?.inviteCodeExpiresAt != null) ...[
                         const SizedBox(height: 8),

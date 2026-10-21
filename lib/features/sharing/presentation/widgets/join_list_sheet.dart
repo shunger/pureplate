@@ -7,22 +7,38 @@ import '../../../../core/providers/auth_providers.dart';
 import '../../../../core/routing/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../shopping_list/data/datasources/shopping_list_sync_orchestrator.dart';
+import '../../domain/invite_link.dart';
+import '../invite_links.dart';
+import '../screens/scan_invite_screen.dart';
 import '../../data/datasources/firestore_list_sharing_service.dart';
 
 /// Shows a bottom sheet for joining a shared shopping list via invite code.
-Future<void> showJoinListSheet(BuildContext context, WidgetRef ref) {
+///
+/// [initialCode] fills in and looks up a code from an invite link. A scanned
+/// pantry invite closes the sheet and opens the pantry join instead.
+Future<void> showJoinListSheet(BuildContext context, WidgetRef ref,
+    {String? initialCode}) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
+    // Above the tab bar, and above any page an invite link pushed.
+    useRootNavigator: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
     ),
-    builder: (_) => const _JoinListSheetContent(),
+    builder: (_) => _JoinListSheetContent(
+      initialCode: initialCode,
+      onOtherInvite: (invite) => openInvite(context, ref, invite),
+    ),
   );
 }
 
 class _JoinListSheetContent extends ConsumerStatefulWidget {
-  const _JoinListSheetContent();
+  final String? initialCode;
+  final void Function(InviteLink invite) onOtherInvite;
+
+  const _JoinListSheetContent(
+      {this.initialCode, required this.onOtherInvite});
 
   @override
   ConsumerState<_JoinListSheetContent> createState() =>
@@ -38,6 +54,28 @@ class _JoinListSheetContentState
   bool _isJoining = false;
 
   static const _validChars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+  @override
+  void initState() {
+    super.initState();
+    final code = widget.initialCode;
+    if (code != null) {
+      _controller.text = code;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _lookup(code));
+    }
+  }
+
+  Future<void> _scanQr() async {
+    final invite = await scanInviteCode(context);
+    if (invite == null || !mounted) return;
+    if (invite.kind == InviteKind.pantry) {
+      Navigator.pop(context);
+      widget.onOtherInvite(invite);
+      return;
+    }
+    _controller.text = invite.code;
+    _lookup(invite.code);
+  }
 
   @override
   void dispose() {
@@ -203,6 +241,12 @@ class _JoinListSheetContentState
                 });
               }
             },
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _scanQr,
+            icon: const Icon(Icons.qr_code_scanner),
+            label: const Text('Scan QR Code'),
           ),
           if (_isLooking) ...[
             const SizedBox(height: 16),

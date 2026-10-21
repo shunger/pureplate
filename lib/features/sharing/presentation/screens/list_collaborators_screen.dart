@@ -7,7 +7,9 @@ import '../../../../core/providers/auth_providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../shopping_list/data/datasources/shopping_list_sync_orchestrator.dart';
 import '../../data/datasources/firestore_list_sharing_service.dart';
+import '../../domain/invite_link.dart';
 import '../providers/sharing_providers.dart';
+import '../widgets/invite_qr_code.dart';
 
 /// Shows shared list info, collaborator list, and invite code management.
 class ListCollaboratorsScreen extends ConsumerWidget {
@@ -116,6 +118,26 @@ class ListCollaboratorsScreen extends ConsumerWidget {
                                 ),
                               ],
                             ),
+                            if (sharedList.inviteCode != null) ...[
+                              const SizedBox(height: 16),
+                              Center(
+                                child: InviteQrCode(
+                                  link: InviteLink.build(
+                                      'purepantry', InviteKind.list, inviteCode),
+                                  size: 160,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Center(
+                                child: Text(
+                                  'Scan with the camera, or with Scan QR Code when joining',
+                                  style: TextStyle(
+                                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                      fontSize: 12),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
                             if (sharedList.inviteCodeExpiresAt != null) ...[
                               const SizedBox(height: 8),
                               _InviteCodeExpiry(

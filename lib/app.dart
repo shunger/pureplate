@@ -6,6 +6,7 @@ import 'core/routing/app_router.dart';
 import 'core/providers/database_providers.dart';
 import 'core/update/update_check_service.dart';
 import 'core/update/update_gate.dart';
+import 'features/sharing/presentation/invite_links.dart';
 import 'features/premium/presentation/providers/purchase_providers.dart';
 import 'features/settings/presentation/providers/settings_providers.dart';
 
@@ -34,7 +35,7 @@ class PurePantryApp extends ConsumerWidget {
       builder: (context, child) => UpdateGate(
         appName: 'Pure Pantry AI',
         service: updateCheck,
-        child: child!,
+        child: InviteLinkListener(child: child!),
       ),
     );
   }

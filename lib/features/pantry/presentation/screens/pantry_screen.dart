@@ -5,14 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/database/app_database.dart';
-import '../../../../core/providers/auth_providers.dart';
 import '../../../../core/providers/database_providers.dart';
 import '../../../../core/routing/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/models/product_category.dart';
-import '../../../../shared/widgets/sign_in_bottom_sheet.dart';
-import '../../../settings/presentation/providers/settings_providers.dart';
-import '../../../sharing/presentation/providers/sharing_providers.dart';
+import '../../../sharing/presentation/family_sharing_gate.dart';
 import '../../../shopping_list/data/datasources/shopping_list_mapper.dart';
 import '../../../shopping_list/data/datasources/shopping_list_sync_orchestrator.dart';
 import '../../../shopping_list/domain/models/shopping_list.dart'
@@ -211,26 +208,7 @@ class _PantryScreenState extends ConsumerState<PantryScreen> {
   }
 
   Future<void> _handleShareTap() async {
-    // 1. Premium gate
-    final isPremium = ref.read(isPremiumProvider);
-    if (isPremium.valueOrNull != true) {
-      context.push(Routes.premium);
-      return;
-    }
-
-    // 2. Sign-in gate
-    final isSignedIn = ref.read(isCloudSignedInProvider);
-    if (!isSignedIn) {
-      final signedIn = await showSignInBottomSheet(context, ref);
-      if (!signedIn || !mounted) return;
-      // After sign-in, _ensurePersonalPantry runs and sets sharedPantryId.
-      // Wait a frame for providers to update.
-      await Future<void>.delayed(const Duration(milliseconds: 500));
-      if (!mounted) return;
-    }
-
-    // 3. Navigate to collaborators
-    final pantryId = ref.read(sharedPantryIdProvider).valueOrNull;
+    final pantryId = await passFamilySharingGates(context, ref);
     if (pantryId != null && mounted) {
       context.push(
           Routes.collaborators.replaceFirst(':firestoreId', pantryId));
