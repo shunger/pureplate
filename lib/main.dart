@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +11,10 @@ import 'firebase_options.dart';
 
 import 'app.dart';
 import 'core/services/notification_service.dart';
+import 'core/theme/app_theme.dart';
+import 'core/update/app_version.dart';
+import 'core/update/update_check_service.dart';
+import 'core/update/update_gate.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +42,18 @@ Future<void> main() async {
   } catch (e) {
     debugPrint('Firebase init failed (app will run in offline mode): $e');
   }
+
+  // A build below the minimum version starts nothing but the update screen.
+  if (await updateCheck.checkAtLaunch() == UpdateStatus.required) {
+    runApp(UpdateRequiredApp(
+      appName: 'Pure Pantry AI',
+      service: updateCheck,
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+    ));
+    return;
+  }
+  unawaited(updateCheck.recordVersion());
 
   // Initialize timezone data for scheduled notifications.
   tz.initializeTimeZones();

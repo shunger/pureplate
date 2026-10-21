@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/routing/app_router.dart';
 import 'core/providers/database_providers.dart';
+import 'core/update/update_check_service.dart';
+import 'core/update/update_gate.dart';
 import 'features/premium/presentation/providers/purchase_providers.dart';
 import 'features/settings/presentation/providers/settings_providers.dart';
 
@@ -29,6 +31,11 @@ class PurePantryApp extends ConsumerWidget {
       themeMode: themeMode,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
+      builder: (context, child) => UpdateGate(
+        appName: 'Pure Pantry AI',
+        service: updateCheck,
+        child: child!,
+      ),
     );
   }
 }
