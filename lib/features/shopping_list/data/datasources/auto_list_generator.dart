@@ -164,9 +164,11 @@ class AutoListGenerator {
       case 'eggs':
         return ProductCategory.dairy;
       case 'meat':
-      case 'seafood':
       case 'poultry':
         return ProductCategory.meat;
+      case 'seafood':
+      case 'fish':
+        return ProductCategory.seafood;
       case 'bakery':
       case 'bread':
         return ProductCategory.bakery;

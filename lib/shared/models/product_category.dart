@@ -2,7 +2,8 @@
 enum ProductCategory {
   produce('Produce', '🥬'),
   dairy('Dairy & Eggs', '🥛'),
-  meat('Meat & Seafood', '🥩'),
+  meat('Meat', '🥩'),
+  seafood('Seafood', '🦐'),
   bakery('Bakery', '🍞'),
   beverages('Beverages', '🥤'),
   canned('Canned & Jarred', '🥫'),
@@ -19,13 +20,18 @@ enum ProductCategory {
   final String emoji;
   const ProductCategory(this.displayName, this.emoji);
 
+  /// The category stored under [name]. Pantry items saved by earlier builds
+  /// used `pantry` for pantry staples; unknown names are [other].
+  static ProductCategory fromName(String name) =>
+      values.asNameMap()[name] ?? (name == 'pantry' ? pantryStaple : other);
+
   /// Map from OpenFoodFacts categories string to ProductCategory.
   static ProductCategory fromOpenFoodFacts(String? categories) {
     if (categories == null) return ProductCategory.other;
     final lower = categories.toLowerCase();
     if (lower.contains('dairy') || lower.contains('milk') || lower.contains('cheese') || lower.contains('yogurt')) return dairy;
     if (lower.contains('meat') || lower.contains('beef') || lower.contains('pork') || lower.contains('chicken')) return meat;
-    if (lower.contains('fish') || lower.contains('seafood')) return meat;
+    if (lower.contains('fish') || lower.contains('seafood')) return seafood;
     if (lower.contains('fruit') || lower.contains('vegetable') || lower.contains('produce')) return produce;
     if (lower.contains('bread') || lower.contains('bakery') || lower.contains('pastry')) return bakery;
     if (lower.contains('frozen')) return frozen;

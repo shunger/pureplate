@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/database_providers.dart';
+import '../../../../shared/models/product_category.dart';
 import '../../data/datasources/pantry_sync_orchestrator.dart';
 import '../widgets/add_pantry_item_sheet.dart';
 
@@ -95,7 +96,7 @@ class PantryItemDetailScreen extends ConsumerWidget {
                       _DetailRow(
                         icon: Icons.category_outlined,
                         label: 'Category',
-                        value: _capitalizeFirst(item.category),
+                        value: ProductCategory.fromName(item.category).displayName,
                       ),
                       _DetailRow(
                         icon: Icons.kitchen,

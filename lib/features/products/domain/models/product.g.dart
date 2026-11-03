@@ -99,6 +99,7 @@ const _$ProductCategoryEnumMap = {
   ProductCategory.produce: 'produce',
   ProductCategory.dairy: 'dairy',
   ProductCategory.meat: 'meat',
+  ProductCategory.seafood: 'seafood',
   ProductCategory.bakery: 'bakery',
   ProductCategory.beverages: 'beverages',
   ProductCategory.canned: 'canned',

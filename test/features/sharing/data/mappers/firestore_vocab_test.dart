@@ -39,8 +39,13 @@ void main() {
       );
     });
 
+    test('the older add-item sheet\'s "pantry" reaches the scanner as pantry',
+        () {
+      expect(FirestoreVocab.encodeCategory('pantry')['category'], 'pantry');
+    });
+
     test('scanner-only and unknown categories map sensibly', () {
-      expect(FirestoreVocab.decodeCategory({'category': 'seafood'}), 'meat');
+      expect(FirestoreVocab.decodeCategory({'category': 'seafood'}), 'seafood');
       expect(FirestoreVocab.decodeCategory({'category': 'pantry'}),
           'pantryStaple');
       expect(FirestoreVocab.decodeCategory({'category': 'bogus'}), 'other');

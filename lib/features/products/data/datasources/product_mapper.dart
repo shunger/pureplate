@@ -12,6 +12,7 @@ import '../../domain/models/nutrition_info.dart';
 import '../../domain/models/product.dart';
 import '../../domain/models/product_unit.dart';
 import 'firestore_community_product_datasource.dart';
+import '../../../sharing/data/mappers/firestore_vocab.dart';
 
 class ProductMapper {
   static const _uuid = Uuid();
@@ -50,10 +51,9 @@ class ProductMapper {
       identifierType: IdentifierType.barcode,
       name: cp.name,
       brand: cp.brand,
-      category: ProductCategory.values.firstWhere(
-        (e) => e.name == cp.category,
-        orElse: () => ProductCategory.other,
-      ),
+      // Community products use the scanner's category names.
+      category: ProductCategory.fromName(
+          FirestoreVocab.decodeCategory({'category': cp.category})),
       source: 'community',
       createdAt: now,
       updatedAt: now,

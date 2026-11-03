@@ -822,8 +822,7 @@ class _AddToShoppingListSheetState
       }
 
       final parsedQty = double.tryParse(_qtyController.text) ?? 1;
-      final category = ProductCategory.values.asNameMap()[item.category] ??
-          ProductCategory.other;
+      final category = ProductCategory.fromName(item.category);
 
       final shoppingItem = shopping_domain.ShoppingListItem(
         id: uuid.v4(),
@@ -903,9 +902,7 @@ class _AddToShoppingListSheetState
           Row(
             children: [
               Text(
-                (ProductCategory.values.asNameMap()[item.category] ??
-                        ProductCategory.other)
-                    .emoji,
+                ProductCategory.fromName(item.category).emoji,
                 style: const TextStyle(fontSize: 24),
               ),
               const SizedBox(width: 12),

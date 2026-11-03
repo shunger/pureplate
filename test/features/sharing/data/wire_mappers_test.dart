@@ -160,11 +160,47 @@ void main() {
       );
 
       expect(companion.name.value, 'Salmon');
-      expect(companion.category.value, 'meat');
+      expect(companion.category.value, 'seafood');
       expect(companion.unitType.value, 'count');
       expect(companion.isCompleted.value, isFalse);
       expect(companion.productId.present, isFalse);
       expect(companion.listId.value, 'list-1');
+    });
+    test('units and prices use the same fields as the scanner', () {
+      final doc = ShoppingListWireMapper.fromRow(
+          row.copyWith(unitType: 'mL', actualPrice: const Value(3.49)));
+      expect(doc['unitType'], 'each');
+      expect(doc['unitTypeDetail'], 'mL');
+      expect(doc['price'], 1.99);
+      expect(doc['actualPrice'], 3.49);
+
+      final back = ShoppingListWireMapper.toCompanion(
+        newLocalId: 'new-id',
+        localListId: 'list-1',
+        firestoreListId: 'fs-list',
+        itemId: 'fs-item',
+        data: doc,
+        now: now,
+      );
+      expect(back.unitType.value, 'mL');
+      expect(back.estimatedPrice.value, 1.99);
+      expect(back.actualPrice.value, 3.49);
+    });
+
+    test('a scanner liter and plain each read as L and count', () {
+      ShoppingListItemsCompanion read(Map<String, dynamic> data) =>
+          ShoppingListWireMapper.toCompanion(
+            newLocalId: 'n',
+            localListId: 'l',
+            firestoreListId: 'f',
+            itemId: 'i',
+            data: {'productName': 'Milk', ...data},
+            now: now,
+          );
+      expect(read({'unitType': 'each', 'unitTypeDetail': 'L'}).unitType.value,
+          'L');
+      expect(read({'unitType': 'each'}).unitType.value, 'count');
+      expect(read({'unitType': 'pound'}).unitType.value, 'lbs');
     });
   });
 }

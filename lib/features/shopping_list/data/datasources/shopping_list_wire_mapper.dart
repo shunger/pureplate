@@ -6,7 +6,8 @@ import '../../../sharing/data/mappers/firestore_vocab.dart';
 /// Converts local shopping list items to and from `sharedLists/{id}/items`
 /// docs, using Smart Shopping Scanner's field names.
 ///
-/// `unitType` and `categoryDetail` are Pure Pantry extras the scanner ignores.
+/// `price` is the estimate and `actualPrice` the price paid, in both apps.
+/// Categories and units go through [FirestoreVocab], as for pantry items.
 /// Nothing is sent as `barcode`: local product IDs are random UUIDs, not
 /// barcodes, and the scanner would create bogus products from them.
 class ShoppingListWireMapper {
@@ -19,8 +20,9 @@ class ShoppingListWireMapper {
         'productName': item.name,
         'brand': item.brand,
         'quantity': item.quantity,
-        'unitType': item.unitType,
+        ...FirestoreVocab.encodeUnit(item.unitType),
         'price': item.estimatedPrice,
+        'actualPrice': item.actualPrice,
         'isChecked': item.isCompleted,
         ...FirestoreVocab.encodeCategory(item.category),
         'notes': item.notes,
@@ -32,8 +34,9 @@ class ShoppingListWireMapper {
         if (c.name.present) 'productName': c.name.value,
         if (c.brand.present) 'brand': c.brand.value,
         if (c.quantity.present) 'quantity': c.quantity.value,
-        if (c.unitType.present) 'unitType': c.unitType.value,
+        if (c.unitType.present) ...FirestoreVocab.encodeUnit(c.unitType.value),
         if (c.estimatedPrice.present) 'price': c.estimatedPrice.value,
+        if (c.actualPrice.present) 'actualPrice': c.actualPrice.value,
         if (c.isCompleted.present) 'isChecked': c.isCompleted.value,
         if (c.category.present) ...FirestoreVocab.encodeCategory(c.category.value),
         if (c.notes.present) 'notes': c.notes.value,
@@ -55,8 +58,9 @@ class ShoppingListWireMapper {
       name: Value(data['productName'] as String? ?? ''),
       brand: Value(data['brand'] as String?),
       quantity: Value((data['quantity'] as num?)?.toDouble() ?? 1),
-      unitType: Value(data['unitType'] as String? ?? 'count'),
+      unitType: Value(_listUnit(data)),
       estimatedPrice: Value((data['price'] as num?)?.toDouble()),
+      actualPrice: Value((data['actualPrice'] as num?)?.toDouble()),
       isCompleted: Value(data['isChecked'] as bool? ?? false),
       category: Value(FirestoreVocab.decodeCategory(data)),
       notes: Value(data['notes'] as String?),
@@ -65,5 +69,12 @@ class ShoppingListWireMapper {
       addedAt: Value(now),
       updatedAt: Value(now),
     );
+  }
+
+  /// Shopping lists count items in `count` rather than the pantry's `each`.
+  static String _listUnit(Map<String, dynamic> data) {
+    if (data['unitType'] == null) return 'count';
+    final unit = FirestoreVocab.decodeUnit(data);
+    return unit == 'each' ? 'count' : unit;
   }
 }

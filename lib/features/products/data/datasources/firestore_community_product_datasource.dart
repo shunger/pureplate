@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../sharing/data/mappers/firestore_vocab.dart';
 
 /// Data class representing a community-contributed product in Firestore.
 /// Schema shared with Smart Shopping Scanner.
@@ -92,7 +93,10 @@ class FirestoreCommunityProductDatasource {
       final data = <String, dynamic>{
         'name': name,
         if (brand != null && brand.isNotEmpty) 'brand': brand,
-        if (category != null && category.isNotEmpty) 'category': category,
+        // Shared with every scanner version, and the rules allow no detail
+        // field, so only the scanner's nearest category is stored.
+        if (category != null && category.isNotEmpty)
+          'category': FirestoreVocab.encodeCategory(category)['category'],
         'contributedBy': contributedBy,
         'contributedAt': FieldValue.serverTimestamp(),
         'confirmationCount': 0,

@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../core/database/app_database.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/models/product_category.dart';
 import '../../../../shared/widgets/voice_input_button.dart';
 import '../../data/datasources/pantry_sync_orchestrator.dart';
 
@@ -55,10 +56,11 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
 
   bool get _isEditing => widget.existingItem != null;
 
-  static const _units = ['each', 'lbs', 'oz', 'kg', 'g', 'L', 'mL', 'cups', 'packs'];
-  static const _categories = [
-    'produce', 'dairy', 'meat', 'bakery', 'beverages', 'canned',
-    'frozen', 'pantry', 'snacks', 'condiments', 'spices', 'other',
+  // Includes Smart Shopping Scanner's units, so items shared from the scanner
+  // can be edited without changing their unit.
+  static const _units = [
+    'each', 'lbs', 'oz', 'kg', 'g', 'L', 'mL', 'cups', 'packs',
+    'bunch', 'bag', 'container', 'bottle', 'can', 'box',
   ];
   static const _locations = [
     ('pantry', Icons.kitchen, 'Pantry'),
@@ -85,7 +87,7 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
       }
       _unitType = item.unitType;
       _location = item.location;
-      _category = item.category;
+      _category = ProductCategory.fromName(item.category).name;
       _expiresAt = item.expiresAt;
       _isStaple = item.isStaple;
       _reorderThreshold = item.reorderThreshold;
@@ -96,7 +98,7 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
         _nameController.text = widget.initialName!;
       }
       if (widget.initialCategory != null) {
-        _category = widget.initialCategory!;
+        _category = ProductCategory.fromName(widget.initialCategory!).name;
       }
       if (widget.initialPrice != null) {
         _priceController.text = widget.initialPrice!.toStringAsFixed(2);
@@ -232,7 +234,12 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
                       contentPadding:
                           EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     ),
-                    items: _units
+                    items: [
+                      ..._units,
+                      // A unit from elsewhere stays selectable rather than
+                      // leaving the field blank.
+                      if (!_units.contains(_unitType)) _unitType,
+                    ]
                         .map((u) => DropdownMenuItem(value: u, child: Text(u)))
                         .toList(),
                     onChanged: (v) => setState(() => _unitType = v!),
@@ -291,10 +298,9 @@ class _AddPantryItemSheetState extends ConsumerState<AddPantryItemSheet> {
             DropdownButtonFormField<String>(
               initialValue: _category,
               decoration: const InputDecoration(labelText: 'Category'),
-              items: _categories
+              items: ProductCategory.values
                   .map((c) => DropdownMenuItem(
-                      value: c,
-                      child: Text(c[0].toUpperCase() + c.substring(1))))
+                      value: c.name, child: Text(c.displayName)))
                   .toList(),
               onChanged: (v) => setState(() => _category = v!),
             ),
