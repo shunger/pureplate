@@ -116,6 +116,12 @@ class _JoinListSheetContentState
         _previewList = list;
         _isLooking = false;
       });
+    } on ListSharingException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.message;
+        _isLooking = false;
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() {

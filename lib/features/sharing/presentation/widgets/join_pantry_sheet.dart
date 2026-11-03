@@ -117,6 +117,12 @@ class _JoinPantrySheetContentState
         _previewPantry = pantry;
         _isLooking = false;
       });
+    } on PantrySharingException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.message;
+        _isLooking = false;
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() {

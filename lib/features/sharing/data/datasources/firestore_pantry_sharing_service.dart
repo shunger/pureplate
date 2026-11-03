@@ -5,6 +5,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'invite_code_functions.dart';
 import 'remote_doc.dart';
 
 /// Firestore service for pantry sharing between family members.
@@ -30,6 +31,8 @@ class FirestorePantrySharingService {
 
   FirestorePantrySharingService(this._firestore, [FirebaseFunctions? functions])
       : _functions = functions ?? FirebaseFunctions.instance;
+
+  late final _inviteCodes = InviteCodeFunctions(_functions);
 
   static const _memberRoles = ['owner', 'editor', 'viewer'];
   static const _batchLimit = 450;
@@ -86,8 +89,18 @@ class FirestorePantrySharingService {
     required String uid,
     required String displayName,
   }) async {
+    final code = inviteCode.toUpperCase().trim();
+    try {
+      final summary =
+          await _inviteCodes.join('pantry', code, displayName: displayName);
+      if (summary != null) return summary['id'] as String;
+    } on InviteCodeRefused catch (e) {
+      throw PantrySharingException(e.message);
+    }
+
+    // Fallback while the server functions are unavailable.
     final snap = await _pantries
-        .where('inviteCode', isEqualTo: inviteCode.toUpperCase())
+        .where('inviteCode', isEqualTo: code)
         .limit(1)
         .get();
 
@@ -115,9 +128,22 @@ class FirestorePantrySharingService {
   }
 
   /// Preview a pantry by invite code without joining.
+  ///
+  /// Returns null for an unknown code; throws [PantrySharingException] when the server
+  /// refuses it (expired, revoked or too many wrong attempts).
   Future<SharedPantryInfo?> lookupByInviteCode(String inviteCode) async {
+    final code = inviteCode.toUpperCase().trim();
+    try {
+      final summary = await _inviteCodes.lookup('pantry', code);
+      if (summary != null) return SharedPantryInfo.fromSummary(summary);
+    } on InviteCodeRefused catch (e) {
+      if (e.message == 'Invalid invite code.') return null;
+      throw PantrySharingException(e.message);
+    }
+
+    // Fallback while the server functions are unavailable.
     final snap = await _pantries
-        .where('inviteCode', isEqualTo: inviteCode.toUpperCase())
+        .where('inviteCode', isEqualTo: code)
         .limit(1)
         .get();
     if (snap.docs.isEmpty) return null;
@@ -319,6 +345,29 @@ class SharedPantryInfo {
     this.collaborators = const {},
     this.createdAt,
   });
+
+  /// Builds the info from a `lookupInviteCode` / `joinByInviteCode` result.
+  factory SharedPantryInfo.fromSummary(Map<String, dynamic> summary) {
+    final collabsRaw =
+        (summary['collaborators'] as Map<String, dynamic>?) ?? {};
+    return SharedPantryInfo(
+      firestoreId: summary['id'] as String? ?? '',
+      name: summary['name'] as String? ?? 'Shared Pantry',
+      ownerUid: summary['ownerUid'] as String? ?? '',
+      inviteCodeExpiresAt: millisToDateTime(summary['inviteCodeExpiresAt']),
+      collaborators: collabsRaw.map((uid, value) {
+        final map = value as Map<String, dynamic>;
+        return MapEntry(
+            uid,
+            PantryCollaborator(
+              uid: uid,
+              role: map['role'] as String? ?? 'viewer',
+              displayName: map['displayName'] as String? ?? 'Unknown',
+            ));
+      }),
+      createdAt: millisToDateTime(summary['createdAt']),
+    );
+  }
 
   factory SharedPantryInfo.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;

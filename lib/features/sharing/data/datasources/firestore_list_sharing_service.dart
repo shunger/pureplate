@@ -5,6 +5,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'invite_code_functions.dart';
 import 'remote_doc.dart';
 
 /// Firestore service for shopping list sharing between users.
@@ -31,6 +32,8 @@ class FirestoreListSharingService {
 
   FirestoreListSharingService(this._firestore, [FirebaseFunctions? functions])
       : _functions = functions ?? FirebaseFunctions.instance;
+
+  late final _inviteCodes = InviteCodeFunctions(_functions);
 
   static const _memberRoles = ['owner', 'editor', 'viewer'];
   static const _batchLimit = 450;
@@ -93,8 +96,18 @@ class FirestoreListSharingService {
     required String uid,
     required String displayName,
   }) async {
+    final code = inviteCode.toUpperCase().trim();
+    try {
+      final summary =
+          await _inviteCodes.join('list', code, displayName: displayName);
+      if (summary != null) return summary['id'] as String;
+    } on InviteCodeRefused catch (e) {
+      throw ListSharingException(e.message);
+    }
+
+    // Fallback while the server functions are unavailable.
     final snap = await _lists
-        .where('inviteCode', isEqualTo: inviteCode.toUpperCase())
+        .where('inviteCode', isEqualTo: code)
         .limit(1)
         .get();
 
@@ -122,9 +135,22 @@ class FirestoreListSharingService {
   }
 
   /// Preview a list by invite code without joining.
+  ///
+  /// Returns null for an unknown code; throws [ListSharingException] when the server
+  /// refuses it (expired, revoked or too many wrong attempts).
   Future<SharedListInfo?> lookupByInviteCode(String inviteCode) async {
+    final code = inviteCode.toUpperCase().trim();
+    try {
+      final summary = await _inviteCodes.lookup('list', code);
+      if (summary != null) return SharedListInfo.fromSummary(summary);
+    } on InviteCodeRefused catch (e) {
+      if (e.message == 'Invalid invite code.') return null;
+      throw ListSharingException(e.message);
+    }
+
+    // Fallback while the server functions are unavailable.
     final snap = await _lists
-        .where('inviteCode', isEqualTo: inviteCode.toUpperCase())
+        .where('inviteCode', isEqualTo: code)
         .limit(1)
         .get();
     if (snap.docs.isEmpty) return null;
@@ -342,6 +368,30 @@ class SharedListInfo {
     this.collaborators = const {},
     this.createdAt,
   });
+
+  /// Builds the info from a `lookupInviteCode` / `joinByInviteCode` result.
+  factory SharedListInfo.fromSummary(Map<String, dynamic> summary) {
+    final collabsRaw =
+        (summary['collaborators'] as Map<String, dynamic>?) ?? {};
+    return SharedListInfo(
+      firestoreId: summary['id'] as String? ?? '',
+      name: summary['name'] as String? ?? 'Shared List',
+      storeName: summary['storeName'] as String?,
+      ownerUid: summary['ownerUid'] as String? ?? '',
+      inviteCodeExpiresAt: millisToDateTime(summary['inviteCodeExpiresAt']),
+      collaborators: collabsRaw.map((uid, value) {
+        final map = value as Map<String, dynamic>;
+        return MapEntry(
+            uid,
+            ListCollaborator(
+              uid: uid,
+              role: map['role'] as String? ?? 'viewer',
+              displayName: map['displayName'] as String? ?? 'Unknown',
+            ));
+      }),
+      createdAt: millisToDateTime(summary['createdAt']),
+    );
+  }
 
   factory SharedListInfo.fromFirestore(
       DocumentSnapshot<Map<String, dynamic>> doc) {
