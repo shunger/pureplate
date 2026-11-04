@@ -25,6 +25,37 @@ class ShoppingListDao extends DatabaseAccessor<AppDatabase>
             ..orderBy([(l) => OrderingTerm.desc(l.dateShopped)]))
           .watch();
 
+  /// Active or archived lists with their items, in the same order as
+  /// [watchActiveLists] / [watchArchivedLists]. Emits again when a list or
+  /// any of its items changes (including items arriving from sync), so list
+  /// summaries stay current.
+  Stream<List<(ShoppingList, List<ShoppingListItem>)>> watchListsWithItems(
+      {required bool archived}) {
+    final query = select(shoppingLists).join([
+      leftOuterJoin(shoppingListItems,
+          shoppingListItems.listId.equalsExp(shoppingLists.id)),
+    ])
+      ..where(shoppingLists.isArchived.equals(archived))
+      ..orderBy([
+        archived
+            ? OrderingTerm.desc(shoppingLists.dateShopped)
+            : OrderingTerm.desc(shoppingLists.updatedAt),
+        OrderingTerm.asc(shoppingListItems.sortOrder),
+      ]);
+    return query.watch().map((rows) {
+      final lists = <String, ShoppingList>{};
+      final items = <String, List<ShoppingListItem>>{};
+      for (final row in rows) {
+        final list = row.readTable(shoppingLists);
+        lists.putIfAbsent(list.id, () => list);
+        final bucket = items.putIfAbsent(list.id, () => []);
+        final item = row.readTableOrNull(shoppingListItems);
+        if (item != null) bucket.add(item);
+      }
+      return [for (final id in lists.keys) (lists[id]!, items[id]!)];
+    });
+  }
+
   Future<ShoppingList?> getListById(String id) =>
       (select(shoppingLists)..where((l) => l.id.equals(id)))
           .getSingleOrNull();

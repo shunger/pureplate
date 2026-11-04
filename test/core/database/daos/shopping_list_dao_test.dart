@@ -207,4 +207,24 @@ void main() {
       });
     });
   });
+
+  group('watchListsWithItems', () {
+    test('includes empty lists and re-emits when an item is added', () async {
+      await dao.insertList(_makeList(id: 'l1', name: 'Groceries'));
+      await dao.insertList(_makeList(id: 'old', isArchived: true));
+
+      final emissions = <List<(ShoppingList, List<ShoppingListItem>)>>[];
+      final sub = dao.watchListsWithItems(archived: false).listen(emissions.add);
+      await pumpEventQueue();
+      expect(emissions.last.single.$1.id, 'l1');
+      expect(emissions.last.single.$2, isEmpty);
+
+      // Only the items table changes, as when an item arrives from sync.
+      await dao.insertItem(_makeItem(id: 'i1', listId: 'l1', name: 'Milk'));
+      await pumpEventQueue();
+      expect(emissions.last.single.$2.map((i) => i.name), ['Milk']);
+
+      await sub.cancel();
+    });
+  });
 }

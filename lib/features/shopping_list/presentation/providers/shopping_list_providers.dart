@@ -12,28 +12,24 @@ import '../../domain/models/shopping_list.dart';
 final activeShoppingListsDomainProvider =
     StreamProvider<List<ShoppingList>>((ref) {
   final dao = ref.watch(shoppingListDaoProvider);
-  return dao.watchActiveLists().asyncMap((dbLists) async {
-    final result = <ShoppingList>[];
-    for (final dbList in dbLists) {
-      final dbItems = await dao.getItemsForList(dbList.id);
-      result.add(ShoppingListMapper.fromDbWithItems(dbList, dbItems));
-    }
-    return result;
-  });
+  // Re-emits when items change too, so item counts on the Lists page update
+  // when items arrive from sync.
+  return dao.watchListsWithItems(archived: false).map((rows) => [
+        for (final (list, items) in rows)
+          ShoppingListMapper.fromDbWithItems(list, items),
+      ]);
 });
 
 /// Archived shopping lists mapped to domain models.
 final archivedShoppingListsProvider =
     StreamProvider<List<ShoppingList>>((ref) {
   final dao = ref.watch(shoppingListDaoProvider);
-  return dao.watchArchivedLists().asyncMap((dbLists) async {
-    final result = <ShoppingList>[];
-    for (final dbList in dbLists) {
-      final dbItems = await dao.getItemsForList(dbList.id);
-      result.add(ShoppingListMapper.fromDbWithItems(dbList, dbItems));
-    }
-    return result;
-  });
+  // Re-emits when items change too, so item counts on the Lists page update
+  // when items arrive from sync.
+  return dao.watchListsWithItems(archived: true).map((rows) => [
+        for (final (list, items) in rows)
+          ShoppingListMapper.fromDbWithItems(list, items),
+      ]);
 });
 
 /// Single shopping list detail with items — used on the detail screen.
