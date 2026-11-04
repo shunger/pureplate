@@ -305,6 +305,34 @@ void main() {
       expect((await db.preferencesDao.getPreferences()).sharedPantryId, 'home');
     });
 
+    test('asks which quantity to keep for items in both pantries', () async {
+      when(() => service.getPantry('personal'))
+          .thenAnswer((_) async => _pantry('personal', owner: _me));
+      List<PantryMergeConflict>? asked;
+
+      await orchestrator.joinAndMerge(
+        inviteCode: 'ABC234',
+        displayName: 'Me',
+        resolveQuantities: (conflicts) async {
+          asked = conflicts;
+          return {conflicts.single.key: 2};
+        },
+      );
+
+      expect(asked!.single.name, 'milk');
+      expect(asked!.single.sharedQuantity, 2);
+      expect(asked!.single.localQuantity, 1);
+      final milk = await db.pantryDao.getItemById('milk');
+      expect(milk!.quantity, 2);
+      expect(milk.expiresAt, DateTime(2026, 9, 20));
+      verify(() => service.updateItem(
+            pantryId: 'home',
+            itemId: 'h-milk',
+            uid: _me,
+            fields: any(named: 'fields', that: containsPair('quantity', 2.0)),
+          )).called(1);
+    });
+
     test('deletes the previous pantry when the user was its only member',
         () async {
       when(() => service.getPantry('personal'))

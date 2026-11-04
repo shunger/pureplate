@@ -5,12 +5,11 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/providers/auth_providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../pantry/data/datasources/pantry_sync_orchestrator.dart';
-import '../../../settings/presentation/providers/settings_providers.dart';
+import '../../../pantry/presentation/widgets/merge_quantities_sheet.dart';
 import '../../../shopping_list/data/datasources/shopping_list_sync_orchestrator.dart';
 import '../../data/datasources/firestore_list_sharing_service.dart';
 import '../../data/datasources/firestore_pantry_sharing_service.dart';
 import '../../domain/connect_link.dart';
-import '../family_sharing_gate.dart';
 import '../providers/sharing_providers.dart';
 
 /// Whether Smart Shopping Scanner is installed on this phone.
@@ -34,8 +33,11 @@ Future<bool> requestScannerConnection() async {
 }
 
 /// Joins the pantry and lists Smart Shopping Scanner sent in [link], after
-/// the user confirms. The pantry goes through the same Premium and sign-in
-/// gates as any pantry invite.
+/// the user confirms.
+///
+/// Joining the scanner's pantry this way is free and works without Google or
+/// Apple sign-in: it's the user's own pantry from the other app. Sharing a
+/// pantry with other people still needs Premium.
 Future<void> showConnectScannerSheet(
     BuildContext context, WidgetRef ref, ConnectLink link) {
   return showModalBottomSheet(
@@ -117,11 +119,6 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
       (_isMember(_pantry!.collaborators) ||
           ref.read(sharedPantryIdProvider).valueOrNull == _pantry!.firestoreId);
 
-  /// Whether Premium and sign-in allow joining the pantry.
-  bool get _pantryUnlocked =>
-      ref.watch(isPremiumProvider).valueOrNull == true &&
-      ref.watch(isCloudSignedInProvider);
-
   Future<void> _connect() async {
     final user = ref.read(currentUserProvider).valueOrNull;
     if (user == null) {
@@ -150,14 +147,18 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
 
     final pantry = _pantry;
     final pantryCode = widget.link.pantryCode;
-    if (pantry != null &&
-        pantryCode != null &&
-        !_pantryJoined &&
-        _pantryUnlocked) {
+    if (pantry != null && pantryCode != null && !_pantryJoined) {
       try {
-        await ref
-            .read(pantrySyncOrchestratorProvider)
-            .joinAndMerge(inviteCode: pantryCode, displayName: displayName);
+        await ref.read(pantrySyncOrchestratorProvider).joinAndMerge(
+              inviteCode: pantryCode,
+              displayName: displayName,
+              resolveQuantities: (conflicts) => showMergeQuantitiesSheet(
+                context,
+                conflicts,
+                sharedLabel: 'Scanner',
+                localLabel: 'Pure Pantry',
+              ),
+            );
         joined++;
       } catch (_) {
         failed.add(pantry.name);
@@ -186,9 +187,8 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
     final pantry = _pantry;
-    final pantryWaiting = pantry != null && !_pantryJoined && !_pantryUnlocked;
     final anythingToJoin = _lists.any((l) => !_isMember(l.$2.collaborators)) ||
-        (pantry != null && !_pantryJoined && _pantryUnlocked);
+        (pantry != null && !_pantryJoined);
 
     return SafeArea(
       child: Padding(
@@ -216,17 +216,7 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
                   title: Text(pantry.name),
                   subtitle: Text(_pantryJoined
                       ? 'Already connected'
-                      : pantryWaiting
-                          ? 'Pantry sharing needs Premium and a signed-in account'
-                          : 'Your Pure Pantry items will be added to it'),
-                  trailing: pantryWaiting
-                      ? TextButton(
-                          onPressed: _isConnecting
-                              ? null
-                              : () => passFamilySharingGates(context, ref),
-                          child: const Text('Unlock'),
-                        )
-                      : null,
+                      : 'Your Pure Pantry items will be added to it'),
                 ),
               for (final (_, info) in _lists)
                 ListTile(

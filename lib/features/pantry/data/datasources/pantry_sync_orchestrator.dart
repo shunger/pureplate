@@ -233,9 +233,10 @@ class PantrySyncOrchestrator {
   /// Join the household pantry for [inviteCode] and make it the only pantry
   /// this user syncs with:
   ///
-  /// 1. Local items are merged into the household. An item matching a
-  ///    household item by name, unit and location adds its quantity (keeping
-  ///    the earlier expiry); anything else is added as a new item.
+  /// 1. Local items are merged into the household. For an item matching a
+  ///    household item by name, unit and location, [resolveQuantities] picks
+  ///    the quantity to keep (the amounts are added without it), and the
+  ///    earlier expiry is kept; anything else is added as a new item.
   /// 2. The user leaves their previous active pantry, deleting it if they
   ///    were its only member.
   /// 3. The household becomes the active pantry.
@@ -244,6 +245,7 @@ class PantrySyncOrchestrator {
   Future<String> joinAndMerge({
     required String inviteCode,
     required String displayName,
+    ResolveMergeQuantities? resolveQuantities,
   }) async {
     final uid = _currentUid;
     if (uid == null) {
@@ -261,7 +263,8 @@ class PantrySyncOrchestrator {
       actorUid: uid,
       actorDisplayName: displayName,
     );
-    await _tracker.exclusive(() => _mergeInto(householdId, uid));
+    await _tracker.exclusive(
+        () => _mergeInto(householdId, uid, resolveQuantities));
     return householdId;
   }
 
@@ -280,7 +283,8 @@ class PantrySyncOrchestrator {
 
   // ── Merge / leave helpers ───────────────────────────────
 
-  Future<void> _mergeInto(String householdId, String uid) async {
+  Future<void> _mergeInto(String householdId, String uid,
+      [ResolveMergeQuantities? resolveQuantities]) async {
     final previousId = await _activePantryId();
     if (previousId == householdId) return;
 
@@ -307,21 +311,39 @@ class PantrySyncOrchestrator {
       final target = targets[_mergeKey(item.name, item.unitType, item.location)];
       if (target == null) {
         toAdd.add(item);
-      } else if (target.localId == null) {
-        target.absorb(item);
-        target.localId = item.id;
       } else {
-        target.absorb(item);
-        await _pantryDao.deleteItem(item.id);
+        target.matches.add(item);
       }
     }
 
-    for (final target in targets.values) {
-      final localId = target.localId;
-      if (localId == null) continue;
+    final conflicts = [
+      for (final entry in targets.entries)
+        if (entry.value.matches.isNotEmpty)
+          PantryMergeConflict(
+            key: entry.key,
+            name: entry.value.companion.name.value,
+            unitType: entry.value.companion.unitType.value,
+            sharedQuantity: entry.value.companion.quantity.value,
+            localQuantity: entry.value.localQuantity,
+          ),
+    ];
+    final chosen = conflicts.isEmpty || resolveQuantities == null
+        ? const <String, double>{}
+        : await resolveQuantities(conflicts);
+
+    for (final entry in targets.entries) {
+      final target = entry.value;
+      if (target.matches.isEmpty) continue;
+      // The first local match becomes the household item; the rest go.
+      final localId = target.matches.first.id;
+      for (final extra in target.matches.skip(1)) {
+        await _pantryDao.deleteItem(extra.id);
+      }
+      final quantity = chosen[entry.key] ??
+          target.companion.quantity.value + target.localQuantity;
       final merged = target.companion.copyWith(
         id: Value(localId),
-        quantity: Value(target.quantity),
+        quantity: Value(quantity),
         expiresAt: Value(target.expiresAt),
         createdAt: const Value.absent(),
       );
@@ -332,7 +354,7 @@ class PantrySyncOrchestrator {
         uid: uid,
         fields: _tracker.stamp(PantryWireMapper.fromCompanion(
           PantryItemsCompanion(
-            quantity: Value(target.quantity),
+            quantity: Value(quantity),
             expiresAt: Value(target.expiresAt),
           ),
         )),
@@ -433,27 +455,56 @@ class PantrySyncOrchestrator {
   }
 }
 
+/// An item in both the pantry being joined and this phone's pantry.
+class PantryMergeConflict {
+  const PantryMergeConflict({
+    required this.key,
+    required this.name,
+    required this.unitType,
+    required this.sharedQuantity,
+    required this.localQuantity,
+  });
+
+  /// Identifies the item in the map [ResolveMergeQuantities] returns.
+  final String key;
+  final String name;
+  final String unitType;
+
+  /// The amount in the pantry being joined.
+  final double sharedQuantity;
+
+  /// The amount on this phone (all matching items together).
+  final double localQuantity;
+}
+
+/// Picks the quantity to keep for each conflict, by [PantryMergeConflict.key].
+typedef ResolveMergeQuantities = Future<Map<String, double>> Function(
+    List<PantryMergeConflict> conflicts);
+
 /// A household item that local items are being merged into.
 class _MergeTarget {
-  _MergeTarget(this.itemId, this.companion)
-      : quantity = companion.quantity.value,
-        expiresAt = companion.expiresAt.value;
+  _MergeTarget(this.itemId, this.companion);
 
   final String itemId;
   final PantryItemsCompanion companion;
-  double quantity;
-  DateTime? expiresAt;
 
-  /// The local row that becomes this item; further matches are deleted.
-  String? localId;
+  /// Local items with the same name, unit and place. The first becomes this
+  /// item; the others are deleted.
+  final List<PantryItem> matches = [];
 
-  void absorb(PantryItem item) {
-    quantity += item.quantity;
-    final expiry = item.expiresAt;
-    final current = expiresAt;
-    if (expiry != null && (current == null || expiry.isBefore(current))) {
-      expiresAt = expiry;
+  double get localQuantity =>
+      matches.fold(0.0, (sum, item) => sum + item.quantity);
+
+  /// The earliest expiry of the household item and its matches.
+  DateTime? get expiresAt {
+    DateTime? earliest = companion.expiresAt.value;
+    for (final item in matches) {
+      final expiry = item.expiresAt;
+      if (expiry != null && (earliest == null || expiry.isBefore(earliest))) {
+        earliest = expiry;
+      }
     }
+    return earliest;
   }
 }
 

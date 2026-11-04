@@ -7,6 +7,7 @@ import '../../../../core/providers/auth_providers.dart';
 import '../../../../core/routing/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../pantry/data/datasources/pantry_sync_orchestrator.dart';
+import '../../../pantry/presentation/widgets/merge_quantities_sheet.dart';
 import '../../domain/invite_link.dart';
 import '../invite_links.dart';
 import '../screens/scan_invite_screen.dart';
@@ -148,6 +149,12 @@ class _JoinPantrySheetContentState
           await ref.read(pantrySyncOrchestratorProvider).joinAndMerge(
                 inviteCode: _controller.text.toUpperCase(),
                 displayName: user.displayName ?? 'Member',
+                resolveQuantities: (conflicts) => showMergeQuantitiesSheet(
+                  context,
+                  conflicts,
+                  sharedLabel: pantry.name,
+                  localLabel: 'Yours',
+                ),
               );
 
       if (!mounted) return;
