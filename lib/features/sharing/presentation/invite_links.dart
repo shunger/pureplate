@@ -78,6 +78,8 @@ class _InviteLinkListenerState extends ConsumerState<InviteLinkListener> {
   }
 
   void _onLink(Uri uri) {
+    // Scheme and host only: invite codes stay out of release logs.
+    debugPrint('[InviteLinks] ${uri.scheme}://${uri.host}');
     if (uri.scheme != 'purepantry') return;
     final connect = ConnectLink.parse(uri);
     final invite = InviteLink.parse(uri.toString());
