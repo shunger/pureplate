@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/providers/auth_providers.dart';
@@ -30,6 +33,53 @@ Future<bool> requestScannerConnection() async {
   } catch (_) {
     return false;
   }
+}
+
+const _promptedKey = 'scanner_connect_prompted';
+
+/// Remembers that the user connected or was asked, so they aren't asked again.
+Future<void> _markPrompted() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_promptedKey, true);
+  } catch (_) {}
+}
+
+/// Asks once whether to connect Smart Shopping Scanner, if it's installed on
+/// this phone and the user hasn't connected or been asked before. Settings
+/// keeps the option afterwards.
+Future<void> maybePromptScannerConnection(BuildContext context) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_promptedKey) == true) return;
+    if (!await canLaunchUrl(ConnectLink.scannerRequest)) return;
+  } catch (_) {
+    return;
+  }
+  if (!context.mounted) return;
+  await _markPrompted();
+  if (!context.mounted) return;
+  final connect = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      icon: const Icon(Icons.qr_code_scanner),
+      title: const Text('Smart Shopping Scanner is on this phone'),
+      content: const Text(
+          'Connect the two apps to use the same pantry and shopping lists in '
+          'both. You can also do this later in Settings.'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, false),
+          child: const Text('Not now'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(dialogContext, true),
+          child: const Text('Connect'),
+        ),
+      ],
+    ),
+  );
+  if (connect == true) await requestScannerConnection();
 }
 
 /// Joins the pantry and lists Smart Shopping Scanner sent in [link], after
@@ -173,6 +223,7 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
       });
       return;
     }
+    unawaited(_markPrompted());
     final messenger = ScaffoldMessenger.of(context);
     Navigator.pop(context);
     messenger.showSnackBar(SnackBar(

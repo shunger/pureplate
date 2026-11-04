@@ -1,8 +1,11 @@
 /// Links that connect Smart Shopping Scanner and Pure Pantry on one phone,
 /// so the user doesn't have to share invite codes with themselves.
 ///
-/// 1. Pure Pantry asks: `smartshoppingscanner://settings?connect=purepantry`.
+/// 1. Pure Pantry asks: `smartshoppingscanner://purepantry@settings`.
 ///    Scanner 1.1.0 just opens Settings; later builds open the Connect screen.
+///    The request is marked in the user-info part because 1.1.0 also hands
+///    links to Flutter's router, and a path or query there leaves it stuck on
+///    the splash screen.
 /// 2. After the user confirms, the scanner sends invite codes back:
 ///    `purepantry://connect?pantry=ABC234&lists=DEF567,GHJ892`.
 ///
@@ -21,13 +24,13 @@ class ConnectLink {
 
   /// Pure Pantry's request for the scanner's pantry and lists.
   static final Uri scannerRequest =
-      Uri.parse('smartshoppingscanner://settings?connect=purepantry');
+      Uri.parse('smartshoppingscanner://purepantry@settings');
 
   /// Whether [uri] is [scannerRequest].
   static bool isScannerRequest(Uri uri) =>
       uri.scheme.toLowerCase() == 'smartshoppingscanner' &&
       uri.host.toLowerCase() == 'settings' &&
-      uri.queryParameters['connect'] == 'purepantry';
+      uri.userInfo.toLowerCase() == 'purepantry';
 
   bool get isEmpty => pantryCode == null && listCodes.isEmpty;
 

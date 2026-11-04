@@ -32,7 +32,11 @@ void main() {
 
     test('recognises the scanner request, which 1.1.0 opens as Settings', () {
       expect(ConnectLink.isScannerRequest(ConnectLink.scannerRequest), isTrue);
+      // Nothing a router would read beyond the host, so 1.1.0 can't get
+      // stuck on its splash screen.
       expect(ConnectLink.scannerRequest.host, 'settings');
+      expect(ConnectLink.scannerRequest.path, '');
+      expect(ConnectLink.scannerRequest.query, '');
       expect(
           ConnectLink.isScannerRequest(
               Uri.parse('smartshoppingscanner://settings')),
