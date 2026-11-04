@@ -10,6 +10,7 @@ import '../../../../core/providers/auth_providers.dart';
 import '../../../../core/providers/database_providers.dart' show appDatabaseProvider;
 import '../../../sharing/data/datasources/firestore_activity_service.dart';
 import '../../../sharing/data/datasources/firestore_list_sharing_service.dart';
+import '../../../sharing/data/datasources/listener_retry.dart';
 import '../../../sharing/data/datasources/remote_doc.dart';
 import '../../../sharing/data/datasources/sync_tracker.dart';
 import 'shopping_list_wire_mapper.dart';
@@ -43,6 +44,7 @@ class ShoppingListSyncOrchestrator {
   String _displayName = _anonymousName;
   StreamSubscription<List<SharedListInfo>>? _listsSubscription;
   final Map<String, StreamSubscription<List<RemoteDoc>>> _itemListeners = {};
+  final _retry = ListenerRetry();
 
   // Lists left or deleted this session; ignored if a stale snapshot lists them.
   final Set<String> _departedListIds = {};
@@ -59,6 +61,10 @@ class ShoppingListSyncOrchestrator {
     stopSync();
     _currentUid = uid;
 
+    _listenToLists(uid);
+  }
+
+  void _listenToLists(String uid) {
     _listsSubscription = _sharingService.watchSharedListsForUser(uid).listen(
       (lists) => _tracker.run('reconcile lists', () => _reconcileLists(lists)),
       onError: (Object e) => debugPrint('[ListSync] lists stream: $e'),
@@ -73,6 +79,7 @@ class ShoppingListSyncOrchestrator {
       sub.cancel();
     }
     _itemListeners.clear();
+    _retry.cancelAll();
     _departedListIds.clear();
     _tracker.reset();
     _currentUid = null;
@@ -95,7 +102,7 @@ class ShoppingListSyncOrchestrator {
     final removed =
         _itemListeners.keys.where((id) => !remote.containsKey(id)).toList();
     for (final firestoreListId in removed) {
-      await _itemListeners.remove(firestoreListId)?.cancel();
+      await _removeItemListener(firestoreListId);
       final local = await _dao.getListByFirestoreId(firestoreListId);
       if (local != null) await _dao.unlinkList(local.id);
     }
@@ -115,12 +122,45 @@ class ShoppingListSyncOrchestrator {
   }
 
   void _attachItemListener(String firestoreListId) {
-    _itemListeners[firestoreListId] =
-        _sharingService.watchItemDocs(firestoreListId).listen(
-      (docs) => _tracker.run(
-          'reconcile items', () => _reconcileItems(firestoreListId, docs)),
-      onError: (Object e) => debugPrint('[ListSync] items stream: $e'),
+    late final StreamSubscription<List<RemoteDoc>> subscription;
+    subscription = _sharingService.watchItemDocs(firestoreListId).listen(
+      (docs) {
+        _retry.succeeded(firestoreListId);
+        _tracker.run(
+            'reconcile items', () => _reconcileItems(firestoreListId, docs));
+      },
+      onError: (Object e) {
+        debugPrint('[ListSync] items stream: $e');
+        // Firestore ends a listener after an error; start it again unless
+        // it was replaced or removed meanwhile (see ListenerRetry).
+        final retrying = _retry.schedule(firestoreListId, () {
+          if (!identical(_itemListeners[firestoreListId], subscription)) {
+            return;
+          }
+          subscription.cancel();
+          _attachItemListener(firestoreListId);
+        });
+        if (retrying) debugPrint('[ListSync] retrying items listener');
+      },
     );
+    _itemListeners[firestoreListId] = subscription;
+  }
+
+  Future<void> _removeItemListener(String firestoreListId) async {
+    _retry.cancel(firestoreListId);
+    await _itemListeners.remove(firestoreListId)?.cancel();
+  }
+
+  /// Starts every listener again, for pull to refresh. The lists snapshot
+  /// that follows re-attaches each list's items listener.
+  Future<void> refresh() async {
+    final uid = _currentUid;
+    if (uid == null) return;
+    await _listsSubscription?.cancel();
+    for (final id in _itemListeners.keys.toList()) {
+      await _removeItemListener(id);
+    }
+    _listenToLists(uid);
   }
 
   // ── Item-level reconciliation ─────────────────────────────
@@ -405,7 +445,7 @@ class ShoppingListSyncOrchestrator {
 
   Future<void> _detach(String firestoreListId) async {
     _departedListIds.add(firestoreListId);
-    await _itemListeners.remove(firestoreListId)?.cancel();
+    await _removeItemListener(firestoreListId);
     final local = await _dao.getListByFirestoreId(firestoreListId);
     if (local != null) await _dao.unlinkList(local.id);
   }

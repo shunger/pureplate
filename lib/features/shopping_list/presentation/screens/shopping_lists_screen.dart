@@ -60,42 +60,59 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen> {
             data: (activeLists) {
               final archivedLists = archivedAsync.valueOrNull ?? [];
               if (activeLists.isEmpty && archivedLists.isEmpty) {
-                return const _EmptyState();
+                // Scrollable so pull to refresh works on an empty page too.
+                return RefreshIndicator(
+                  onRefresh: _refresh,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      SizedBox(
+                        height: constraints.maxHeight,
+                        child: const _EmptyState(),
+                      ),
+                    ],
+                  ),
+                );
               }
-              return ListView(
-                padding: const EdgeInsets.only(bottom: 100),
-                children: [
-                  // Active lists
-                  if (activeLists.isNotEmpty) ...[
-                    _SectionHeader(
-                      title: 'Active',
-                      count: activeLists.length,
-                    ),
-                    ...activeLists.map((list) => ShoppingListCard(
+              return RefreshIndicator(
+                onRefresh: _refresh,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.only(bottom: 100),
+                  children: [
+                    // Active lists
+                    if (activeLists.isNotEmpty) ...[
+                      _SectionHeader(
+                        title: 'Active',
+                        count: activeLists.length,
+                      ),
+                      ...activeLists.map(
+                        (list) => ShoppingListCard(
                           list: list,
                           onTap: () => _openDetail(list.id),
                           onArchive: () => _archiveList(list.id),
                           onDelete: () => _deleteList(list.id),
-                        )),
-                  ],
+                        ),
+                      ),
+                    ],
 
-                  // Archived lists
-                  if (archivedLists.isNotEmpty)
-                    _ArchivedSection(
-                      lists: archivedLists,
-                      onTap: (id) => _openDetail(id),
-                      onRestore: (id) => _restoreList(id),
-                      onDelete: (id) => _deleteList(id),
-                    ),
-                ],
+                    // Archived lists
+                    if (archivedLists.isNotEmpty)
+                      _ArchivedSection(
+                        lists: archivedLists,
+                        onTap: (id) => _openDetail(id),
+                        onRestore: (id) => _restoreList(id),
+                        onDelete: (id) => _deleteList(id),
+                      ),
+                  ],
+                ),
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(child: Text('Error: $e')),
           );
 
-          final activeCount =
-              activeAsync.valueOrNull?.length ?? 0;
+          final activeCount = activeAsync.valueOrNull?.length ?? 0;
           final showGoShopping = activeCount >= 2;
 
           return Stack(
@@ -108,10 +125,14 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen> {
                   onPanUpdate: (details) {
                     setState(() {
                       _fabOffset = Offset(
-                        (_fabOffset!.dx + details.delta.dx)
-                            .clamp(0, constraints.maxWidth - _fabSize),
-                        (_fabOffset!.dy + details.delta.dy)
-                            .clamp(0, constraints.maxHeight - _fabSize),
+                        (_fabOffset!.dx + details.delta.dx).clamp(
+                          0,
+                          constraints.maxWidth - _fabSize,
+                        ),
+                        (_fabOffset!.dy + details.delta.dy).clamp(
+                          0,
+                          constraints.maxHeight - _fabSize,
+                        ),
                       );
                     });
                   },
@@ -149,6 +170,13 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen> {
     );
   }
 
+  /// Pull to refresh: restarts the shared-list listeners, then gives the
+  /// first snapshot a moment to arrive before the spinner goes away.
+  Future<void> _refresh() async {
+    await ref.read(shoppingListSyncOrchestratorProvider).refresh();
+    await Future<void>.delayed(const Duration(milliseconds: 800));
+  }
+
   void _openDetail(String listId) {
     context.go('${Routes.lists}/$listId');
   }
@@ -159,11 +187,13 @@ class _ShoppingListsScreenState extends ConsumerState<ShoppingListsScreen> {
 
   Future<void> _restoreList(String id) async {
     final dao = ref.read(shoppingListDaoProvider);
-    await dao.updateList(db.ShoppingListsCompanion(
-      id: Value(id),
-      isArchived: const Value(false),
-      updatedAt: Value(DateTime.now()),
-    ));
+    await dao.updateList(
+      db.ShoppingListsCompanion(
+        id: Value(id),
+        isArchived: const Value(false),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
   }
 
   Future<void> _deleteList(String id) async {
@@ -188,9 +218,9 @@ class _SectionHeader extends StatelessWidget {
           Text(
             title,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           const SizedBox(width: 6),
           Text(
@@ -241,9 +271,9 @@ class _ArchivedSectionState extends State<_ArchivedSection> {
                 Text(
                   'Archived',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(width: 6),
                 Text(
@@ -266,12 +296,14 @@ class _ArchivedSectionState extends State<_ArchivedSection> {
           ),
         ),
         if (_expanded)
-          ...widget.lists.map((list) => ShoppingListCard(
-                list: list,
-                onTap: () => widget.onTap(list.id),
-                onArchive: () => widget.onRestore(list.id),
-                onDelete: () => widget.onDelete(list.id),
-              )),
+          ...widget.lists.map(
+            (list) => ShoppingListCard(
+              list: list,
+              onTap: () => widget.onTap(list.id),
+              onArchive: () => widget.onRestore(list.id),
+              onDelete: () => widget.onDelete(list.id),
+            ),
+          ),
       ],
     );
   }
@@ -299,8 +331,8 @@ class _EmptyState extends StatelessWidget {
             Text(
               'No shopping lists yet',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 8),
             Text(

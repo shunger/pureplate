@@ -11,6 +11,7 @@ import '../../../../core/providers/auth_providers.dart';
 import '../../../../core/providers/database_providers.dart' show appDatabaseProvider;
 import '../../../sharing/data/datasources/firestore_activity_service.dart';
 import '../../../sharing/data/datasources/firestore_pantry_sharing_service.dart';
+import '../../../sharing/data/datasources/listener_retry.dart';
 import '../../../sharing/data/datasources/remote_doc.dart';
 import '../../../sharing/data/datasources/sync_tracker.dart';
 import '../../../sharing/data/mappers/firestore_vocab.dart';
@@ -48,6 +49,7 @@ class PantrySyncOrchestrator {
   String _displayName = _anonymousName;
   StreamSubscription<List<SharedPantryInfo>>? _pantriesSubscription;
   final Map<String, StreamSubscription<List<RemoteDoc>>> _itemListeners = {};
+  final _retry = ListenerRetry();
 
   // Pantries left this session; ignored if a stale snapshot still lists them.
   final Set<String> _departedPantryIds = {};
@@ -80,6 +82,7 @@ class PantrySyncOrchestrator {
       sub.cancel();
     }
     _itemListeners.clear();
+    _retry.cancelAll();
     _departedPantryIds.clear();
     _tracker.reset();
     _currentUid = null;
@@ -122,17 +125,36 @@ class PantrySyncOrchestrator {
     final removed =
         _itemListeners.keys.where((id) => !remoteIds.contains(id)).toList();
     for (final pantryId in removed) {
-      await _itemListeners.remove(pantryId)?.cancel();
+      await _removeItemListener(pantryId);
       await _pantryDao.unlinkItemsForPantry(pantryId);
     }
   }
 
   void _attachItemListener(String pantryId) {
-    _itemListeners[pantryId] = _sharingService.watchItemDocs(pantryId).listen(
-      (docs) =>
-          _tracker.run('reconcile items', () => _reconcileItems(pantryId, docs)),
-      onError: (Object e) => debugPrint('[PantrySync] items stream: $e'),
+    late final StreamSubscription<List<RemoteDoc>> subscription;
+    subscription = _sharingService.watchItemDocs(pantryId).listen(
+      (docs) {
+        _retry.succeeded(pantryId);
+        _tracker.run('reconcile items', () => _reconcileItems(pantryId, docs));
+      },
+      onError: (Object e) {
+        debugPrint('[PantrySync] items stream: $e');
+        // Firestore ends a listener after an error; start it again unless
+        // it was replaced or removed meanwhile (see ListenerRetry).
+        final retrying = _retry.schedule(pantryId, () {
+          if (!identical(_itemListeners[pantryId], subscription)) return;
+          subscription.cancel();
+          _attachItemListener(pantryId);
+        });
+        if (retrying) debugPrint('[PantrySync] retrying items listener');
+      },
     );
+    _itemListeners[pantryId] = subscription;
+  }
+
+  Future<void> _removeItemListener(String pantryId) async {
+    _retry.cancel(pantryId);
+    await _itemListeners.remove(pantryId)?.cancel();
   }
 
   /// Push local items that aren't in any shared pantry to [pantryId].
@@ -391,7 +413,7 @@ class PantrySyncOrchestrator {
 
   Future<void> _detach(String pantryId) async {
     _departedPantryIds.add(pantryId);
-    await _itemListeners.remove(pantryId)?.cancel();
+    await _removeItemListener(pantryId);
     await _pantryDao.unlinkItemsForPantry(pantryId);
   }
 
