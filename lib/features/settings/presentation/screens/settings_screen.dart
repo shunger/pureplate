@@ -11,6 +11,7 @@ import '../../../../core/providers/database_providers.dart';
 import '../../../../core/services/thaw_reminder_service.dart';
 import '../../../../shared/widgets/sign_in_bottom_sheet.dart';
 import '../../../sharing/presentation/providers/sharing_providers.dart';
+import '../../../sharing/presentation/widgets/connect_scanner_sheet.dart';
 import '../providers/settings_providers.dart';
 
 /// Settings screen — Account, Preferences, Notifications, Data, About.
@@ -62,6 +63,7 @@ class SettingsScreen extends ConsumerWidget {
           // ── Sharing Section ───────────────────────────────────
           _SectionHeader(title: 'Sharing'),
           const _SharingTile(),
+          const _ConnectScannerTile(),
 
           const Divider(indent: 16, endIndent: 16),
 
@@ -604,6 +606,34 @@ class _SectionHeader extends StatelessWidget {
               letterSpacing: 0.5,
             ),
       ),
+    );
+  }
+}
+
+/// Shown when Smart Shopping Scanner is on this phone: opens its Connect
+/// screen, which sends back its pantry and lists to join.
+class _ConnectScannerTile extends ConsumerWidget {
+  const _ConnectScannerTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (ref.watch(scannerInstalledProvider).valueOrNull != true) {
+      return const SizedBox.shrink();
+    }
+    return ListTile(
+      leading: const Icon(Icons.qr_code_scanner),
+      title: const Text('Connect Smart Shopping Scanner'),
+      subtitle: const Text(
+          'Use the same pantry and lists in both apps (scanner 1.2 or later)'),
+      trailing: Icon(Icons.chevron_right,
+          color: Theme.of(context).colorScheme.onSurfaceVariant),
+      onTap: () async {
+        final opened = await requestScannerConnection();
+        if (!opened && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text("Couldn't open Smart Shopping Scanner")));
+        }
+      },
     );
   }
 }

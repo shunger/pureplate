@@ -7,8 +7,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/routing/app_router.dart';
 import '../../../core/routing/route_names.dart';
+import '../domain/connect_link.dart';
 import '../domain/invite_link.dart';
 import 'family_sharing_gate.dart';
+import 'widgets/connect_scanner_sheet.dart';
 import 'widgets/join_list_sheet.dart';
 import 'widgets/join_pantry_sheet.dart';
 
@@ -26,7 +28,8 @@ Future<void> openInvite(
 }
 
 /// Opens `purepantry://join?code=…` and `purepantry://pantry/join?code=…`
-/// links, from a QR code scanned with the Camera app or a shared message.
+/// links, from a QR code scanned with the Camera app or a shared message, and
+/// `purepantry://connect?…` links from Smart Shopping Scanner on this phone.
 ///
 /// A link that starts the app waits until the splash screen and onboarding
 /// are done, so the join sheet isn't covered by the first screen.
@@ -43,7 +46,8 @@ class InviteLinkListener extends ConsumerStatefulWidget {
 class _InviteLinkListenerState extends ConsumerState<InviteLinkListener> {
   late final GoRouterDelegate _router;
   StreamSubscription<Uri>? _links;
-  InviteLink? _pending;
+  /// Opens the sheet for the latest link, once the app is ready for it.
+  void Function(BuildContext context)? _pending;
 
   @override
   void initState() {
@@ -68,22 +72,28 @@ class _InviteLinkListenerState extends ConsumerState<InviteLinkListener> {
 
   void _onLink(Uri uri) {
     if (uri.scheme != 'purepantry') return;
+    final connect = ConnectLink.parse(uri);
     final invite = InviteLink.parse(uri.toString());
-    if (invite == null) return;
-    _pending = invite;
+    if (connect != null) {
+      _pending = (context) => showConnectScannerSheet(context, ref, connect);
+    } else if (invite != null) {
+      _pending = (context) => openInvite(context, ref, invite);
+    } else {
+      return;
+    }
     _openPending();
   }
 
   void _openPending() {
-    final invite = _pending;
-    if (invite == null) return;
+    final open = _pending;
+    if (open == null) return;
     final path = _router.currentConfiguration.uri.path;
     if (path == Routes.splash || path.startsWith('/onboarding')) return;
     final navigatorContext = _router.navigatorKey.currentContext;
     if (navigatorContext == null) return;
     _pending = null;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (navigatorContext.mounted) openInvite(navigatorContext, ref, invite);
+      if (navigatorContext.mounted) open(navigatorContext);
     });
   }
 

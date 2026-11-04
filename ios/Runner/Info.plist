@@ -49,6 +49,10 @@
 		</dict>
 		<key>FlutterDeepLinkingEnabled</key>
 		<false/>
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+			<string>smartshoppingscanner</string>
+		</array>
 		<key>CFBundleURLTypes</key>
 		<array>
 			<dict>
