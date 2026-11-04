@@ -24,14 +24,14 @@ class _MockActivityService extends Mock implements FirestoreActivityService {}
 const _me = 'user-me';
 
 SharedListInfo _list(String id, {required String owner}) => SharedListInfo(
-      firestoreId: id,
-      name: 'Shared groceries',
-      ownerUid: owner,
-      collaborators: {
-        owner: ListCollaborator(uid: owner, role: 'owner', displayName: owner),
-        _me: const ListCollaborator(uid: _me, role: 'editor', displayName: 'Me'),
-      },
-    );
+  firestoreId: id,
+  name: 'Shared groceries',
+  ownerUid: owner,
+  collaborators: {
+    owner: ListCollaborator(uid: owner, role: 'owner', displayName: owner),
+    _me: const ListCollaborator(uid: _me, role: 'editor', displayName: 'Me'),
+  },
+);
 
 void main() {
   late AppDatabase db;
@@ -44,26 +44,32 @@ void main() {
   Future<void> settle() => pumpEventQueue(times: 100);
 
   Future<void> insertList(String id, {String? firestoreId}) =>
-      db.shoppingListDao.insertList(ShoppingListsCompanion(
-        id: Value(id),
-        name: const Value('Groceries'),
-        firestoreId: Value(firestoreId),
-        createdAt: Value(DateTime(2026)),
-        updatedAt: Value(DateTime(2026)),
-      ));
+      db.shoppingListDao.insertList(
+        ShoppingListsCompanion(
+          id: Value(id),
+          name: const Value('Groceries'),
+          firestoreId: Value(firestoreId),
+          createdAt: Value(DateTime(2026)),
+          updatedAt: Value(DateTime(2026)),
+        ),
+      );
 
-  Future<void> insertItem(String id,
-          {String? firestoreItemId, bool completed = false}) =>
-      db.shoppingListDao.insertItem(ShoppingListItemsCompanion(
-        id: Value(id),
-        listId: const Value('l1'),
-        name: const Value('Milk'),
-        isCompleted: Value(completed),
-        firestoreListId: Value(firestoreItemId == null ? null : 'fs-l1'),
-        firestoreItemId: Value(firestoreItemId),
-        addedAt: Value(DateTime(2026)),
-        updatedAt: Value(DateTime(2026)),
-      ));
+  Future<void> insertItem(
+    String id, {
+    String? firestoreItemId,
+    bool completed = false,
+  }) => db.shoppingListDao.insertItem(
+    ShoppingListItemsCompanion(
+      id: Value(id),
+      listId: const Value('l1'),
+      name: const Value('Milk'),
+      isCompleted: Value(completed),
+      firestoreListId: Value(firestoreItemId == null ? null : 'fs-l1'),
+      firestoreItemId: Value(firestoreItemId),
+      addedAt: Value(DateTime(2026)),
+      updatedAt: Value(DateTime(2026)),
+    ),
+  );
 
   setUp(() {
     db = createTestDatabase();
@@ -71,26 +77,31 @@ void main() {
     lists = StreamController<List<SharedListInfo>>();
     itemStreams = {};
 
-    when(() => service.watchSharedListsForUser(any()))
-        .thenAnswer((_) => lists.stream);
+    when(
+      () => service.watchSharedListsForUser(any()),
+    ).thenAnswer((_) => lists.stream);
     when(() => service.watchItemDocs(any())).thenAnswer((invocation) {
       final listId = invocation.positionalArguments.first as String;
       return itemStreams
           .putIfAbsent(listId, () => StreamController<List<RemoteDoc>>())
           .stream;
     });
-    when(() => service.addItemsBatch(
-          listId: any(named: 'listId'),
-          uid: any(named: 'uid'),
-          itemsByLocalId: any(named: 'itemsByLocalId'),
-        )).thenAnswer((invocation) {
-      final items = invocation.namedArguments[#itemsByLocalId]
-          as Map<String, Map<String, dynamic>>;
+    when(
+      () => service.addItemsBatch(
+        listId: any(named: 'listId'),
+        uid: any(named: 'uid'),
+        itemsByLocalId: any(named: 'itemsByLocalId'),
+      ),
+    ).thenAnswer((invocation) {
+      final items =
+          invocation.namedArguments[#itemsByLocalId]
+              as Map<String, Map<String, dynamic>>;
       return {for (final localId in items.keys) localId: 'fs-$localId'};
     });
     when(() => service.deleteSharedList(any())).thenAnswer((_) async {});
-    when(() => service.removeCollaborator(any(), any()))
-        .thenAnswer((_) async {});
+    when(
+      () => service.removeCollaborator(any(), any()),
+    ).thenAnswer((_) async {});
 
     activity = _MockActivityService();
     orchestrator = ShoppingListSyncOrchestrator(
@@ -116,18 +127,24 @@ void main() {
       await insertItem('i1');
       when(() => service.newListId()).thenReturn('fs-l1');
       String? linkedWhenShared;
-      when(() => service.shareList(
-            listId: any(named: 'listId'),
-            displayName: any(named: 'displayName'),
-            name: any(named: 'name'),
-            storeName: any(named: 'storeName'),
-          )).thenAnswer((_) async {
-        linkedWhenShared = (await db.shoppingListDao.getListById('l1'))?.firestoreId;
+      when(
+        () => service.shareList(
+          listId: any(named: 'listId'),
+          displayName: any(named: 'displayName'),
+          name: any(named: 'name'),
+          storeName: any(named: 'storeName'),
+        ),
+      ).thenAnswer((_) async {
+        linkedWhenShared = (await db.shoppingListDao.getListById(
+          'l1',
+        ))?.firestoreId;
       });
       orchestrator.startSync(_me);
 
-      final firestoreListId =
-          await orchestrator.shareList(localListId: 'l1', displayName: 'Me');
+      final firestoreListId = await orchestrator.shareList(
+        localListId: 'l1',
+        displayName: 'Me',
+      );
 
       expect(firestoreListId, 'fs-l1');
       expect(linkedWhenShared, 'fs-l1');
@@ -157,12 +174,14 @@ void main() {
 
       await orchestrator.toggleItemCompletion('i1', true);
 
-      verify(() => service.updateItem(
-            listId: 'fs-l1',
-            itemId: 'fs-i1',
-            uid: _me,
-            fields: any(named: 'fields', that: containsPair('isChecked', true)),
-          )).called(1);
+      verify(
+        () => service.updateItem(
+          listId: 'fs-l1',
+          itemId: 'fs-i1',
+          uid: _me,
+          fields: any(named: 'fields', that: containsPair('isChecked', true)),
+        ),
+      ).called(1);
     });
 
     test('check all pushes every linked item in one batch', () async {
@@ -171,11 +190,13 @@ void main() {
 
       await orchestrator.setAllCompleted('l1', true);
 
-      verify(() => service.updateItemsBatch(
-            listId: 'fs-l1',
-            uid: _me,
-            fieldsByItemId: any(named: 'fieldsByItemId', that: hasLength(2)),
-          )).called(1);
+      verify(
+        () => service.updateItemsBatch(
+          listId: 'fs-l1',
+          uid: _me,
+          fieldsByItemId: any(named: 'fieldsByItemId', that: hasLength(2)),
+        ),
+      ).called(1);
     });
 
     test('clearing completed items removes them remotely', () async {
@@ -184,37 +205,44 @@ void main() {
 
       await orchestrator.clearCompleted('l1');
 
-      verify(() => service.removeItemsBatch(listId: 'fs-l1', itemIds: ['fs-i1']))
-          .called(1);
+      verify(
+        () => service.removeItemsBatch(listId: 'fs-l1', itemIds: ['fs-i1']),
+      ).called(1);
       expect(await db.shoppingListDao.getItemById('i2'), isNotNull);
     });
 
-    test('checking an item is logged for collaborators; check all is not',
-        () async {
-      await insertItem('i1', firestoreItemId: 'fs-i1');
+    test(
+      'checking an item is logged for collaborators; check all is not',
+      () async {
+        await insertItem('i1', firestoreItemId: 'fs-i1');
 
-      await orchestrator.toggleItemCompletion('i1', true);
-      await orchestrator.setAllCompleted('l1', false);
+        await orchestrator.toggleItemCompletion('i1', true);
+        await orchestrator.setAllCompleted('l1', false);
 
-      verify(() => activity.logListActivity(
+        verify(
+          () => activity.logListActivity(
             'fs-l1',
             type: 'itemChecked',
             actorUid: _me,
             actorDisplayName: any(named: 'actorDisplayName'),
             itemName: 'Milk',
             details: any(named: 'details'),
-          )).called(1);
-      verifyNoMoreInteractions(activity);
-    });
+          ),
+        ).called(1);
+        verifyNoMoreInteractions(activity);
+      },
+    );
 
     test('adding an item pushes it', () async {
-      await orchestrator.insertItem(ShoppingListItemsCompanion(
-        id: const Value('new'),
-        listId: const Value('l1'),
-        name: const Value('Bread'),
-        addedAt: Value(DateTime(2026)),
-        updatedAt: Value(DateTime(2026)),
-      ));
+      await orchestrator.insertItem(
+        ShoppingListItemsCompanion(
+          id: const Value('new'),
+          listId: const Value('l1'),
+          name: const Value('Bread'),
+          addedAt: Value(DateTime(2026)),
+          updatedAt: Value(DateTime(2026)),
+        ),
+      );
 
       final row = await db.shoppingListDao.getItemById('new');
       expect(row!.firestoreItemId, 'fs-new');
@@ -228,8 +256,9 @@ void main() {
     });
 
     test('an owner deletes the shared list for everyone', () async {
-      when(() => service.getList('fs-l1'))
-          .thenAnswer((_) async => _list('fs-l1', owner: _me));
+      when(
+        () => service.getList('fs-l1'),
+      ).thenAnswer((_) async => _list('fs-l1', owner: _me));
 
       await orchestrator.deleteList('l1');
 
@@ -239,8 +268,9 @@ void main() {
     });
 
     test('a collaborator only leaves the shared list', () async {
-      when(() => service.getList('fs-l1'))
-          .thenAnswer((_) async => _list('fs-l1', owner: 'scanner-user'));
+      when(
+        () => service.getList('fs-l1'),
+      ).thenAnswer((_) async => _list('fs-l1', owner: 'scanner-user'));
 
       await orchestrator.deleteList('l1');
 
@@ -270,8 +300,9 @@ void main() {
 
       final local = await db.shoppingListDao.watchActiveLists().first;
       expect(local.where((l) => l.firestoreId == 'fs-shared'), hasLength(1));
-      final items =
-          await db.shoppingListDao.getItemsByFirestoreListId('fs-shared');
+      final items = await db.shoppingListDao.getItemsByFirestoreListId(
+        'fs-shared',
+      );
       expect(items.single.name, 'Oregano');
       expect(items.single.category, 'spices');
     });
@@ -290,43 +321,136 @@ void main() {
   });
 
   test('joinList creates the local list and logs the join', () async {
-    when(() => service.joinList(
-          inviteCode: 'ABC234',
-          uid: _me,
-          displayName: 'Me',
-        )).thenAnswer((_) async => 'fs-joined');
-    when(() => service.getList('fs-joined'))
-        .thenAnswer((_) async => _list('fs-joined', owner: 'scanner-user'));
+    when(
+      () => service.joinList(inviteCode: 'ABC234', uid: _me, displayName: 'Me'),
+    ).thenAnswer((_) async => 'fs-joined');
+    when(
+      () => service.getList('fs-joined'),
+    ).thenAnswer((_) async => _list('fs-joined', owner: 'scanner-user'));
     orchestrator.startSync(_me);
 
     await orchestrator.joinList(inviteCode: 'ABC234', displayName: 'Me');
 
-    expect(await db.shoppingListDao.getListByFirestoreId('fs-joined'), isNotNull);
-    verify(() => activity.logListActivity(
-          'fs-joined',
-          type: 'collaboratorJoined',
-          actorUid: _me,
-          actorDisplayName: 'Me',
-          itemName: any(named: 'itemName'),
-          details: any(named: 'details'),
-        )).called(1);
+    expect(
+      await db.shoppingListDao.getListByFirestoreId('fs-joined'),
+      isNotNull,
+    );
+    verify(
+      () => activity.logListActivity(
+        'fs-joined',
+        type: 'collaboratorJoined',
+        actorUid: _me,
+        actorDisplayName: 'Me',
+        itemName: any(named: 'itemName'),
+        details: any(named: 'details'),
+      ),
+    ).called(1);
   });
 
-  test('the provider starts syncing for a user who is already signed in',
+  group('mergeSameNameList', () {
+    Future<void> insertNamed(String id, String name) =>
+        db.shoppingListDao.insertItem(
+          ShoppingListItemsCompanion(
+            id: Value(id),
+            listId: const Value('l1'),
+            name: Value(name),
+            addedAt: Value(DateTime(2026)),
+            updatedAt: Value(DateTime(2026)),
+          ),
+        );
+
+    setUp(() async {
+      // This phone's own, unshared "Groceries" with Milk and Eggs.
+      await insertList('l1');
+      await insertNamed('milk', 'Milk');
+      await insertNamed('eggs', 'Eggs');
+      // The scanner's list has the same name (other case and spacing) and
+      // already has milk.
+      when(() => service.getList('fs-joined')).thenAnswer(
+        (_) async => SharedListInfo(
+          firestoreId: 'fs-joined',
+          name: ' groceries ',
+          ownerUid: 'scanner-user',
+        ),
+      );
+      when(() => service.getItemDocs('fs-joined')).thenAnswer(
+        (_) async => [
+          RemoteDoc('r-milk', {'name': 'milk'}),
+        ],
+      );
+      orchestrator.startSync(_me);
+    });
+
+    test(
+      'moves the own list into the joined copy, skipping duplicates',
       () async {
-    final user = _MockUser();
-    when(() => user.uid).thenReturn(_me);
-    final container = ProviderContainer(overrides: [
-      appDatabaseProvider.overrideWithValue(db),
-      firestoreListSharingServiceProvider.overrideWithValue(service),
-      firestoreActivityServiceProvider.overrideWithValue(activity),
-      currentUserProvider.overrideWith((ref) => Stream.value(user)),
-    ]);
-    addTearDown(container.dispose);
+        await db.shoppingListDao.insertList(
+          ShoppingListsCompanion(
+            id: const Value('joined'),
+            name: const Value(' groceries '),
+            firestoreId: const Value('fs-joined'),
+            createdAt: Value(DateTime(2026)),
+            updatedAt: Value(DateTime(2026)),
+          ),
+        );
 
-    await container.read(currentUserProvider.future);
-    container.read(shoppingListSyncOrchestratorProvider);
+        expect(await orchestrator.mergeSameNameList('fs-joined'), isTrue);
 
-    verify(() => service.watchSharedListsForUser(_me)).called(1);
+        expect(await db.shoppingListDao.getListById('l1'), isNull);
+        final items = await db.shoppingListDao.getItemsForList('joined');
+        expect(items.map((i) => i.name), ['Eggs']);
+        expect(items.single.firestoreItemId, 'fs-eggs');
+        verify(
+          () => service.addItemsBatch(
+            listId: 'fs-joined',
+            uid: _me,
+            itemsByLocalId: any(
+              named: 'itemsByLocalId',
+              that: predicate<Map>(
+                (m) => m.keys.toSet().containsAll(['eggs']) && m.length == 1,
+              ),
+            ),
+          ),
+        ).called(1);
+      },
+    );
+
+    test('links the own list when there is no local copy yet', () async {
+      expect(await orchestrator.mergeSameNameList('fs-joined'), isTrue);
+
+      final linked = await db.shoppingListDao.getListById('l1');
+      expect(linked!.firestoreId, 'fs-joined');
+      final items = await db.shoppingListDao.getItemsForList('l1');
+      expect(items.map((i) => i.name), ['Eggs']);
+    });
+
+    test('leaves lists that are already shared alone', () async {
+      await db.shoppingListDao.updateListFirestoreId('l1', 'fs-other');
+
+      expect(await orchestrator.mergeSameNameList('fs-joined'), isFalse);
+      expect(await db.shoppingListDao.getItemsForList('l1'), hasLength(2));
+    });
   });
+
+  test(
+    'the provider starts syncing for a user who is already signed in',
+    () async {
+      final user = _MockUser();
+      when(() => user.uid).thenReturn(_me);
+      final container = ProviderContainer(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(db),
+          firestoreListSharingServiceProvider.overrideWithValue(service),
+          firestoreActivityServiceProvider.overrideWithValue(activity),
+          currentUserProvider.overrideWith((ref) => Stream.value(user)),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(currentUserProvider.future);
+      container.read(shoppingListSyncOrchestratorProvider);
+
+      verify(() => service.watchSharedListsForUser(_me)).called(1);
+    },
+  );
 }

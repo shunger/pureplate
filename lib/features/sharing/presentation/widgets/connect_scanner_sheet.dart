@@ -118,6 +118,10 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
   SharedPantryInfo? _pantry;
   final _lists = <(String code, SharedListInfo info)>[];
 
+  /// Shared list ids that this phone has an unshared list of the same name
+  /// for; connecting merges the two.
+  final _merging = <String>{};
+
   /// Codes that didn't look up: expired, refreshed since, or invalid.
   int _unusable = 0;
 
@@ -145,6 +149,12 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
         : await attempt(() => pantryService.lookupByInviteCode(pantryCode));
     final lists = await Future.wait(widget.link.listCodes.map(
         (code) => attempt(() => listService.lookupByInviteCode(code))));
+    final listSync = ref.read(shoppingListSyncOrchestratorProvider);
+    final merging = <String>{
+      for (final info in lists.whereType<SharedListInfo>())
+        if (await listSync.sameNameLocalList(info.name) != null)
+          info.firestoreId,
+    };
     if (!mounted) return;
 
     setState(() {
@@ -153,6 +163,7 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
         final info = lists[i];
         if (info != null) _lists.add((widget.link.listCodes[i], info));
       }
+      _merging.addAll(merging);
       _unusable = (pantryCode != null && pantry == null ? 1 : 0) +
           lists.where((l) => l == null).length;
       _isLooking = false;
@@ -183,13 +194,19 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
 
     var joined = 0;
     final failed = <String>[];
+    final listSync = ref.read(shoppingListSyncOrchestratorProvider);
     for (final (code, info) in _lists) {
-      if (_isMember(info.collaborators)) continue;
       try {
-        await ref
-            .read(shoppingListSyncOrchestratorProvider)
-            .joinList(inviteCode: code, displayName: displayName);
-        joined++;
+        if (!_isMember(info.collaborators)) {
+          await listSync.joinList(inviteCode: code, displayName: displayName);
+          joined++;
+        }
+        // The scanner's list and this phone's list of the same name are the
+        // same person's list: make them one.
+        if (_merging.contains(info.firestoreId) &&
+            await listSync.mergeSameNameList(info.firestoreId)) {
+          joined++;
+        }
       } catch (_) {
         failed.add(info.name);
       }
@@ -238,7 +255,9 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
     final pantry = _pantry;
-    final anythingToJoin = _lists.any((l) => !_isMember(l.$2.collaborators)) ||
+    final anythingToJoin = _lists.any((l) =>
+            !_isMember(l.$2.collaborators) ||
+            _merging.contains(l.$2.firestoreId)) ||
         (pantry != null && !_pantryJoined);
 
     return SafeArea(
@@ -275,9 +294,11 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
                   leading:
                       const Icon(Icons.shopping_cart, color: AppColors.sage),
                   title: Text(info.name),
-                  subtitle: Text(_isMember(info.collaborators)
-                      ? 'Already connected'
-                      : 'Shopping list'),
+                  subtitle: Text(_merging.contains(info.firestoreId)
+                      ? 'Will be merged with your list of the same name'
+                      : _isMember(info.collaborators)
+                          ? 'Already connected'
+                          : 'Shopping list'),
                 ),
               if (_unusable > 0)
                 Padding(

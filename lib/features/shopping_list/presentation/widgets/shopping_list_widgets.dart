@@ -181,11 +181,21 @@ class _ShoppingListItemSheetState
               ),
             ),
             const SizedBox(height: 16),
-            Text(
-              _isEditing ? 'Edit Item' : 'Add Item',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _isEditing ? 'Edit Item' : 'Add Item',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                   ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             TextField(

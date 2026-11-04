@@ -318,6 +318,12 @@ class FirestoreListSharingService {
         (snap) => [for (final d in snap.docs) RemoteDoc(d.id, d.data())]);
   }
 
+  /// Read the raw item documents in a shared list once.
+  Future<List<RemoteDoc>> getItemDocs(String listId) async {
+    final snap = await _items(listId).get();
+    return [for (final d in snap.docs) RemoteDoc(d.id, d.data())];
+  }
+
   /// Watch all shared lists the user belongs to.
   Stream<List<SharedListInfo>> watchSharedListsForUser(String uid) {
     return _listsForUser(uid).snapshots().map((snap) =>

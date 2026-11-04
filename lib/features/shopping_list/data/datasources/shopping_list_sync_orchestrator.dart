@@ -209,6 +209,65 @@ class ShoppingListSyncOrchestrator {
     return firestoreListId;
   }
 
+  /// This phone's own list with the same name as [name] (ignoring case and
+  /// spaces), if there's one that isn't shared.
+  Future<ShoppingList?> sameNameLocalList(String name) async {
+    final key = _listKey(name);
+    final lists = await _dao.watchActiveLists().first;
+    return lists
+        .where((l) => l.firestoreId == null && _listKey(l.name) == key)
+        .firstOrNull;
+  }
+
+  /// Merges this phone's unshared list with the same name into the shared
+  /// list [firestoreListId], which the user has joined: its items move over
+  /// and are pushed, except ones already on the shared list, and it's
+  /// removed. For connecting the same person's lists in two apps, never for
+  /// someone else's invite. Returns whether a list was merged.
+  Future<bool> mergeSameNameList(String firestoreListId) async {
+    final uid = _currentUid;
+    if (uid == null) return false;
+    final info = await _sharingService.getList(firestoreListId);
+    if (info == null) return false;
+    return _tracker.exclusive(() async {
+      final own = await sameNameLocalList(info.name);
+      if (own == null) return false;
+
+      final onShared = {
+        for (final doc in await _sharingService.getItemDocs(firestoreListId))
+          _listKey(doc.data['name'] as String? ?? ''),
+      };
+      final items = await _dao.getItemsForList(own.id);
+      final duplicates =
+          items.where((i) => onShared.contains(_listKey(i.name))).toList();
+      final moving =
+          items.where((i) => !onShared.contains(_listKey(i.name))).toList();
+
+      final linked = await _dao.getListByFirestoreId(firestoreListId);
+      if (linked == null) {
+        // No local copy of the shared list yet: this list becomes it.
+        await _dao.updateListFirestoreId(own.id, firestoreListId);
+        for (final item in duplicates) {
+          await _dao.deleteItem(item.id);
+        }
+        await _pushNewItems(firestoreListId, uid, moving);
+      } else {
+        await _dao.moveItems([for (final i in moving) i.id], linked.id);
+        final moved = <ShoppingListItem>[];
+        for (final item in moving) {
+          final row = await _dao.getItemById(item.id);
+          if (row != null) moved.add(row);
+        }
+        await _pushNewItems(firestoreListId, uid, moved);
+        await _dao.deleteList(own.id);
+      }
+      return true;
+    });
+  }
+
+  static String _listKey(String name) =>
+      name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+
   /// Insert an item. Pushes it if the list is shared.
   Future<void> insertItem(ShoppingListItemsCompanion item) =>
       insertItems([item]);
