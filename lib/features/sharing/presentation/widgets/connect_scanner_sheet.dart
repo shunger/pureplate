@@ -28,8 +28,10 @@ final scannerInstalledProvider = FutureProvider<bool>((ref) async {
 /// back in a `purepantry://connect` link, which opens [showConnectScannerSheet].
 Future<bool> requestScannerConnection() async {
   try {
-    return await launchUrl(ConnectLink.scannerRequest,
-        mode: LaunchMode.externalApplication);
+    return await launchUrl(
+      ConnectLink.scannerRequest,
+      mode: LaunchMode.externalApplication,
+    );
   } catch (_) {
     return false;
   }
@@ -65,8 +67,9 @@ Future<void> maybePromptScannerConnection(BuildContext context) async {
       icon: const Icon(Icons.qr_code_scanner),
       title: const Text('Smart Shopping Scanner is on this phone'),
       content: const Text(
-          'Connect the two apps to use the same pantry and shopping lists in '
-          'both. You can also do this later in Settings.'),
+        'Connect the two apps to use the same pantry and shopping lists in '
+        'both. You can also do this later in Settings.',
+      ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(dialogContext, false),
@@ -89,7 +92,10 @@ Future<void> maybePromptScannerConnection(BuildContext context) async {
 /// Apple sign-in: it's the user's own pantry from the other app. Sharing a
 /// pantry with other people still needs Premium.
 Future<void> showConnectScannerSheet(
-    BuildContext context, WidgetRef ref, ConnectLink link) {
+  BuildContext context,
+  WidgetRef ref,
+  ConnectLink link,
+) {
   return showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -139,7 +145,8 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
     Future<T?> attempt<T>(Future<T?> Function() lookup) async {
       try {
         return await lookup();
-      } catch (_) {
+      } catch (e) {
+        debugPrint('[Connect] lookup failed: $e');
         return null;
       }
     }
@@ -147,14 +154,26 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
     final pantry = pantryCode == null
         ? null
         : await attempt(() => pantryService.lookupByInviteCode(pantryCode));
-    final lists = await Future.wait(widget.link.listCodes.map(
-        (code) => attempt(() => listService.lookupByInviteCode(code))));
+    final lists = await Future.wait(
+      widget.link.listCodes.map(
+        (code) => attempt(() => listService.lookupByInviteCode(code)),
+      ),
+    );
     final listSync = ref.read(shoppingListSyncOrchestratorProvider);
     final merging = <String>{
       for (final info in lists.whereType<SharedListInfo>())
         if (await listSync.sameNameLocalList(info.name) != null)
           info.firestoreId,
     };
+    debugPrint(
+      '[Connect] pantry ${pantryCode == null
+          ? 'not sent'
+          : pantry == null
+          ? 'not found'
+          : 'found'}, '
+      'lists ${lists.whereType<SharedListInfo>().length}/${lists.length} found, '
+      '${merging.length} to merge',
+    );
     if (!mounted) return;
 
     setState(() {
@@ -164,7 +183,8 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
         if (info != null) _lists.add((widget.link.listCodes[i], info));
       }
       _merging.addAll(merging);
-      _unusable = (pantryCode != null && pantry == null ? 1 : 0) +
+      _unusable =
+          (pantryCode != null && pantry == null ? 1 : 0) +
           lists.where((l) => l == null).length;
       _isLooking = false;
     });
@@ -207,16 +227,26 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
             await listSync.mergeSameNameList(info.firestoreId)) {
           joined++;
         }
-      } catch (_) {
+      } catch (e) {
+        debugPrint('[Connect] list join failed: $e');
         failed.add(info.name);
       }
     }
 
     final pantry = _pantry;
     final pantryCode = widget.link.pantryCode;
+    debugPrint(
+      '[Connect] pantry: ${pantry == null
+          ? 'none'
+          : _pantryJoined
+          ? 'already joined'
+          : 'joining'}',
+    );
     if (pantry != null && pantryCode != null && !_pantryJoined) {
       try {
-        await ref.read(pantrySyncOrchestratorProvider).joinAndMerge(
+        await ref
+            .read(pantrySyncOrchestratorProvider)
+            .joinAndMerge(
               inviteCode: pantryCode,
               displayName: displayName,
               resolveQuantities: (conflicts) => showMergeQuantitiesSheet(
@@ -227,7 +257,8 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
               ),
             );
         joined++;
-      } catch (_) {
+      } catch (e) {
+        debugPrint('[Connect] pantry join failed: $e');
         failed.add(pantry.name);
       }
     }
@@ -243,11 +274,15 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
     unawaited(_markPrompted());
     final messenger = ScaffoldMessenger.of(context);
     Navigator.pop(context);
-    messenger.showSnackBar(SnackBar(
-      content: Text(joined == 0
-          ? 'Already connected to Smart Shopping Scanner'
-          : 'Connected to Smart Shopping Scanner'),
-    ));
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          joined == 0
+              ? 'Already connected to Smart Shopping Scanner'
+              : 'Connected to Smart Shopping Scanner',
+        ),
+      ),
+    );
   }
 
   @override
@@ -255,9 +290,12 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
     final pantry = _pantry;
-    final anythingToJoin = _lists.any((l) =>
-            !_isMember(l.$2.collaborators) ||
-            _merging.contains(l.$2.firestoreId)) ||
+    final anythingToJoin =
+        _lists.any(
+          (l) =>
+              !_isMember(l.$2.collaborators) ||
+              _merging.contains(l.$2.firestoreId),
+        ) ||
         (pantry != null && !_pantryJoined);
 
     return SafeArea(
@@ -267,9 +305,12 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Connect Smart Shopping Scanner',
-                style: theme.textTheme.titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w700)),
+            Text(
+              'Connect Smart Shopping Scanner',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
             const SizedBox(height: 8),
             Text(
               'Changes in either app will show up in both.',
@@ -284,21 +325,27 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.kitchen, color: AppColors.sage),
                   title: Text(pantry.name),
-                  subtitle: Text(_pantryJoined
-                      ? 'Already connected'
-                      : 'Your Pure Pantry items will be added to it'),
+                  subtitle: Text(
+                    _pantryJoined
+                        ? 'Already connected'
+                        : 'Your Pure Pantry items will be added to it',
+                  ),
                 ),
               for (final (_, info) in _lists)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading:
-                      const Icon(Icons.shopping_cart, color: AppColors.sage),
+                  leading: const Icon(
+                    Icons.shopping_cart,
+                    color: AppColors.sage,
+                  ),
                   title: Text(info.name),
-                  subtitle: Text(_merging.contains(info.firestoreId)
-                      ? 'Will be merged with your list of the same name'
-                      : _isMember(info.collaborators)
-                          ? 'Already connected'
-                          : 'Shopping list'),
+                  subtitle: Text(
+                    _merging.contains(info.firestoreId)
+                        ? 'Will be merged with your list of the same name'
+                        : _isMember(info.collaborators)
+                        ? 'Already connected'
+                        : 'Shopping list',
+                  ),
                 ),
               if (_unusable > 0)
                 Padding(
@@ -306,9 +353,9 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
                   child: Text(
                     _unusable == 1
                         ? "One item couldn't be found. Try connecting again "
-                            'from Smart Shopping Scanner.'
+                              'from Smart Shopping Scanner.'
                         : "$_unusable items couldn't be found. Try connecting "
-                            'again from Smart Shopping Scanner.',
+                              'again from Smart Shopping Scanner.',
                     style: theme.textTheme.bodySmall?.copyWith(color: muted),
                   ),
                 ),
@@ -322,8 +369,8 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
               onPressed: _isLooking || _isConnecting
                   ? null
                   : anythingToJoin
-                      ? _connect
-                      : () => Navigator.pop(context),
+                  ? _connect
+                  : () => Navigator.pop(context),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.coral,
                 minimumSize: const Size.fromHeight(48),
@@ -333,7 +380,10 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white))
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
                   : Text(anythingToJoin ? 'Connect' : 'Done'),
             ),
           ],

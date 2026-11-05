@@ -49,6 +49,9 @@ class ShoppingListSyncOrchestrator {
   // Lists left or deleted this session; ignored if a stale snapshot lists them.
   final Set<String> _departedListIds = {};
 
+  /// Lists checked for an empty same-name duplicate this session.
+  final Set<String> _duplicateCheckedIds = {};
+
   String? get currentUid => _currentUid;
 
   // ── Lifecycle ─────────────────────────────────────────────
@@ -81,6 +84,7 @@ class ShoppingListSyncOrchestrator {
     _itemListeners.clear();
     _retry.cancelAll();
     _departedListIds.clear();
+    _duplicateCheckedIds.clear();
     _tracker.reset();
     _currentUid = null;
   }
@@ -104,7 +108,13 @@ class ShoppingListSyncOrchestrator {
     for (final firestoreListId in removed) {
       await _removeItemListener(firestoreListId);
       final local = await _dao.getListByFirestoreId(firestoreListId);
-      if (local != null) await _dao.unlinkList(local.id);
+      if (local == null) continue;
+      // An empty leftover would just be a duplicate-looking blank list.
+      if ((await _dao.getItemsForList(local.id)).isEmpty) {
+        await _dao.deleteList(local.id);
+      } else {
+        await _dao.unlinkList(local.id);
+      }
     }
   }
 
@@ -184,6 +194,47 @@ class ShoppingListSyncOrchestrator {
       ));
     }
     await _dao.deleteItemsNotInRemoteSet(firestoreListId, batch.keepIds);
+    if (_duplicateCheckedIds.add(firestoreListId)) {
+      // After this snapshot is applied, so item counts are current. Not
+      // awaited: removing a list waits for this reconcile to finish.
+      unawaited(_dropEmptyDuplicate(firestoreListId));
+    }
+  }
+
+  /// Lists being removed as duplicates. Two lists' checks can run at once
+  /// and pick the same empty list; it's removed once.
+  final Set<String> _removingIds = {};
+
+  Future<void> _removeDuplicate(String localListId) async {
+    if (!_removingIds.add(localListId)) return;
+    debugPrint('[ListSync] removing an empty duplicate list');
+    await deleteList(localListId);
+  }
+
+  /// When a shared list arrives and another active list has the same name
+  /// (ignoring case and spacing), the empty one goes: the other list if it's
+  /// empty, otherwise this one if it is. Lists that both have items stay.
+  Future<void> _dropEmptyDuplicate(String firestoreListId) async {
+    try {
+      final list = await _dao.getListByFirestoreId(firestoreListId);
+      if (list == null) return;
+      final key = _listKey(list.name);
+      final others = (await _dao.watchActiveLists().first)
+          .where((l) => l.id != list.id && _listKey(l.name) == key)
+          .toList();
+      if (others.isEmpty) return;
+      final isEmpty = (await _dao.getItemsForList(list.id)).isEmpty;
+      for (final other in others) {
+        if ((await _dao.getItemsForList(other.id)).isEmpty) {
+          await _removeDuplicate(other.id);
+        } else if (isEmpty) {
+          await _removeDuplicate(list.id);
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint('[ListSync] duplicate check failed: $e');
+    }
   }
 
   // ── Public mutation API ───────────────────────────────────

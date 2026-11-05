@@ -307,8 +307,18 @@ void main() {
       expect(items.single.category, 'spices');
     });
 
-    test('are unlinked but kept when the user loses access', () async {
+    const oregano = RemoteDoc('s1', {
+      'productName': 'Oregano',
+      'quantity': 2,
+      'isChecked': false,
+      'updatedBy': 'scanner-user',
+    });
+
+    test('are unlinked but kept, with their items, when access is lost',
+        () async {
       lists.add([_list('fs-shared', owner: 'scanner-user')]);
+      await settle();
+      itemStreams['fs-shared']!.add([oregano]);
       await settle();
 
       lists.add([]);
@@ -317,6 +327,56 @@ void main() {
       final local = await db.shoppingListDao.watchActiveLists().first;
       expect(local, hasLength(1));
       expect(local.single.firestoreId, isNull);
+    });
+
+    test('are deleted when access is lost and they are empty', () async {
+      lists.add([_list('fs-shared', owner: 'scanner-user')]);
+      await settle();
+      itemStreams['fs-shared']!.add([]);
+      await settle();
+
+      lists.add([]);
+      await settle();
+
+      expect(await db.shoppingListDao.watchActiveLists().first, isEmpty);
+    });
+
+    SharedListInfo groceries(String id) => SharedListInfo(
+          firestoreId: id,
+          name: 'groceries ',
+          ownerUid: 'scanner-user',
+          collaborators: {
+            _me: const ListCollaborator(
+                uid: _me, role: 'editor', displayName: 'Me'),
+          },
+        );
+
+    test('replace an empty list with the same name', () async {
+      await insertList('l1'); // "Groceries", no items
+
+      lists.add([groceries('fs-shared')]);
+      await settle();
+      itemStreams['fs-shared']!.add([oregano]);
+      await settle();
+
+      final local = await db.shoppingListDao.watchActiveLists().first;
+      expect(local.map((l) => l.firestoreId), ['fs-shared']);
+    });
+
+    test('are left when empty and a same-name list has items', () async {
+      await insertList('l1');
+      await insertItem('milk'); // "Groceries" has Milk
+      when(() => service.getList('fs-shared'))
+          .thenAnswer((_) async => groceries('fs-shared'));
+
+      lists.add([groceries('fs-shared')]);
+      await settle();
+      itemStreams['fs-shared']!.add([]);
+      await settle();
+
+      final local = await db.shoppingListDao.watchActiveLists().first;
+      expect(local.map((l) => l.id), ['l1']);
+      verify(() => service.removeCollaborator('fs-shared', _me)).called(1);
     });
   });
 
