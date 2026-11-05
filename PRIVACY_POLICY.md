@@ -2,7 +2,7 @@
 
 **Pure Pantry AI**
 **Operated by:** Pure Hunger Labs
-**Effective Date:** October 20, 2026
+**Effective Date:** November 5, 2026
 **Contact:** support@purehungerlabs.com
 
 ---
@@ -28,6 +28,7 @@ When you use Pure Pantry AI, you may provide:
 - **Usage and subscription records:** How many AI meal plans and chat messages you have used this week, when your free trial started, and whether you have an active Premium subscription.
 - **Push notification token:** If you allow notifications, a token that lets us send them to your device.
 - **Device information:** Device type, operating system version and app version, used to keep the service secure (Firebase App Check) and working.
+- **Crash and error reports:** If the app crashes, or a problem such as a failed sync stops part of it working, Firebase Crashlytics sends us a report: the error and where in the app's code it happened, your device model, operating system and app version, and a random identifier for this installation. Reports do not include the contents of your pantry, lists or recipes, and we use them only to find and fix bugs.
 
 We do not use analytics or advertising SDKs, and we do not track you across other companies' apps or websites.
 
@@ -49,6 +50,7 @@ We use the information we collect to:
 - Send push notifications you enable (expiry alerts, sharing activity, reminders)
 - Enforce free-tier limits and manage your subscription status
 - Protect the service from abuse
+- Find and fix crashes and bugs
 
 ---
 
@@ -84,7 +86,7 @@ Your pantry, recipes, recipe photos, meal plans, shopping lists and family profi
 
 ### Data Retention
 
-Data on your device stays until you delete it or remove the app. Cloud data is kept until you delete it or ask us to delete your account. Server logs are deleted after 30 days.
+Data on your device stays until you delete it or remove the app. Cloud data is kept until you delete it or ask us to delete your account. Server logs are deleted after 30 days, and crash reports after 90 days.
 
 ---
 
@@ -92,7 +94,7 @@ Data on your device stays until you delete it or remove the app. Cloud data is k
 
 | Service | Purpose |
 |---------|---------|
-| **Firebase (Google)** | Anonymous and Google/Apple sign-in, Firestore database, Cloud Functions, push notifications, Remote Config, App Check |
+| **Firebase (Google)** | Anonymous and Google/Apple sign-in, Firestore database, Cloud Functions, push notifications, Remote Config, App Check, Crashlytics (crash and error reports) |
 | **Amazon Web Services** | AI features: Amazon Bedrock (Anthropic Claude for meal plans, chat and reading recipe photos; Stability AI for dish photos) and Amazon Polly (spoken cooking guidance) |
 | **Apple Speech Recognition** | Turning your voice into text on iPhone |
 | **Open Food Facts** | Product, nutrition and ingredient lookup by barcode |

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/database/app_database.dart';
+import '../../../../core/services/error_reporter.dart';
 import '../../../../core/database/daos/pantry_dao.dart';
 import '../../../../core/database/daos/preferences_dao.dart';
 import '../../../../core/providers/auth_providers.dart';
@@ -70,7 +71,10 @@ class PantrySyncOrchestrator {
         _sharingService.watchSharedPantriesForUser(uid).listen(
       (pantries) =>
           _tracker.run('reconcile pantries', () => _reconcilePantries(pantries)),
-      onError: (Object e) => debugPrint('[PantrySync] pantries stream: $e'),
+      onError: (Object e, StackTrace stack) {
+        debugPrint('[PantrySync] pantries stream: $e');
+        ErrorReporter.nonFatal(e, stack, 'Shared pantries stream failed');
+      },
     );
   }
 
@@ -137,7 +141,7 @@ class PantrySyncOrchestrator {
         _retry.succeeded(pantryId);
         _tracker.run('reconcile items', () => _reconcileItems(pantryId, docs));
       },
-      onError: (Object e) {
+      onError: (Object e, StackTrace stack) {
         debugPrint('[PantrySync] items stream: $e');
         // Firestore ends a listener after an error; start it again unless
         // it was replaced or removed meanwhile (see ListenerRetry).
@@ -146,7 +150,11 @@ class PantrySyncOrchestrator {
           subscription.cancel();
           _attachItemListener(pantryId);
         });
-        if (retrying) debugPrint('[PantrySync] retrying items listener');
+        if (retrying) {
+          debugPrint('[PantrySync] retrying items listener');
+        } else {
+          ErrorReporter.nonFatal(e, stack, 'Pantry items listener gave up');
+        }
       },
     );
     _itemListeners[pantryId] = subscription;

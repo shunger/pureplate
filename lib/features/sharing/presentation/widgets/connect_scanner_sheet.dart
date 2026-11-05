@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/providers/auth_providers.dart';
+import '../../../../core/services/error_reporter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../pantry/data/datasources/pantry_sync_orchestrator.dart';
 import '../../../pantry/presentation/widgets/merge_quantities_sheet.dart';
@@ -145,8 +146,9 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
     Future<T?> attempt<T>(Future<T?> Function() lookup) async {
       try {
         return await lookup();
-      } catch (e) {
+      } catch (e, stack) {
         debugPrint('[Connect] lookup failed: $e');
+        ErrorReporter.nonFatal(e, stack, 'Connect lookup failed');
         return null;
       }
     }
@@ -227,8 +229,9 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
             await listSync.mergeSameNameList(info.firestoreId)) {
           joined++;
         }
-      } catch (e) {
+      } catch (e, stack) {
         debugPrint('[Connect] list join failed: $e');
+        ErrorReporter.nonFatal(e, stack, 'Connect list join failed');
         failed.add(info.name);
       }
     }
@@ -257,8 +260,9 @@ class _ConnectScannerSheetState extends ConsumerState<_ConnectScannerSheet> {
               ),
             );
         joined++;
-      } catch (e) {
+      } catch (e, stack) {
         debugPrint('[Connect] pantry join failed: $e');
+        ErrorReporter.nonFatal(e, stack, 'Connect pantry join failed');
         failed.add(pantry.name);
       }
     }

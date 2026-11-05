@@ -44,7 +44,7 @@
 <div class="meta">
   <p><strong>Pure Pantry AI</strong></p>
   <p><strong>Operated by:</strong> Pure Hunger Labs</p>
-  <p><strong>Effective Date:</strong> October 20, 2026</p>
+  <p><strong>Effective Date:</strong> November 5, 2026</p>
   <p><strong>Contact:</strong> <a href="mailto:support@purehungerlabs.com">support@purehungerlabs.com</a></p>
 </div>
 
@@ -71,6 +71,7 @@
   <li><strong>Usage and subscription records:</strong> How many AI meal plans and chat messages you have used this week, when your free trial started, and whether you have an active Premium subscription.</li>
   <li><strong>Push notification token:</strong> If you allow notifications, a token that lets us send them to your device.</li>
   <li><strong>Device information:</strong> Device type, operating system version and app version, used to keep the service secure (Firebase App Check) and working.</li>
+  <li><strong>Crash and error reports:</strong> If the app crashes, or a problem such as a failed sync stops part of it working, Firebase Crashlytics sends us a report: the error and where in the app's code it happened, your device model, operating system and app version, and a random identifier for this installation. Reports do not include the contents of your pantry, lists or recipes, and we use them only to find and fix bugs.</li>
 </ul>
 <p>We do not use analytics or advertising SDKs, and we do not track you across other companies' apps or websites.</p>
 
@@ -92,6 +93,7 @@
   <li>Send push notifications you enable (expiry alerts, sharing activity, reminders)</li>
   <li>Enforce free-tier limits and manage your subscription status</li>
   <li>Protect the service from abuse</li>
+  <li>Find and fix crashes and bugs</li>
 </ul>
 
 <hr>
@@ -126,7 +128,7 @@
 </ul>
 
 <h3>Data Retention</h3>
-<p>Data on your device stays until you delete it or remove the app. Cloud data is kept until you delete it or ask us to delete your account. Server logs are deleted after 30 days.</p>
+<p>Data on your device stays until you delete it or remove the app. Cloud data is kept until you delete it or ask us to delete your account. Server logs are deleted after 30 days, and crash reports after 90 days.</p>
 
 <hr>
 
@@ -134,7 +136,7 @@
 <div class="table-wrap">
 <table>
   <tr><th>Service</th><th>Purpose</th></tr>
-  <tr><td><strong>Firebase (Google)</strong></td><td>Anonymous and Google/Apple sign-in, Firestore database, Cloud Functions, push notifications, Remote Config, App Check</td></tr>
+  <tr><td><strong>Firebase (Google)</strong></td><td>Anonymous and Google/Apple sign-in, Firestore database, Cloud Functions, push notifications, Remote Config, App Check, Crashlytics (crash and error reports)</td></tr>
   <tr><td><strong>Amazon Web Services</strong></td><td>AI features: Amazon Bedrock (Anthropic Claude for meal plans, chat and reading recipe photos; Stability AI for dish photos) and Amazon Polly (spoken cooking guidance)</td></tr>
   <tr><td><strong>Apple Speech Recognition</strong></td><td>Turning your voice into text on iPhone</td></tr>
   <tr><td><strong>Open Food Facts</strong></td><td>Product, nutrition and ingredient lookup by barcode</td></tr>

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/database/app_database.dart';
+import '../../../../core/services/error_reporter.dart';
 import '../../../../core/database/daos/shopping_list_dao.dart';
 import '../../../../core/providers/auth_providers.dart';
 import '../../../../core/providers/database_providers.dart' show appDatabaseProvider;
@@ -70,7 +71,10 @@ class ShoppingListSyncOrchestrator {
   void _listenToLists(String uid) {
     _listsSubscription = _sharingService.watchSharedListsForUser(uid).listen(
       (lists) => _tracker.run('reconcile lists', () => _reconcileLists(lists)),
-      onError: (Object e) => debugPrint('[ListSync] lists stream: $e'),
+      onError: (Object e, StackTrace stack) {
+        debugPrint('[ListSync] lists stream: $e');
+        ErrorReporter.nonFatal(e, stack, 'Shared lists stream failed');
+      },
     );
   }
 
@@ -139,7 +143,7 @@ class ShoppingListSyncOrchestrator {
         _tracker.run(
             'reconcile items', () => _reconcileItems(firestoreListId, docs));
       },
-      onError: (Object e) {
+      onError: (Object e, StackTrace stack) {
         debugPrint('[ListSync] items stream: $e');
         // Firestore ends a listener after an error; start it again unless
         // it was replaced or removed meanwhile (see ListenerRetry).
@@ -150,7 +154,11 @@ class ShoppingListSyncOrchestrator {
           subscription.cancel();
           _attachItemListener(firestoreListId);
         });
-        if (retrying) debugPrint('[ListSync] retrying items listener');
+        if (retrying) {
+          debugPrint('[ListSync] retrying items listener');
+        } else {
+          ErrorReporter.nonFatal(e, stack, 'List items listener gave up');
+        }
       },
     );
     _itemListeners[firestoreListId] = subscription;
@@ -232,8 +240,9 @@ class ShoppingListSyncOrchestrator {
           return;
         }
       }
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('[ListSync] duplicate check failed: $e');
+      ErrorReporter.nonFatal(e, stack, 'Duplicate list check failed');
     }
   }
 
@@ -464,8 +473,9 @@ class ShoppingListSyncOrchestrator {
     if (firestoreListId != null && uid != null) {
       try {
         await _tracker.exclusive(() => _leaveOrDelete(firestoreListId, uid));
-      } catch (e) {
+      } catch (e, stack) {
         debugPrint('[ListSync] leaving shared list failed: $e');
+        ErrorReporter.nonFatal(e, stack, 'Leaving a shared list failed');
       }
     }
     await _dao.deleteList(localListId);

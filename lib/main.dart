@@ -10,6 +10,7 @@ import 'package:timezone/data/latest_all.dart' as tz;
 import 'firebase_options.dart';
 
 import 'app.dart';
+import 'core/services/error_reporter.dart';
 import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/update/app_version.dart';
@@ -25,6 +26,7 @@ Future<void> main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    await ErrorReporter.init();
 
     // Activate App Check (required by Cloud Functions).
     await FirebaseAppCheck.instance.activate(
