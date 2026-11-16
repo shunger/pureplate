@@ -31,6 +31,13 @@ class AiQuotaStatus {
   /// True once this snapshot describes a week that has already ended.
   bool get isStale => DateTime.now().isAfter(resetAt);
 
+  /// True once the free trial is over. Unlike the weekly counts this stays
+  /// true, so it holds even for a stale snapshot.
+  bool get trialEnded {
+    final ends = trialEndsAt;
+    return ends != null && DateTime.now().isAfter(ends);
+  }
+
   static AiQuotaStatus? fromJson(Map<String, dynamic>? json) {
     if (json == null) return null;
 

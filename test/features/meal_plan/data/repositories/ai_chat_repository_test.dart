@@ -114,6 +114,23 @@ void main() {
         );
       });
 
+      test('resource-exhausted shows why, from the server', () async {
+        const why = 'Your 14-day free trial has ended. Upgrade to Premium to '
+            'keep using AI chat.';
+        when(() => mockCallable.call(any())).thenThrow(
+          TestFirebaseFunctionsException('resource-exhausted', message: why),
+        );
+
+        expect(
+          () => repository.sendMessage(
+            userMessage: 'Hi',
+            chatHistory: '',
+            preferenceSummary: {},
+          ),
+          throwsA(isA<AiChatException>().having((e) => e.message, 'message', why)),
+        );
+      });
+
       test('unavailable maps correctly', () async {
         when(() => mockCallable.call(any())).thenThrow(
           TestFirebaseFunctionsException('unavailable'),

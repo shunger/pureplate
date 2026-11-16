@@ -26,6 +26,7 @@ import '../../../home/presentation/widgets/meal_preferences_sheet.dart';
 import '../../../recipes/data/datasources/recipe_mapper.dart';
 import '../providers/quota_providers.dart';
 import '../widgets/quota_hint.dart';
+import 'package:pure_pantry/shared/widgets/home_button.dart';
 
 /// Chat-style interface for conversational meal planning.
 ///
@@ -156,6 +157,11 @@ class _ChatPlanningScreenState extends ConsumerState<ChatPlanningScreen> {
             child: const Text('Quick Plan',
                 style: TextStyle(color: AppColors.coral)),
           ),
+          // The Chat tab has the bottom bar; the full-screen chat doesn't.
+          // (Meal mode's close button already goes Home.)
+          if (!_isMealMode &&
+              GoRouterState.of(context).uri.path == Routes.chat)
+            const HomeButton(),
         ],
       ),
       body: GestureDetector(

@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -12,11 +12,39 @@ class LastLocation {
   static const _locationKey = 'last_location';
   static const _savedAtKey = 'last_location_saved_at';
 
-  /// Older than this, the user has likely moved on; start at Home.
-  static const maxAge = Duration(hours: 24);
+  /// Away at least this long, the user has likely moved on, so the app starts
+  /// at Home: whether iOS or Android closed it meanwhile (see [restore]) or
+  /// kept it in memory (see [track]). Coming back the next day to yesterday's
+  /// chat or recipe is confusing.
+  static const maxAge = Duration(hours: 4);
 
-  /// Records the top-most screen whenever navigation changes.
+  static AppLifecycleListener? _lifecycle;
+
+  /// Records the top-most screen whenever navigation changes, and goes Home
+  /// when the app comes back after [maxAge] in the background.
   static void track(GoRouter router) {
+    DateTime? leftAt;
+    String? leftFrom;
+    _lifecycle?.dispose();
+    _lifecycle = AppLifecycleListener(
+      onHide: () {
+        leftAt ??= DateTime.now();
+        leftFrom = _currentLocation(router);
+      },
+      onShow: () {
+        final since = leftAt;
+        leftAt = null;
+        if (since == null) return;
+        if (shouldStartOver(
+          away: DateTime.now().difference(since),
+          leftFrom: leftFrom,
+          current: _currentLocation(router),
+        )) {
+          router.go(Routes.home);
+        }
+      },
+    );
+
     String? last;
     router.routerDelegate.addListener(() {
       final location = _currentLocation(router);
@@ -47,6 +75,23 @@ class LastLocation {
     } catch (e) {
       debugPrint('LastLocation: save failed: $e');
     }
+  }
+
+  /// Whether an app returning after [away] in the background should go Home
+  /// instead of staying on [leftFrom].
+  @visibleForTesting
+  static bool shouldStartOver({
+    required Duration away,
+    required String? leftFrom,
+    required String? current,
+  }) {
+    if (away < maxAge || leftFrom == null) return false;
+    // A link that brought the app back has already gone somewhere new.
+    if (current != leftFrom) return false;
+    final path = Uri.tryParse(leftFrom)?.path ?? '';
+    return path != Routes.home &&
+        path != Routes.splash &&
+        !path.startsWith('/onboarding');
   }
 
   /// Takes the user back to where they were, or to Home.

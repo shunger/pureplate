@@ -13,6 +13,7 @@ import '../../../../shared/widgets/sign_in_bottom_sheet.dart';
 import '../../../sharing/presentation/providers/sharing_providers.dart';
 import '../../../sharing/presentation/widgets/connect_scanner_sheet.dart';
 import '../providers/settings_providers.dart';
+import 'package:pure_pantry/shared/widgets/home_button.dart';
 
 /// Settings screen — Account, Preferences, Notifications, Data, About.
 class SettingsScreen extends ConsumerWidget {
@@ -28,6 +29,7 @@ class SettingsScreen extends ConsumerWidget {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Settings'),
+        actions: const [HomeButton()],
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),

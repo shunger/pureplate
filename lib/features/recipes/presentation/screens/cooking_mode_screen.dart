@@ -10,6 +10,7 @@ import '../../../pantry/data/services/pantry_consumption_service.dart';
 import '../../../shopping_list/data/datasources/shopping_list_sync_orchestrator.dart';
 import '../../data/datasources/recipe_mapper.dart';
 import '../providers/recipe_providers.dart';
+import 'package:pure_pantry/shared/widgets/home_button.dart';
 
 /// Step-by-step cooking mode with large text, timers, and screen-awake lock.
 class CookingModeScreen extends ConsumerStatefulWidget {
@@ -96,6 +97,7 @@ class _CookingModeScreenState extends ConsumerState<CookingModeScreen> {
                   ),
                 ),
               ),
+              const HomeButton(),
             ],
           ),
           body: Padding(

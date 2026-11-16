@@ -178,6 +178,23 @@ void main() {
         );
       });
 
+      test('resource-exhausted shows why, from the server', () async {
+        const why = 'Your 14-day free trial has ended. Upgrade to Premium to '
+            'keep using AI meal plans.';
+        when(() => mockCallable.call(any())).thenThrow(
+          TestFirebaseFunctionsException('resource-exhausted', message: why),
+        );
+
+        expect(
+          () => repository.generatePlan(
+            numDays: 3,
+            dayLabels: ['Mon', 'Tue', 'Wed'],
+            preferenceSummary: {},
+          ),
+          throwsA(isA<AiPlanException>().having((e) => e.message, 'message', why)),
+        );
+      });
+
       test('unavailable maps to unavailable message', () async {
         when(() => mockCallable.call(any())).thenThrow(
           TestFirebaseFunctionsException('unavailable'),

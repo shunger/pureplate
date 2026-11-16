@@ -185,7 +185,10 @@ class AiChatRepository {
   String _userFriendlyMessage(String code, String? serverMessage) {
     switch (code) {
       case 'resource-exhausted':
-        return "You've reached your chat limit. Upgrade to Premium for unlimited AI chat!";
+        // The server says why ("Your 14-day free trial has ended…").
+        return (serverMessage != null && serverMessage.isNotEmpty)
+            ? serverMessage
+            : 'Your free trial has ended. Upgrade to Premium to keep using AI chat.';
       case 'unavailable':
         return 'The AI chef is temporarily unavailable. Try again in a moment.';
       case 'permission-denied':

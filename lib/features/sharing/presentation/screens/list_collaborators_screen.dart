@@ -10,6 +10,7 @@ import '../../data/datasources/firestore_list_sharing_service.dart';
 import '../../domain/invite_link.dart';
 import '../providers/sharing_providers.dart';
 import '../widgets/invite_qr_code.dart';
+import 'package:pure_pantry/shared/widgets/home_button.dart';
 
 /// Shows shared list info, collaborator list, and invite code management.
 class ListCollaboratorsScreen extends ConsumerWidget {
@@ -36,6 +37,7 @@ class ListCollaboratorsScreen extends ConsumerWidget {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Shared List'),
+        actions: const [HomeButton()],
       ),
       body: listInfo == null
           ? const Center(child: CircularProgressIndicator())

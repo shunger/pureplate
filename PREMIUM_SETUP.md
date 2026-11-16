@@ -135,12 +135,14 @@ subscription period, so do not shorten them to "Premium".
 
 **Do not create an introductory offer in App Store Connect or Play Console.**
 
-The 14-day trial is entirely server-side (`rateLimiter.ts:22`, `TRIAL_MS`) and
+The 14-day trial is entirely server-side (`rateLimiter.ts`, `TRIAL_MS`) and
 independent of StoreKit / Play Billing. It keys off `firstUsedAt` in the user's
 quota doc, so it starts on first AI use rather than at signup, survives the
 weekly counter reset, and grants genuinely uncapped access
-(`unlimited = premium || inTrial`, `rateLimiter.ts:74`). `quota_hint.dart:37-44`
-renders the countdown to the user.
+(`unlimited = premium || inTrial`). After it, AI meal plans and chat are
+Premium only: there is no free weekly allowance (removed 2026-11-16; it was
+2 plans / 10 chats a week). `quota_hint.dart` shows the countdown, then
+"Your free trial has ended".
 
 Rationale: users reach the paywall having already had 14 uncapped days with no
 card on file, so a store trial would mostly defer revenue and hand a second free

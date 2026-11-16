@@ -9,6 +9,7 @@ import '../../../../core/routing/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/services/purchase_service.dart';
 import '../providers/purchase_providers.dart';
+import 'package:pure_pantry/shared/widgets/home_button.dart';
 
 /// Premium subscription marketing page.
 class PremiumScreen extends ConsumerWidget {
@@ -22,6 +23,7 @@ class PremiumScreen extends ConsumerWidget {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Pure Pantry Premium'),
+        actions: const [HomeButton()],
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
@@ -83,13 +85,13 @@ class PremiumScreen extends ConsumerWidget {
           _FeatureRow(
             icon: Icons.auto_awesome,
             title: 'Unlimited Meal Plans',
-            subtitle: 'Free: 2 per week',
+            subtitle: 'Free for your first 14 days',
             isPremium: true,
           ),
           _FeatureRow(
             icon: Icons.chat,
             title: 'Unlimited AI Chat',
-            subtitle: 'Free: 10 messages per week',
+            subtitle: 'Free for your first 14 days',
             isPremium: true,
           ),
           _FeatureRow(

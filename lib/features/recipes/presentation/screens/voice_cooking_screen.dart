@@ -26,6 +26,7 @@ import '../../domain/models/recipe.dart';
 import '../providers/recipe_providers.dart';
 import '../providers/voice_cooking_providers.dart';
 import '../../../../core/providers/speech_providers.dart';
+import 'package:pure_pantry/shared/widgets/home_button.dart';
 
 /// Hands-free voice cooking assistant screen.
 ///
@@ -807,6 +808,11 @@ class _VoiceCookingScreenState extends ConsumerState<VoiceCookingScreen>
                 ),
               ),
             ),
+            HomeButton(confirm: () async {
+              if (!await _confirmExit()) return false;
+              await _cleanup();
+              return true;
+            }),
           ],
         ),
         body: Padding(

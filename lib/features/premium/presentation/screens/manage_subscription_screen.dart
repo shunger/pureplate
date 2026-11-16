@@ -12,6 +12,7 @@ import '../../../../core/routing/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/services/purchase_service.dart';
 import '../providers/purchase_providers.dart';
+import 'package:pure_pantry/shared/widgets/home_button.dart';
 
 /// Subscription status and the route out to the store's management UI.
 ///
@@ -26,7 +27,10 @@ class ManageSubscriptionScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(title: const Text('Manage Subscription')),
+      appBar: AppBar(
+        title: const Text('Manage Subscription'),
+        actions: const [HomeButton()],
+      ),
       body: prefsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(

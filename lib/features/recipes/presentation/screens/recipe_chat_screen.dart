@@ -18,6 +18,7 @@ import '../../../../shared/models/dietary_restriction.dart';
 import '../../../../shared/models/product_category.dart';
 import '../../data/datasources/recipe_mapper.dart';
 import '../providers/recipe_providers.dart';
+import 'package:pure_pantry/shared/widgets/home_button.dart';
 
 /// Chat screen for modifying an existing recipe via AI conversation.
 ///
@@ -90,6 +91,7 @@ class _RecipeChatScreenState extends ConsumerState<RecipeChatScreen> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Modify Recipe'),
+        actions: const [HomeButton()],
       ),
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),

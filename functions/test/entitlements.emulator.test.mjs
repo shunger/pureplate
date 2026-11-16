@@ -9,6 +9,7 @@ import {
   revokeIfFromSubscription,
 } from "../lib/services/entitlementService.js";
 import {MAX_LINKED_ACCOUNTS} from "../lib/services/subscriptionLinks.js";
+import {checkRateLimit} from "../lib/middleware/rateLimiter.js";
 
 // Runs against the Firestore emulator (see `npm run test:entitlements`).
 
@@ -127,5 +128,58 @@ describe("applyEntitlement", () => {
 
     assert.equal(result.applied, true);
     assert.equal((await entitlementOf("user")).isPremium, false);
+  });
+});
+
+describe("checkRateLimit", () => {
+  const startedDaysAgo = (uid, days) =>
+    db.doc(`users/${uid}/quota/weekly`).set({
+      planCount: 0,
+      chatCount: 0,
+      weekStart: Date.now() - DAY,
+      firstUsedAt: Date.now() - days * DAY,
+    });
+
+  it("is unlimited during the 14-day trial, starting at the first use", async () => {
+    for (let i = 0; i < 12; i++) {
+      const quota = await checkRateLimit("new-user", "chat");
+      assert.equal(quota.unlimited, true);
+    }
+    const quota = await checkRateLimit("new-user", "plan");
+    assert.ok(quota.trialEndsAt > Date.now() + 13 * DAY);
+  });
+
+  it("gives no free use after the trial", async () => {
+    await startedDaysAgo("lapsed", 15);
+    for (const feature of ["plan", "chat"]) {
+      await assert.rejects(checkRateLimit("lapsed", feature), (e) => {
+        assert.equal(e.code, "resource-exhausted");
+        assert.match(e.message, /free trial has ended/);
+        return true;
+      });
+    }
+    const data = (await db.doc("users/lapsed/quota/weekly").get()).data();
+    assert.equal(data.planCount, 0, "a refused call isn't counted");
+  });
+
+  it("a new week doesn't restart the trial", async () => {
+    await db.doc("users/lapsed/quota/weekly").set({
+      planCount: 3,
+      chatCount: 3,
+      weekStart: Date.now() - 8 * DAY,
+      firstUsedAt: Date.now() - 20 * DAY,
+    });
+    await assert.rejects(checkRateLimit("lapsed", "chat"));
+  });
+
+  it("stays unlimited for Premium after the trial", async () => {
+    await startedDaysAgo("subscriber", 30);
+    await db.doc("users/subscriber/entitlement/current").set({
+      isPremium: true,
+      expiresAt: Date.now() + 30 * DAY,
+    });
+    const quota = await checkRateLimit("subscriber", "plan");
+    assert.equal(quota.unlimited, true);
+    assert.equal(quota.trialEndsAt, null);
   });
 });

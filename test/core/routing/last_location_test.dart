@@ -39,4 +39,45 @@ void main() {
       }
     });
   });
+
+  group('shouldStartOver', () {
+    const recipe = '/recipes/r1';
+
+    test('a short break stays put', () {
+      expect(
+          LastLocation.shouldStartOver(
+              away: const Duration(hours: 1), leftFrom: recipe, current: recipe),
+          isFalse);
+    });
+
+    test('coming back the next day goes Home', () {
+      expect(
+          LastLocation.shouldStartOver(
+              away: const Duration(hours: 20), leftFrom: recipe, current: recipe),
+          isTrue);
+      expect(
+          LastLocation.shouldStartOver(
+              away: LastLocation.maxAge, leftFrom: '/chat', current: '/chat'),
+          isTrue);
+    });
+
+    test('a link that opened the app is not overridden', () {
+      expect(
+          LastLocation.shouldStartOver(
+              away: const Duration(days: 1),
+              leftFrom: recipe,
+              current: '/lists'),
+          isFalse);
+    });
+
+    test('Home, the splash and onboarding are left alone', () {
+      for (final place in ['/home', '/', '/onboarding/family']) {
+        expect(
+            LastLocation.shouldStartOver(
+                away: const Duration(days: 1), leftFrom: place, current: place),
+            isFalse,
+            reason: place);
+      }
+    });
+  });
 }

@@ -10,6 +10,7 @@ import '../../data/datasources/recipe_mapper.dart';
 import '../../domain/models/recipe.dart';
 import '../providers/recipe_providers.dart';
 import '../widgets/recipe_widgets.dart';
+import 'package:pure_pantry/shared/widgets/home_button.dart';
 
 /// Recipe browser — search, filter by cuisine, grid of recipe cards.
 class RecipeBrowserScreen extends ConsumerStatefulWidget {
@@ -134,6 +135,7 @@ class _RecipeBrowserScreenState extends ConsumerState<RecipeBrowserScreen> {
             tooltip: 'Import Recipe',
             onPressed: _importRecipe,
           ),
+          const HomeButton(),
         ],
       ),
       body: Column(

@@ -66,6 +66,21 @@ void main() {
       expect(quota.isStale, isTrue);
     });
 
+    test('knows when the trial has ended, even once stale', () {
+      final now = DateTime.now();
+      AiQuotaStatus at({required Duration trialEnd}) => AiQuotaStatus(
+            unlimited: true,
+            used: 1,
+            limit: 0,
+            remaining: -1,
+            resetAt: now.subtract(const Duration(days: 1)),
+            trialEndsAt: now.add(trialEnd),
+          );
+
+      expect(at(trialEnd: const Duration(days: -1)).trialEnded, isTrue);
+      expect(at(trialEnd: const Duration(days: 3)).trialEnded, isFalse);
+    });
+
     test('survives an encode/decode round trip', () {
       final original = AiQuotaStatus.fromJson(payload(
         unlimited: true,

@@ -31,6 +31,7 @@ import '../../domain/models/recipe.dart';
 import '../../data/services/recipe_image_service.dart';
 import '../providers/recipe_providers.dart';
 import '../widgets/recipe_widgets.dart';
+import 'package:pure_pantry/shared/widgets/home_button.dart';
 
 /// Full recipe detail — hero image, ingredients, instructions, nutrition.
 class RecipeDetailScreen extends ConsumerStatefulWidget {
@@ -325,6 +326,15 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 child: SliverAppBar(
                   expandedHeight: recipe.imageUrl != null ? 250 : 180,
                   pinned: true,
+                  // The actions fill the bar, so Home sits beside Back.
+                  automaticallyImplyLeading: false,
+                  leadingWidth: 104,
+                  leading: Row(
+                    children: [
+                      if (context.canPop()) const BackButton(),
+                      const HomeButton(),
+                    ],
+                  ),
                   actions: [
                     IconButton(
                       icon: const Icon(Icons.auto_awesome),

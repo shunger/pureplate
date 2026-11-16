@@ -25,15 +25,14 @@ interface QuotaDoc {
   lifetimeChatCount?: number;
 }
 
-const FREE_PLAN_LIMIT = 2;
-const FREE_CHAT_LIMIT = 10;
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const TRIAL_MS = 14 * 24 * 60 * 60 * 1000;
 
 /**
- * Checks and increments weekly usage quota for the given user.
- * Premium subscribers and users within the 14-day free trial bypass limits.
- * Resets automatically each week.
+ * Checks access and counts usage for the given user. AI plans and chat are
+ * free and unlimited for 14 days from the first use, then Premium only:
+ * there is no free weekly allowance. Usage is still counted weekly (and in
+ * total) for everyone, so the client can show it.
  *
  * @param uid - Firebase Auth UID
  * @param feature - "plan" or "chat"
@@ -77,7 +76,6 @@ export async function checkRateLimit(
       tx.set(docRef, {firstUsedAt: now}, {merge: true});
     }
 
-    const limit = feature === "plan" ? FREE_PLAN_LIMIT : FREE_CHAT_LIMIT;
     const field = feature === "plan" ? "planCount" : "chatCount";
     const lifetimeField =
       feature === "plan" ? "lifetimePlanCount" : "lifetimeChatCount";
@@ -87,12 +85,12 @@ export async function checkRateLimit(
     const inTrial = now < trialEndsAt;
     const unlimited = premium || inTrial;
 
-    if (!unlimited && used >= limit) {
+    if (!unlimited) {
       throw new HttpsError(
         "resource-exhausted",
-        `You've reached your weekly limit of ${limit} ${
-          feature === "plan" ? "meal plans" : "chat messages"
-        }. Upgrade to Premium for unlimited access.`
+        `Your 14-day free trial has ended. Upgrade to Premium to keep using ${
+          feature === "plan" ? "AI meal plans" : "AI chat"
+        }.`
       );
     }
 
@@ -111,8 +109,9 @@ export async function checkRateLimit(
     return {
       unlimited,
       used: used + 1,
-      limit,
-      remaining: unlimited ? -1 : Math.max(0, limit - (used + 1)),
+      // No free allowance outside the trial; kept for older app builds.
+      limit: 0,
+      remaining: -1,
       resetAt: data.weekStart + WEEK_MS,
       trialEndsAt: premium ? null : trialEndsAt,
     };

@@ -203,7 +203,10 @@ class AiPlanRepository {
             ? serverMessage
             : 'Something went wrong generating your plan. Try again?';
       case 'resource-exhausted':
-        return "You've used all your free plans this week. Upgrade to Premium for unlimited plans!";
+        // The server says why ("Your 14-day free trial has ended…").
+        return (serverMessage != null && serverMessage.isNotEmpty)
+            ? serverMessage
+            : 'Your free trial has ended. Upgrade to Premium to keep using AI meal plans.';
       case 'unavailable':
         return "The meal planner is temporarily unavailable. Try again in a moment.";
       case 'permission-denied':

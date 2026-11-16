@@ -11,6 +11,7 @@ import '../../domain/invite_link.dart';
 import '../providers/sharing_providers.dart';
 import '../widgets/invite_qr_code.dart';
 import '../widgets/join_pantry_sheet.dart';
+import 'package:pure_pantry/shared/widgets/home_button.dart';
 
 /// Shows shared pantry info, collaborator list, and invite code management.
 class CollaboratorsScreen extends ConsumerWidget {
@@ -28,6 +29,7 @@ class CollaboratorsScreen extends ConsumerWidget {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Shared Pantry'),
+        actions: const [HomeButton()],
       ),
       body: pantryAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),

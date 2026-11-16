@@ -6,8 +6,10 @@ import '../../../../core/routing/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/models/ai_quota.dart';
 import '../providers/quota_providers.dart';
+import '../../../settings/presentation/providers/settings_providers.dart';
 
-/// Shows what is left of the weekly free allowance *before* the user spends it.
+/// Shows how long the 14-day free trial has left, or that it has ended, before
+/// the user tries an AI feature.
 ///
 /// Renders nothing until the backend has reported usage at least once, and
 /// nothing at all for premium subscribers.
@@ -26,35 +28,32 @@ class QuotaHint extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final quota = ref.watch(provider);
-    if (quota == null || quota.isStale) return const SizedBox.shrink();
+    final premium =
+        ref.watch(isPremiumProvider).whenOrNull(data: (v) => v) ?? false;
+    if (quota == null || premium) return const SizedBox.shrink();
 
-    final trialEndsAt = quota.trialEndsAt;
-
-    if (quota.unlimited) {
-      // Premium: no allowance to report.
-      if (trialEndsAt == null) return const SizedBox.shrink();
-
-      final daysLeft = trialEndsAt.difference(DateTime.now()).inDays;
-      if (daysLeft < 0) return const SizedBox.shrink();
-
+    // After the trial AI is Premium only; there is no free allowance. (An
+    // older server's limited snapshot means the same thing now.)
+    if (quota.trialEnded || (!quota.unlimited && !quota.isStale)) {
       return _Hint(
-        icon: Icons.card_giftcard,
-        text: daysLeft == 0
-            ? 'Free trial ends today — unlimited ${unit}s until then'
-            : 'Free trial — $daysLeft ${daysLeft == 1 ? 'day' : 'days'} of '
-                'unlimited ${unit}s left',
-        emphasis: false,
+        icon: Icons.lock_outline,
+        text: 'Your free trial has ended — upgrade to keep using AI ${unit}s',
+        emphasis: true,
         onTap: () => context.push(Routes.premium),
       );
     }
 
-    final remaining = quota.remaining;
+    final trialEndsAt = quota.trialEndsAt;
+    if (quota.isStale || trialEndsAt == null) return const SizedBox.shrink();
+
+    final daysLeft = trialEndsAt.difference(DateTime.now()).inDays;
     return _Hint(
-      icon: remaining == 0 ? Icons.lock_outline : Icons.bolt_outlined,
-      text: remaining == 0
-          ? 'No free ${unit}s left this week — upgrade for unlimited'
-          : '$remaining of ${quota.limit} free ${unit}s left this week',
-      emphasis: remaining == 0,
+      icon: Icons.card_giftcard,
+      text: daysLeft == 0
+          ? 'Free trial ends today — unlimited ${unit}s until then'
+          : 'Free trial — $daysLeft ${daysLeft == 1 ? 'day' : 'days'} of '
+              'unlimited ${unit}s left',
+      emphasis: false,
       onTap: () => context.push(Routes.premium),
     );
   }

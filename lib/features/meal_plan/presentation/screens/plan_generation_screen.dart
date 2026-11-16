@@ -7,6 +7,7 @@ import '../../../../core/routing/route_names.dart';
 import '../providers/plan_generation_providers.dart';
 import '../providers/quota_providers.dart';
 import '../widgets/quota_hint.dart';
+import 'package:pure_pantry/shared/widgets/home_button.dart';
 
 /// Screen where users configure and trigger AI meal plan generation.
 ///
@@ -47,6 +48,7 @@ class _PlanGenerationScreenState extends ConsumerState<PlanGenerationScreen> {
           onPressed: () => context.pop(),
           tooltip: 'Close',
         ),
+        actions: const [HomeButton()],
       ),
       body: generationState.isGenerating
           ? _buildGeneratingView(context)

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import 'package:pure_pantry/shared/widgets/home_button.dart';
 
 /// Activity feed — stream of pantry changes from shared pantries.
 class ActivityFeedScreen extends ConsumerWidget {
@@ -15,6 +16,7 @@ class ActivityFeedScreen extends ConsumerWidget {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Activity Feed'),
+        actions: const [HomeButton()],
       ),
       body: Center(
         child: Padding(

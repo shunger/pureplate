@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/database_providers.dart';
 import '../../../../core/routing/route_names.dart';
+import 'package:pure_pantry/shared/widgets/home_button.dart';
 
 /// Shows expiring pantry items with suggestions to use them.
 /// "What can I make with what I have?" concept.
@@ -20,6 +21,7 @@ class InventorySuggestionsScreen extends ConsumerWidget {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Use What You Have'),
+        actions: const [HomeButton()],
       ),
       body: CustomScrollView(
         slivers: [

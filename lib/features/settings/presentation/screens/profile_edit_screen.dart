@@ -10,6 +10,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/database_providers.dart';
 import '../../../../shared/models/dietary_restriction.dart';
 import '../../../meal_plan/domain/models/family_profile.dart';
+import 'package:pure_pantry/shared/widgets/home_button.dart';
 
 /// Profile edit form — family size, dietary restrictions, cuisine preferences,
 /// cook time, budget level.
@@ -92,6 +93,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                 style: TextStyle(
                     fontWeight: FontWeight.w600, color: AppColors.coral)),
           ),
+          const HomeButton(),
         ],
       ),
       body: ListView(
