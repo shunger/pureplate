@@ -363,7 +363,8 @@ void main() {
       expect(local.map((l) => l.firestoreId), ['fs-shared']);
     });
 
-    test('are left when empty and a same-name list has items', () async {
+    test('are kept when empty if others use them, beside a same-name list',
+        () async {
       await insertList('l1');
       await insertItem('milk'); // "Groceries" has Milk
       when(() => service.getList('fs-shared'))
@@ -375,8 +376,33 @@ void main() {
       await settle();
 
       final local = await db.shoppingListDao.watchActiveLists().first;
+      expect(local.map((l) => l.id), containsAll(['l1']));
+      expect(local.map((l) => l.firestoreId), contains('fs-shared'));
+      verifyNever(() => service.removeCollaborator(any(), any()));
+      verifyNever(() => service.deleteSharedList(any()));
+    });
+
+    test('are removed when empty if only the user is on them', () async {
+      await insertList('l1');
+      await insertItem('milk');
+      const mine = SharedListInfo(
+        firestoreId: 'fs-mine',
+        name: 'groceries ',
+        ownerUid: _me,
+        collaborators: {
+          _me: ListCollaborator(uid: _me, role: 'owner', displayName: 'Me'),
+        },
+      );
+      when(() => service.getList('fs-mine')).thenAnswer((_) async => mine);
+
+      lists.add([mine]);
+      await settle();
+      itemStreams['fs-mine']!.add([]);
+      await settle();
+
+      final local = await db.shoppingListDao.watchActiveLists().first;
       expect(local.map((l) => l.id), ['l1']);
-      verify(() => service.removeCollaborator('fs-shared', _me)).called(1);
+      verify(() => service.deleteSharedList('fs-mine')).called(1);
     });
   });
 

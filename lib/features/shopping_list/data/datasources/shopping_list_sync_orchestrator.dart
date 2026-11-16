@@ -222,6 +222,9 @@ class ShoppingListSyncOrchestrator {
   /// When a shared list arrives and another active list has the same name
   /// (ignoring case and spacing), the empty one goes: the other list if it's
   /// empty, otherwise this one if it is. Lists that both have items stay.
+  ///
+  /// Only a list no one else uses is removed (see [_onlyMine]): an empty
+  /// shared list may just be between shopping trips for the other members.
   Future<void> _dropEmptyDuplicate(String firestoreListId) async {
     try {
       final list = await _dao.getListByFirestoreId(firestoreListId);
@@ -233,9 +236,10 @@ class ShoppingListSyncOrchestrator {
       if (others.isEmpty) return;
       final isEmpty = (await _dao.getItemsForList(list.id)).isEmpty;
       for (final other in others) {
-        if ((await _dao.getItemsForList(other.id)).isEmpty) {
+        if ((await _dao.getItemsForList(other.id)).isEmpty &&
+            await _onlyMine(other.firestoreId)) {
           await _removeDuplicate(other.id);
-        } else if (isEmpty) {
+        } else if (isEmpty && await _onlyMine(list.firestoreId)) {
           await _removeDuplicate(list.id);
           return;
         }
@@ -243,6 +247,26 @@ class ShoppingListSyncOrchestrator {
     } catch (e, stack) {
       debugPrint('[ListSync] duplicate check failed: $e');
       ErrorReporter.nonFatal(e, stack, 'Duplicate list check failed');
+    }
+  }
+
+  /// Whether removing a list affects only this user: it isn't shared, or the
+  /// user owns it and no one else is a member. If that can't be checked
+  /// (offline), the list stays.
+  Future<bool> _onlyMine(String? firestoreListId) async {
+    if (firestoreListId == null) return true;
+    final uid = _currentUid;
+    if (uid == null) return false;
+    try {
+      final info = await _sharingService
+          .getList(firestoreListId)
+          .timeout(const Duration(seconds: 15));
+      if (info == null) return true;
+      return info.ownerUid == uid &&
+          info.collaborators.keys.every((member) => member == uid);
+    } catch (e) {
+      debugPrint('[ListSync] could not check list members: $e');
+      return false;
     }
   }
 
